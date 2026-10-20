@@ -1,0 +1,331 @@
+[
+  {
+    "id": "dark-mount",
+    "name": "Midnight peaks",
+    "src": "./wallpapers/dark-mount.jpg",
+    "thumbnail": "./wallpapers/dark-mount-thumb.jpg",
+    "ambient": "./wallpapers/dark-mount-soft.jpg"
+  },
+  {
+    "id": "forrestclean",
+    "name": "Forest",
+    "src": "./wallpapers/forrestclean.jpg",
+    "thumbnail": "./wallpapers/forrestclean-thumb.jpg",
+    "ambient": "./wallpapers/forrestclean-soft.jpg"
+  },
+  {
+    "id": "pexels-85162939-9000967",
+    "name": "Golden trail",
+    "src": "./wallpapers/pexels-85162939-9000967.jpg",
+    "thumbnail": "./wallpapers/pexels-85162939-9000967-thumb.jpg",
+    "ambient": "./wallpapers/pexels-85162939-9000967-soft.jpg"
+  },
+  {
+    "id": "pexels-aleksey-marcov-7385090",
+    "name": "Autumn reflections",
+    "src": "./wallpapers/pexels-aleksey-marcov-7385090.jpg",
+    "thumbnail": "./wallpapers/pexels-aleksey-marcov-7385090-thumb.jpg",
+    "ambient": "./wallpapers/pexels-aleksey-marcov-7385090-soft.jpg"
+  },
+  {
+    "id": "pexels-aleksey-marcov-7385485",
+    "name": "Stillwater",
+    "src": "./wallpapers/pexels-aleksey-marcov-7385485.jpg",
+    "thumbnail": "./wallpapers/pexels-aleksey-marcov-7385485-thumb.jpg",
+    "ambient": "./wallpapers/pexels-aleksey-marcov-7385485-soft.jpg"
+  },
+  {
+    "id": "pexels-amel-uzunovic-440739273-15506949",
+    "name": "Misty ridges",
+    "src": "./wallpapers/pexels-amel-uzunovic-440739273-15506949.jpg",
+    "thumbnail": "./wallpapers/pexels-amel-uzunovic-440739273-15506949-thumb.jpg",
+    "ambient": "./wallpapers/pexels-amel-uzunovic-440739273-15506949-soft.jpg"
+  },
+  {
+    "id": "pexels-castorlystock-4112947",
+    "name": "Evening glow",
+    "src": "./wallpapers/pexels-castorlystock-4112947.jpg",
+    "thumbnail": "./wallpapers/pexels-castorlystock-4112947-thumb.jpg",
+    "ambient": "./wallpapers/pexels-castorlystock-4112947-soft.jpg"
+  },
+  {
+    "id": "pexels-connorscottmcmanus-13258030",
+    "name": "Above the clouds",
+    "src": "./wallpapers/pexels-connorscottmcmanus-13258030.jpg",
+    "thumbnail": "./wallpapers/pexels-connorscottmcmanus-13258030-thumb.jpg",
+    "ambient": "./wallpapers/pexels-connorscottmcmanus-13258030-soft.jpg"
+  },
+  {
+    "id": "pexels-connorscottmcmanus-13258081",
+    "name": "First light",
+    "src": "./wallpapers/pexels-connorscottmcmanus-13258081.jpg",
+    "thumbnail": "./wallpapers/pexels-connorscottmcmanus-13258081-thumb.jpg",
+    "ambient": "./wallpapers/pexels-connorscottmcmanus-13258081-soft.jpg"
+  },
+  {
+    "id": "pexels-holmboe-12829978",
+    "name": "Fields of gold",
+    "src": "./wallpapers/pexels-holmboe-12829978.jpg",
+    "thumbnail": "./wallpapers/pexels-holmboe-12829978-thumb.jpg",
+    "ambient": "./wallpapers/pexels-holmboe-12829978-soft.jpg"
+  },
+  {
+    "id": "pexels-hrum-108388755-15263918",
+    "name": "Quiet valley",
+    "src": "./wallpapers/pexels-hrum-108388755-15263918.jpg",
+    "thumbnail": "./wallpapers/pexels-hrum-108388755-15263918-thumb.jpg",
+    "ambient": "./wallpapers/pexels-hrum-108388755-15263918-soft.jpg"
+  },
+  {
+    "id": "pexels-jess-vide-5007767",
+    "name": "Coastal peaks",
+    "src": "./wallpapers/pexels-jess-vide-5007767.jpg",
+    "thumbnail": "./wallpapers/pexels-jess-vide-5007767-thumb.jpg",
+    "ambient": "./wallpapers/pexels-jess-vide-5007767-soft.jpg"
+  },
+  {
+    "id": "pexels-jplenio-10781049",
+    "name": "Crimson range",
+    "src": "./wallpapers/pexels-jplenio-10781049.jpg",
+    "thumbnail": "./wallpapers/pexels-jplenio-10781049-thumb.jpg",
+    "ambient": "./wallpapers/pexels-jplenio-10781049-soft.jpg"
+  },
+  {
+    "id": "pexels-jplenio-13299679",
+    "name": "Stormlight",
+    "src": "./wallpapers/pexels-jplenio-13299679.jpg",
+    "thumbnail": "./wallpapers/pexels-jplenio-13299679-thumb.jpg",
+    "ambient": "./wallpapers/pexels-jplenio-13299679-soft.jpg"
+  },
+  {
+    "id": "pexels-jurgen-32247829-7016412",
+    "name": "Woodland mist",
+    "src": "./wallpapers/pexels-jurgen-32247829-7016412.jpg",
+    "thumbnail": "./wallpapers/pexels-jurgen-32247829-7016412-thumb.jpg",
+    "ambient": "./wallpapers/pexels-jurgen-32247829-7016412-soft.jpg"
+  },
+  {
+    "id": "pexels-kienvirak-4801317",
+    "name": "Alpine dusk",
+    "src": "./wallpapers/pexels-kienvirak-4801317.jpg",
+    "thumbnail": "./wallpapers/pexels-kienvirak-4801317-thumb.jpg",
+    "ambient": "./wallpapers/pexels-kienvirak-4801317-soft.jpg"
+  },
+  {
+    "id": "pexels-kienvirak-4826343",
+    "name": "Sunset water",
+    "src": "./wallpapers/pexels-kienvirak-4826343.jpg",
+    "thumbnail": "./wallpapers/pexels-kienvirak-4826343-thumb.jpg",
+    "ambient": "./wallpapers/pexels-kienvirak-4826343-soft.jpg"
+  },
+  {
+    "id": "pexels-kienvirak-4991338",
+    "name": "Twilight lake",
+    "src": "./wallpapers/pexels-kienvirak-4991338.jpg",
+    "thumbnail": "./wallpapers/pexels-kienvirak-4991338-thumb.jpg",
+    "ambient": "./wallpapers/pexels-kienvirak-4991338-soft.jpg"
+  },
+  {
+    "id": "pexels-kienvirak-5498958",
+    "name": "High country",
+    "src": "./wallpapers/pexels-kienvirak-5498958.jpg",
+    "thumbnail": "./wallpapers/pexels-kienvirak-5498958-thumb.jpg",
+    "ambient": "./wallpapers/pexels-kienvirak-5498958-soft.jpg"
+  },
+  {
+    "id": "pexels-kienvirak-6656089",
+    "name": "Sunlit shore",
+    "src": "./wallpapers/pexels-kienvirak-6656089.jpg",
+    "thumbnail": "./wallpapers/pexels-kienvirak-6656089-thumb.jpg",
+    "ambient": "./wallpapers/pexels-kienvirak-6656089-soft.jpg"
+  },
+  {
+    "id": "pexels-l-c-nguy-n-557025598-33297961",
+    "name": "Silhouette",
+    "src": "./wallpapers/pexels-l-c-nguy-n-557025598-33297961.jpg",
+    "thumbnail": "./wallpapers/pexels-l-c-nguy-n-557025598-33297961-thumb.jpg",
+    "ambient": "./wallpapers/pexels-l-c-nguy-n-557025598-33297961-soft.jpg"
+  },
+  {
+    "id": "pexels-lichtblick800-30299053",
+    "name": "Little visitor",
+    "src": "./wallpapers/pexels-lichtblick800-30299053.jpg",
+    "thumbnail": "./wallpapers/pexels-lichtblick800-30299053-thumb.jpg",
+    "ambient": "./wallpapers/pexels-lichtblick800-30299053-soft.jpg"
+  },
+  {
+    "id": "pexels-mauriziof-37954902",
+    "name": "Winter reflections",
+    "src": "./wallpapers/pexels-mauriziof-37954902.jpg",
+    "thumbnail": "./wallpapers/pexels-mauriziof-37954902-thumb.jpg",
+    "ambient": "./wallpapers/pexels-mauriziof-37954902-soft.jpg"
+  },
+  {
+    "id": "pexels-nasmilanov-13291947",
+    "name": "Open hills",
+    "src": "./wallpapers/pexels-nasmilanov-13291947.jpg",
+    "thumbnail": "./wallpapers/pexels-nasmilanov-13291947-thumb.jpg",
+    "ambient": "./wallpapers/pexels-nasmilanov-13291947-soft.jpg"
+  },
+  {
+    "id": "pexels-nuptune-11467016",
+    "name": "Lavender horizon",
+    "src": "./wallpapers/pexels-nuptune-11467016.jpg",
+    "thumbnail": "./wallpapers/pexels-nuptune-11467016-thumb.jpg",
+    "ambient": "./wallpapers/pexels-nuptune-11467016-soft.jpg"
+  },
+  {
+    "id": "pexels-quang-nguyen-vinh-222549-10615066",
+    "name": "Morning mist",
+    "src": "./wallpapers/pexels-quang-nguyen-vinh-222549-10615066.jpg",
+    "thumbnail": "./wallpapers/pexels-quang-nguyen-vinh-222549-10615066-thumb.jpg",
+    "ambient": "./wallpapers/pexels-quang-nguyen-vinh-222549-10615066-soft.jpg"
+  },
+  {
+    "id": "pexels-quang-nguyen-vinh-222549-10615067",
+    "name": "Emerald ridges",
+    "src": "./wallpapers/pexels-quang-nguyen-vinh-222549-10615067.jpg",
+    "thumbnail": "./wallpapers/pexels-quang-nguyen-vinh-222549-10615067-thumb.jpg",
+    "ambient": "./wallpapers/pexels-quang-nguyen-vinh-222549-10615067-soft.jpg"
+  },
+  {
+    "id": "pexels-quang-nguyen-vinh-222549-14036334",
+    "name": "Blue hour",
+    "src": "./wallpapers/pexels-quang-nguyen-vinh-222549-14036334.jpg",
+    "thumbnail": "./wallpapers/pexels-quang-nguyen-vinh-222549-14036334-thumb.jpg",
+    "ambient": "./wallpapers/pexels-quang-nguyen-vinh-222549-14036334-soft.jpg"
+  },
+  {
+    "id": "pexels-quang-nguyen-vinh-222549-2131801",
+    "name": "Lone tree",
+    "src": "./wallpapers/pexels-quang-nguyen-vinh-222549-2131801.jpg",
+    "thumbnail": "./wallpapers/pexels-quang-nguyen-vinh-222549-2131801-thumb.jpg",
+    "ambient": "./wallpapers/pexels-quang-nguyen-vinh-222549-2131801-soft.jpg"
+  },
+  {
+    "id": "pexels-quang-nguyen-vinh-222549-2131844",
+    "name": "Reflections",
+    "src": "./wallpapers/pexels-quang-nguyen-vinh-222549-2131844.jpg",
+    "thumbnail": "./wallpapers/pexels-quang-nguyen-vinh-222549-2131844-thumb.jpg",
+    "ambient": "./wallpapers/pexels-quang-nguyen-vinh-222549-2131844-soft.jpg"
+  },
+  {
+    "id": "pexels-quang-nguyen-vinh-222549-2649403",
+    "name": "Island mist",
+    "src": "./wallpapers/pexels-quang-nguyen-vinh-222549-2649403.jpg",
+    "thumbnail": "./wallpapers/pexels-quang-nguyen-vinh-222549-2649403-thumb.jpg",
+    "ambient": "./wallpapers/pexels-quang-nguyen-vinh-222549-2649403-soft.jpg"
+  },
+  {
+    "id": "pexels-robert-clark-504241532-21031988",
+    "name": "Soft horizon",
+    "src": "./wallpapers/pexels-robert-clark-504241532-21031988.jpg",
+    "thumbnail": "./wallpapers/pexels-robert-clark-504241532-21031988-thumb.jpg",
+    "ambient": "./wallpapers/pexels-robert-clark-504241532-21031988-soft.jpg"
+  },
+  {
+    "id": "pexels-rperucho-20989095",
+    "name": "Glass lake",
+    "src": "./wallpapers/pexels-rperucho-20989095.jpg",
+    "thumbnail": "./wallpapers/pexels-rperucho-20989095-thumb.jpg",
+    "ambient": "./wallpapers/pexels-rperucho-20989095-soft.jpg"
+  },
+  {
+    "id": "pexels-sanaan-3075993",
+    "name": "City lights",
+    "src": "./wallpapers/pexels-sanaan-3075993.jpg",
+    "thumbnail": "./wallpapers/pexels-sanaan-3075993-thumb.jpg",
+    "ambient": "./wallpapers/pexels-sanaan-3075993-soft.jpg"
+  },
+  {
+    "id": "pexels-sujasen-16136282",
+    "name": "Cloud study",
+    "src": "./wallpapers/pexels-sujasen-16136282.jpg",
+    "thumbnail": "./wallpapers/pexels-sujasen-16136282-thumb.jpg",
+    "ambient": "./wallpapers/pexels-sujasen-16136282-soft.jpg"
+  },
+  {
+    "id": "pexels-suketdedhia-570032",
+    "name": "Layers",
+    "src": "./wallpapers/pexels-suketdedhia-570032.jpg",
+    "thumbnail": "./wallpapers/pexels-suketdedhia-570032-thumb.jpg",
+    "ambient": "./wallpapers/pexels-suketdedhia-570032-soft.jpg"
+  },
+  {
+    "id": "pexels-suketdedhia-671658",
+    "name": "Alpine light",
+    "src": "./wallpapers/pexels-suketdedhia-671658.jpg",
+    "thumbnail": "./wallpapers/pexels-suketdedhia-671658-thumb.jpg",
+    "ambient": "./wallpapers/pexels-suketdedhia-671658-soft.jpg"
+  },
+  {
+    "id": "pexels-svonhorst-13588735",
+    "name": "Open moor",
+    "src": "./wallpapers/pexels-svonhorst-13588735.jpg",
+    "thumbnail": "./wallpapers/pexels-svonhorst-13588735-thumb.jpg",
+    "ambient": "./wallpapers/pexels-svonhorst-13588735-soft.jpg"
+  },
+  {
+    "id": "pexels-thongtran95-17643093",
+    "name": "Evening sky",
+    "src": "./wallpapers/pexels-thongtran95-17643093.jpg",
+    "thumbnail": "./wallpapers/pexels-thongtran95-17643093-thumb.jpg",
+    "ambient": "./wallpapers/pexels-thongtran95-17643093-soft.jpg"
+  },
+  {
+    "id": "pexels-tomfisk-17226563",
+    "name": "Meadow light",
+    "src": "./wallpapers/pexels-tomfisk-17226563.jpg",
+    "thumbnail": "./wallpapers/pexels-tomfisk-17226563-thumb.jpg",
+    "ambient": "./wallpapers/pexels-tomfisk-17226563-soft.jpg"
+  },
+  {
+    "id": "pexels-tomfisk-6504972",
+    "name": "Dry country",
+    "src": "./wallpapers/pexels-tomfisk-6504972.jpg",
+    "thumbnail": "./wallpapers/pexels-tomfisk-6504972-thumb.jpg",
+    "ambient": "./wallpapers/pexels-tomfisk-6504972-soft.jpg"
+  },
+  {
+    "id": "pexels-tomfisk-8192162",
+    "name": "Pink shoreline",
+    "src": "./wallpapers/pexels-tomfisk-8192162.jpg",
+    "thumbnail": "./wallpapers/pexels-tomfisk-8192162-thumb.jpg",
+    "ambient": "./wallpapers/pexels-tomfisk-8192162-soft.jpg"
+  },
+  {
+    "id": "pexels-tommes-frites-1141358642-34540415",
+    "name": "Pier at dusk",
+    "src": "./wallpapers/pexels-tommes-frites-1141358642-34540415.jpg",
+    "thumbnail": "./wallpapers/pexels-tommes-frites-1141358642-34540415-thumb.jpg",
+    "ambient": "./wallpapers/pexels-tommes-frites-1141358642-34540415-soft.jpg"
+  },
+  {
+    "id": "pexels-tommes-frites-1141358642-35697278",
+    "name": "Blue pier",
+    "src": "./wallpapers/pexels-tommes-frites-1141358642-35697278.jpg",
+    "thumbnail": "./wallpapers/pexels-tommes-frites-1141358642-35697278-thumb.jpg",
+    "ambient": "./wallpapers/pexels-tommes-frites-1141358642-35697278-soft.jpg"
+  },
+  {
+    "id": "pexels-trungnguyenphotog-2411245",
+    "name": "Mountain mirror",
+    "src": "./wallpapers/pexels-trungnguyenphotog-2411245.jpg",
+    "thumbnail": "./wallpapers/pexels-trungnguyenphotog-2411245-thumb.jpg",
+    "ambient": "./wallpapers/pexels-trungnguyenphotog-2411245-soft.jpg"
+  },
+  {
+    "id": "pexels-vishnu-panday-94089132-12123474",
+    "name": "Amber haze",
+    "src": "./wallpapers/pexels-vishnu-panday-94089132-12123474.jpg",
+    "thumbnail": "./wallpapers/pexels-vishnu-panday-94089132-12123474-thumb.jpg",
+    "ambient": "./wallpapers/pexels-vishnu-panday-94089132-12123474-soft.jpg"
+  },
+  {
+    "id": "pexels-vittoriostaffolani-1606327",
+    "name": "Desert folds",
+    "src": "./wallpapers/pexels-vittoriostaffolani-1606327.jpg",
+    "thumbnail": "./wallpapers/pexels-vittoriostaffolani-1606327-thumb.jpg",
+    "ambient": "./wallpapers/pexels-vittoriostaffolani-1606327-soft.jpg"
+  }
+]

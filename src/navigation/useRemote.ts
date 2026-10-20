@@ -1,11 +1,12 @@
 import { useEffect, useRef } from 'react';
-import { nextFocus, remoteKey, tabFocus, type FocusRows } from './remote';
+import { nextFocus, remoteKey, tabFocus, type Direction, type FocusRows } from './remote';
 
 interface RemoteState {
   rows: FocusRows;
   current: string;
   focus(id: string): void;
   back(): void;
+  direction?(direction: Direction, current: string): boolean | string;
 }
 
 export function useRemote(state: RemoteState) {
@@ -22,6 +23,15 @@ export function useRemote(state: RemoteState) {
         // Holding Enter must not open a panel and immediately activate its first option.
         if (!event.repeat) document.getElementById(active.current)?.click();
         return;
+      }
+      if (key !== 'tab') {
+        const override = active.direction?.(key, active.current);
+        if (typeof override === 'string') {
+          latest.current = { ...active, current: override };
+          active.focus(override);
+          return;
+        }
+        if (override) return;
       }
       const id = key === 'tab'
         ? tabFocus(active.rows, active.current, event.shiftKey)

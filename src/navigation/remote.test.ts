@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { homeRows, settingsRows } from './layout';
+import { homeRows, settingsLayout } from './layout';
 import { nextFocus, remoteKey, tabFocus } from './remote';
 
 describe('remote navigation', () => {
@@ -10,23 +10,24 @@ describe('remote navigation', () => {
     assert.equal(remoteKey({ key: 'Unidentified', keyCode: 40 }), 'down');
     assert.equal(remoteKey({ key: 'MediaPlay', keyCode: 415 }), null);
   });
-  it('reaches all eight tiles and stays at row boundaries under repeated input', () => {
-    let id = nextFocus(homeRows, 'hero-usb', 'down');
+  it('reaches all seven tiles and the Media prompt without a redundant USB tile', () => {
+    let id = 'app-youtube';
     const visited = [id];
     for (let i = 0; i < 15; i++) { id = nextFocus(homeRows, id, 'right'); visited.push(id); }
-    assert.equal(new Set(visited).size, 8);
+    assert.equal(new Set(visited).size, 7);
     assert.equal(id, 'app-settings');
-    assert.equal(nextFocus(homeRows, id, 'down'), id);
-    assert.equal(nextFocus(homeRows, 'app-usb', 'left'), 'app-usb');
+    assert.equal(nextFocus(homeRows, id, 'down'), 'home-media');
+    assert.equal(nextFocus(homeRows, 'app-youtube', 'left'), 'app-youtube');
   });
   it('moves vertically to the nearest column and provides a route out of each row', () => {
-    assert.equal(nextFocus(homeRows, 'app-settings', 'up'), 'hero-personalise');
-    assert.equal(nextFocus(homeRows, 'hero-personalise', 'up'), 'top-settings');
-    assert.equal(nextFocus(settingsRows, 'motion-off', 'up'), 'wallpaper-dusk');
-    assert.equal(nextFocus(settingsRows, 'theme-warm', 'up'), 'settings-close');
+    const settingsRows = settingsLayout('appearance', 0);
+    assert.equal(nextFocus(homeRows, 'app-settings', 'up'), 'top-network');
+    assert.equal(nextFocus(settingsRows, 'motion-off', 'up'), 'theme-warm');
+    assert.equal(nextFocus(settingsRows, 'theme-warm', 'up'), 'settings-tab-usb');
   });
   it('contains Tab navigation in the active panel with reverse traversal', () => {
-    assert.equal(tabFocus(settingsRows, 'motion-off', false), 'settings-close');
-    assert.equal(tabFocus(settingsRows, 'settings-close', true), 'motion-off');
+    const settingsRows = settingsLayout('weather', 0);
+    assert.equal(tabFocus(settingsRows, 'city-hobart', false), 'settings-close');
+    assert.equal(tabFocus(settingsRows, 'settings-close', true), 'city-hobart');
   });
 });

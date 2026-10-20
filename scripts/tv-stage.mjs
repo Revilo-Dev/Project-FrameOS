@@ -29,7 +29,7 @@ function protectedFile(relative, metadata) {
     || metadata.resources.some((resource) => lower === resource.toLowerCase());
 }
 
-function validateOwned(files, metadata) {
+export function validateOwned(files, metadata) {
   if (!files || typeof files !== 'object' || Array.isArray(files)) throw new Error('Invalid deployment ownership ledger.');
   for (const [relative, hash] of Object.entries(files)) {
     localPath(relative);

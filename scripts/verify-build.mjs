@@ -31,9 +31,10 @@ for (const script of scriptPaths) {
   }
   total += Buffer.byteLength(source);
 }
-for (const name of ['tidal', 'dune', 'dusk']) {
-  for (const suffix of ['', '-soft']) await stat(new URL(`wallpapers/${name}${suffix}.jpg`, directory));
-}
+const wallpapers = JSON.parse(await readFile(new URL('../src/services/wallpaper-catalog.json', import.meta.url), 'utf8'));
+assert(wallpapers.length > 0 && new Set(wallpapers.map(item => item.id)).size === wallpapers.length, 'Wallpaper catalog must contain unique entries');
+for (const wallpaper of wallpapers) for (const field of ['src', 'thumbnail', 'ambient']) await stat(new URL(wallpaper[field], directory));
+for (const file of ['frameos.svg', 'gallery.svg', 'settings.svg', 'yt.svg', 'fonts/LibreCaslonText-Bold.ttf', 'fonts/OFL.txt']) await stat(new URL(`assets/${file}`, directory));
 const assets = await readdir(new URL('assets/', directory));
 for (const file of assets.filter((name) => name.endsWith('.css'))) {
   styles.push(await readFile(new URL(join('assets', file), directory), 'utf8'));

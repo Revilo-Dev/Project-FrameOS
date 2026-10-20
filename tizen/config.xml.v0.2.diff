@@ -1,0 +1,12 @@
+--- existing-project/config.xml
++++ packaging-copy/config.xml
+@@ -9,4 +9,9 @@
+     <name>frameos</name>
+     <tizen:profile name="tv-samsung"/>
+     <tizen:setting screen-orientation="landscape" context-menu="enable" background-support="disable" encryption="disable" install-location="auto" hwkey-event="enable"/>
++    <tizen:privilege name="http://tizen.org/privilege/filesystem.read"/>
++    <tizen:privilege name="http://tizen.org/privilege/externalstorage"/>
++    <tizen:privilege name="http://tizen.org/privilege/internet"/>
++    <access origin="https://api.open-meteo.com" subdomains="false"/>
++    <tizen:content-security-policy>default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.open-meteo.com; object-src 'none'; base-uri 'none'; frame-src 'none'</tizen:content-security-policy>
+ </widget>

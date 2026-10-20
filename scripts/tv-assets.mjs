@@ -77,14 +77,38 @@ export async function validateProduction(directory) {
     } else if (extension === '.css') pending.push(...cssReferences(text, relative));
     else {
       const nodes = [parse(text, { ecmaVersion: 2019, sourceType: 'script' })];
+      const literalReferences = (value) => {
+        if (typeof value !== 'string') return;
+        if (/^\.\.?\//.test(value) && /\.[a-z\d]{1,8}(?:[?#].*)?$/i.test(value)) {
+          const found = reference(value, relative, { root: !/\.js(?:[?#]|$)/.test(value) });
+          if (found) pending.push(found);
+        }
+      };
       while (nodes.length) {
         const node = nodes.pop();
+        // Vite resolves public font URLs against the SystemJS chunk's meta.url.
+        // These are real runtime assets even when the URL lacks a './' prefix.
+        if (node.type === 'NewExpression' && node.callee.type === 'Identifier' && node.callee.name === 'URL'
+            && node.arguments[0]?.type === 'Literal' && typeof node.arguments[0].value === 'string'
+            && node.arguments[1]?.type === 'MemberExpression' && node.arguments[1].property.name === 'url'
+            && node.arguments[1].object?.type === 'MemberExpression' && node.arguments[1].object.property.name === 'meta') {
+          const found = reference(node.arguments[0].value, relative);
+          if (found) pending.push(found);
+        }
         if (node.type === 'Literal' && typeof node.value === 'string') {
           const value = node.value;
-          if (/^\.\.?\//.test(value) && /\.[a-z\d]{1,8}(?:[?#].*)?$/i.test(value)) {
-            // Launcher runtime asset URLs resolve against index.html, not the JS chunk.
-            const found = reference(value, relative, { root: !/\.js(?:[?#]|$)/.test(value) });
-            if (found) pending.push(found);
+          literalReferences(value);
+          // Large imported JSON catalogs are emitted as JSON.parse('...').
+          // Inspect their data as well; otherwise every wallpaper is omitted.
+          if (/^\s*[\[{]/.test(value)) {
+            let json;
+            try { json = JSON.parse(value); } catch { /* Not a JSON data literal. */ }
+            const values = [json];
+            while (values.length) {
+              const item = values.pop();
+              if (item && typeof item === 'object') values.push(...Object.values(item));
+              else literalReferences(item);
+            }
           }
           if (value.includes('url(') || value.includes('@import')) pending.push(...cssReferences(value, 'index.html'));
         }

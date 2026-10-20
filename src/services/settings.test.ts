@@ -1,18 +1,23 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { DEFAULT_SETTINGS, loadSettings, saveSettings, SETTINGS_KEY } from './settings';
+import { wallpapers } from './wallpapers';
 
 describe('settings persistence', () => {
+  it('preserves theme and motion and replaces a removed v0.1 wallpaper with the new default', () => {
+    const storage = { getItem: () => JSON.stringify({ version: 1, theme: 'warm', wallpaper: 'dusk', motion: 'off' }), setItem() {} };
+    assert.deepEqual(loadSettings(storage), { ...DEFAULT_SETTINGS, theme: 'warm', motion: 'off' });
+  });
   it('round trips settings across sessions', () => {
     const values = new Map<string, string>();
     const storage = { getItem: (key: string) => values.get(key) || null, setItem: (key: string, value: string) => { values.set(key, value); } };
-    const settings = { ...DEFAULT_SETTINGS, theme: 'warm' as const, wallpaper: 'dusk' as const, motion: 'off' as const };
+    const settings = { ...DEFAULT_SETTINGS, theme: 'warm' as const, wallpaper: wallpapers[46].id, motion: 'off' as const, showFps: false, timeFormat: '24h' as const, timeZone: 'America/New_York' };
     assert.equal(saveSettings(storage, settings), true);
     assert.deepEqual(loadSettings(storage), settings);
     assert.equal(values.has(SETTINGS_KEY), true);
   });
   it('recovers safely from malformed, invalid and future-version data', () => {
-    for (const data of ['{invalid', 'null', '5', '{"version":2,"theme":"warm"}', '{"version":1,"theme":"invalid","wallpaper":42,"motion":null}']) {
+    for (const data of ['{invalid', 'null', '5', '{"version":2,"theme":"warm"}', '{"version":1,"theme":"invalid","wallpaper":42,"motion":null,"timeFormat":"invalid","timeZone":"invalid/zone"}']) {
       assert.deepEqual(loadSettings({ getItem: () => data, setItem() {} }), DEFAULT_SETTINGS);
     }
   });

@@ -17,7 +17,7 @@ npm run deploy:tv
 | `npm run check:tv` | Checks SDK tools, metadata, certificate availability and author continuity against the known-good WGT, then the exact SDB serial/model. Does not stage or install. |
 | `npm run stage:tv` | Builds with the existing Chromium 69 configuration, validates referenced production files, verifies/creates the original backup, and stages required frontend files. No signing, TV connection or installation required. |
 | `npm run deploy:tv` | Checks prerequisites and the TV; builds/stages; creates a fresh local packaging copy; builds/signs/verifies the WGT; rechecks the TV/manifest; installs and launches. Stops on the first failure. |
-| `node scripts/tv.mjs package` | Optional local build/stage/sign/verify check. Never installs or launches and does not require a TV connection. |
+| `node scripts/tv.mjs package` | Builds/signs/verifies in a fresh local copy without staging or changing any original Tizen project file. Never installs/launches or requires a TV connection. |
 
 `scripts/tv.config.json` explicitly selects:
 
@@ -30,7 +30,9 @@ npm run deploy:tv
 - Reference package: the original `frameos.wgt` in the existing project
 - Pinned author SHA-256: `52abc2ad0bbfa4e2aea4a9effd08efa7e4f535a8b23ec7ebcff45fa425ddcc6c`
 
-The existing manifest supplies application `TdjFk7yyVS.frameos`, package `TdjFk7yyVS`, version `1.0.0` and entry `index.html`. These values are read from XML rather than guessed or rewritten. The entire manifest, icon, privileges, signing configuration and unrelated resources are preserved. A different content entry is rejected rather than changing `config.xml`.
+The existing manifest supplies application `TdjFk7yyVS.frameos`, package `TdjFk7yyVS`, widget version `1.0.0` and entry `index.html`. These values are read from XML rather than guessed or rewritten. The protected source manifest, icon, signing configuration and unrelated resources are preserved. A different content entry is rejected rather than changing `config.xml`.
+
+For frontend v0.2, `scripts/tv.config.json` selects the reviewed [packaging policy](../tizen/README.md). Only the fresh local packaging copy receives read-only USB privileges (`filesystem.read`, `externalstorage`), `internet`, the single Open-Meteo API access origin and a narrow CSP. Review the [exact XML diff](../tizen/config.xml.v0.2.diff). The original manifest must match its pinned SHA-256, and none of its existing bytes or metadata are rewritten. No filesystem write or geolocation permission is requested. Native storage-listener APIs can require write permission; the adapter falls back to active Media Hub discovery when the listener is blocked.
 
 The author in the original signed WGT and original `.sign/author-signature.xml` matches the existing `revilodev-frameos` profile. The profile named `frameos` uses a different author and caused TV error `118, -11: Author certificate not match`. Signing now explicitly uses `-s revilodev-frameos`; the global active profile is not switched, and no profiles, keys or certificates are modified.
 
@@ -55,7 +57,7 @@ tizen build-web -- <fresh-project-copy>
 tizen package -t wgt -s revilodev-frameos -- <fresh-project-copy>\.buildResult
 ```
 
-The WGT ZIP must contain both author/distributor signatures, the pinned matching author certificate, byte-identical manifest/resources and verified frontend hashes. Duplicate/unsafe entries, nested WGTs and included private signing material are rejected. These checks establish packaging integrity and author continuity; the TV still validates certificate trust and device installation permissions.
+The WGT ZIP must contain both author/distributor signatures, the pinned matching author certificate, the exact expected **patched packaging manifest**, byte-identical resources and verified frontend hashes. The protected source manifest is independently checked against its unchanged original hash. Each package directory includes `manifest-policy.json` recording both hashes. Duplicate/unsafe entries, nested WGTs and included private signing material are rejected. These checks establish packaging integrity and author continuity; the TV still validates certificate trust and device installation permissions.
 
 Immediately before installing, the exact SDB serial must still be in `device` state with the expected model, and the original manifest must still match. Then:
 
@@ -77,7 +79,7 @@ npm run test:e2e
 npm run check:tv
 npm run stage:tv
 npm run stage:tv  # Should report zero changes for the same build
-node scripts/tv.mjs package  # Optional local signing/archive verification
+node scripts/tv.mjs package  # Local signing/archive verification; external project unchanged
 ```
 
 On a new machine, install the test browser with `npx playwright install chromium`. Pipeline tests use isolated ignored fixtures and simulated SDK operations; they never deploy to the TV. They exercise backups, repeated staging, stale cleanup, collision/edit refusal, partial-failure rollback, locking, and stopping at each failure. Browser tests include direct production `file:` loading without security overrides.
@@ -95,6 +97,6 @@ The pipeline never changes authorization or certificate profiles to bypass a fai
 
 If `deploy.lock` remains, inspect its recorded PID and confirm the process has stopped before removing only that lock file. If `pending.json` exists, inspect its recovery directory and listed changed/removed paths, then restore only affected frontend files from the pre-stage copies. Resolve concurrent manual edits before clearing the pending record. Preserve the original backup, `original.json` and `managed.json`. Missing/damaged original backups must be restored before further staging.
 
-The known-good original signed WGT remains at `C:\Users\revil\workspace\frameos\frameos.wgt` and in the immutable backup. Reinstalling it is a separate, explicitly approved TV action; no automatic rollback is performed.
+The known-good original signed WGT remains at `C:\Users\revil\workspace\frameos\frameos.wgt` and in the immutable backup. A verified v0.1 rollback WGT is also preserved at `artifacts/releases/v0.1/frameos-v0.1.wgt`, accompanied by its release record and expected file hashes. Its SHA-256 is `479b713bb67ff8940dabd2e0f6c4cab9a8dca64eeb42a05a18bc600093f7a70a`. Keep the rollback directory. Reinstalling either package is a separate, explicitly approved TV action; no automatic rollback is performed.
 
 The first user-run installation was rejected because the old configured author did not match the installed app. It was not uninstalled or replaced. After correcting the selected existing profile and validating locally, run `npm run deploy:tv` again from this repository to retry the update. The obsolete `C:\samsungdev\frameos-ui` path does not exist and is not needed.

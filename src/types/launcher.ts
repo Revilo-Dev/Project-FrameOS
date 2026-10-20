@@ -1,4 +1,4 @@
-export type IconName = 'usb' | 'play' | 'stan' | 'foxtel' | 'gallery' | 'art' | 'browser' | 'settings' | 'arrow' | 'close' | 'check' | 'home' | 'moon';
+export type IconName = 'usb' | 'play' | 'stan' | 'foxtel' | 'gallery' | 'art' | 'browser' | 'settings' | 'arrow' | 'close' | 'check' | 'home' | 'moon' | 'file' | 'music';
 
 export type NativeAction =
   | { type: 'usb' }

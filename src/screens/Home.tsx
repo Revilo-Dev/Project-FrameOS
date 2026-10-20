@@ -1,48 +1,28 @@
 import { FocusButton } from '../components/FocusButton';
 import { Icon } from '../components/Icon';
 import { Clock } from '../components/Clock';
+import { WeatherWidget } from '../components/WeatherWidget';
+import { FpsCounter } from '../components/FpsCounter';
 import { launcherItems } from '../services/catalog';
 import type { LauncherItem } from '../types/launcher';
+import type { WeatherCity, TimeFormat } from '../types/settings';
 
 interface Props {
-  focused: string;
-  focus(id: string): void;
-  open(item: LauncherItem, origin: string): void;
-  personalise(origin: string, wallpaper?: boolean): void;
-  wallpaper: string;
-  platform: string;
-  inactive: boolean;
+  focused: string; focus(id: string): void; open(item: LauncherItem, origin: string): void;
+  personalise(origin: string): void; showMedia(origin: string): void;
+  network(): void; power(): void; online: boolean; showFps: boolean;
+  weatherCity: WeatherCity; inactive: boolean; hidden: boolean;
+  timeFormat: TimeFormat; timeZone: string;
 }
-
-export function Home({ focused, focus, open, personalise, wallpaper, platform, inactive }: Props) {
-  return <main className="home" aria-hidden={inactive || undefined}>
+const appIcons: Record<string, string> = { youtube: './assets/yt.svg', gallery: './assets/gallery.svg', settings: './assets/settings.svg' };
+export function Home({ focused, focus, open, personalise, weatherCity, inactive, hidden, showMedia, network, power, online, showFps, timeFormat, timeZone }: Props) {
+  return <main className={`home${hidden ? ' home-away' : ''}`} aria-hidden={inactive || hidden || undefined}>
     <header className="topbar">
-      <div className="brand"><span className="brand-mark"><i /><i /></span><span>frame<span className="brand-light">os</span><sup>01</sup></span></div>
-      <div className="home-label"><span className="tiny-dot" /> Your home, reimagined</div>
-      <div className="topbar-end"><Clock /><span className="topbar-divider" />
-        <FocusButton id="top-settings" focused={focused} onFocused={focus} className="round-button" aria-label="Open settings" onClick={() => personalise('top-settings')}><Icon name="settings" /></FocusButton>
-      </div>
+      <div className="brand"><img className="brand-logo" src="./assets/frameos.svg" alt="FrameOS" />{showFps && !hidden && <FpsCounter />}</div>
+      <div className="topbar-controls"><FocusButton id="top-settings" focused={focused} onFocused={focus} className="round-button" aria-label="Open settings" onClick={() => personalise('top-settings')}><img src="./assets/settings.svg" alt="" /></FocusButton><FocusButton id="top-network" focused={focused} onFocused={focus} className={`round-button${online ? '' : ' network-offline'}`} aria-label="Network status" onClick={network}><svg className="icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M6 17a28 28 0 0 1 36 0M12 25a19 19 0 0 1 24 0M19 32a8 8 0 0 1 10 0" /><circle cx="24" cy="39" r="1.5" />{!online && <path d="M7 7l34 34" />}</svg></FocusButton><FocusButton id="top-power" focused={focused} onFocused={focus} className="round-button" aria-label="Exit FrameOS" onClick={power}><svg className="icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M24 5v20M14 11a18 18 0 1 0 20 0" /></svg></FocusButton></div>
     </header>
-    <section className="hero" aria-labelledby="hero-title">
-      <div className="eyebrow"><span className="short-rule" /> WELCOME HOME</div>
-      <h1 id="hero-title">Your screen.<br /><span>Your space.</span></h1>
-      <p>A little entertainment. A little inspiration.<br />Everything you love, right at home.</p>
-      <div className="hero-actions">
-        <FocusButton id="hero-usb" focused={focused} onFocused={focus} className="primary-button" onClick={() => open(launcherItems[0], 'hero-usb')}><Icon name="usb" /><span>USB Media</span><Icon name="arrow" /></FocusButton>
-        <FocusButton id="hero-personalise" focused={focused} onFocused={focus} className="quiet-button" onClick={() => personalise('hero-personalise', true)}>Make it yours <Icon name="arrow" /></FocusButton>
-      </div>
-      <div className="wallpaper-caption"><span className="caption-line" /><span>{wallpaper}<small>THE FRAMEOS COLLECTION</small></span><span className="wallpaper-index">0{['Tidal', 'Dune', 'Dusk'].indexOf(wallpaper) + 1} / 03</span></div>
-    </section>
-    <section className="favourites" aria-labelledby="favourites-title">
-      <div className="section-heading"><div><span className="eyebrow">A FEW OF YOUR FAVOURITES</span><h2 id="favourites-title">Settle into something good.</h2></div><span className="section-aside">A space for every kind of evening.</span></div>
-      <div className="app-row">
-        {launcherItems.map((item) => <FocusButton key={item.id} id={`app-${item.id}`} focused={focused} onFocused={focus}
-          className={`app-tile tile-${item.id}`} aria-label={`${item.name}${item.availability === 'planned' ? ', coming in a future version' : ''}`} onClick={() => open(item, `app-${item.id}`)}>
-          <span className="app-art"><Icon name={item.icon} />{item.availability === 'planned' && <span className="planned-dot" aria-hidden="true" />}</span>
-          <span className="app-name">{item.name}</span><span className="app-category">{item.availability === 'planned' ? 'COMING SOON' : 'PERSONALISE'}</span>
-        </FocusButton>)}
-      </div>
-    </section>
-    <footer className="footer"><div className="remote-hints"><span><kbd>↔</kbd><kbd>↕</kbd> Navigate</span><span><kbd>OK</kbd> Select</span><span><kbd>↶</kbd> Back</span></div><span className="version"><span className="tiny-dot" /> {platform === 'browser' ? 'Browser preview' : 'Tizen'}<span className="footer-separator">/</span>FrameOS 0.1</span></footer>
+    <div className="home-centre"><Clock timeFormat={timeFormat} timeZone={timeZone} /><WeatherWidget city={weatherCity} timeFormat={timeFormat} /></div>
+    <div className="dock-section"><nav className="app-dock" aria-label="Applications">{launcherItems.map(item => <FocusButton key={item.id} id={`app-${item.id}`} focused={focused} onFocused={focus} className={`app-tile tile-${item.id}`} aria-label={item.name} onClick={() => open(item, `app-${item.id}`)}><span className="app-icon-centre">{appIcons[item.id] ? <img src={appIcons[item.id]} alt="" /> : <Icon name={item.icon} />}</span><span className="app-name">{item.name}</span></FocusButton>)}</nav></div>
+    <FocusButton id="home-media" focused={focused} onFocused={focus} className="media-prompt" onClick={() => showMedia('home-media')}><span>Media</span><svg viewBox="0 0 28 16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m3 3 11 10L25 3" /></svg></FocusButton>
   </main>;
 }

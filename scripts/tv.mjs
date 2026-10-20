@@ -3,7 +3,8 @@ import { copyFile, lstat, mkdir, readFile, realpath, readdir } from 'node:fs/pro
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { listFiles, localPath, validateProduction } from './tv-assets.mjs';
-import { atomicWrite, exists, fileHash, stageProject, withLock } from './tv-stage.mjs';
+import { atomicWrite, ensureBackup, exists, fileHash, snapshot, stageProject, validateOwned, withLock } from './tv-stage.mjs';
+import { createPackagingManifest } from './tv-policy.mjs';
 
 const repository = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 
@@ -92,6 +93,7 @@ async function inspect(context, certificates) {
   for (const file of [tizen, sdb, path.join(project, 'config.xml')]) {
     if (!(await exists(file)) || !(await lstat(file)).isFile()) throw new Error(`Required SDK/project file is missing: ${file}`);
   }
+  await packagingManifest(context);
   if (certificates) {
     localPath(config.referencePackage);
     if (!/^[a-f\d]{64}$/i.test(config.authorSha256 || '')) throw new Error('Configure the verified known-good author SHA-256 fingerprint before signing or deployment.');
@@ -131,16 +133,49 @@ async function connectivity(context) {
   context.log(`TV ${context.config.serial}: connected (${context.config.model}).`);
 }
 
-async function buildAndStage(context, metadata) {
+async function packagingManifest(context) {
+  const original = await readFile(path.join(context.project, 'config.xml'));
+  if (!context.config.packagingPolicy) return { manifest: original, originalSha256: await fileHash(path.join(context.project, 'config.xml')), packagedSha256: await fileHash(path.join(context.project, 'config.xml')) };
+  localPath(context.config.packagingPolicy);
+  const policy = JSON.parse(await readFile(path.join(context.root, context.config.packagingPolicy), 'utf8'));
+  return createPackagingManifest(original, policy);
+}
+
+async function buildProduction(context) {
   context.log('Building the production UI with the existing Chromium 69 configuration...');
   const result = await context.run(process.execPath, [process.env.npm_execpath || path.join(path.dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js'), 'run', 'build'], { cwd: context.root, timeout: 600000 });
   if (result.code !== 0) throw new Error(`Production build failed (exit ${result.code}). ${result.output.slice(-4000)}`);
-  const files = await validateProduction(context.dist);
+  return validateProduction(context.dist);
+}
+
+async function buildAndStage(context, metadata) {
+  const files = await buildProduction(context);
   const stage = await stageProject({ ...context, files, metadata });
   context.log(`Staged ${files.length} verified production files (${stage.changed.length} changed, ${stage.removed.length} previously managed stale files removed).`);
   context.log(`Original project backup: ${stage.backup}`);
   context.log('config.xml, icon, signing material and unrelated project resources preserved.');
   return stage;
+}
+
+// Local package validation must never replace the frontend in the external project.
+async function prepareLocalPackage(context, metadata) {
+  const production = await buildProduction(context);
+  const before = await snapshot(context.project);
+  const ledger = path.join(context.stateRoot, 'managed.json');
+  const previous = await exists(ledger) ? JSON.parse(await readFile(ledger, 'utf8')) : null;
+  if (previous && (previous.version !== 1 || path.resolve(previous.project).toLowerCase() !== path.resolve(context.project).toLowerCase())) throw new Error('Deployment ledger belongs to another project or version.');
+  const owned = previous?.files || {};
+  validateOwned(owned, metadata);
+  for (const [relative, hash] of Object.entries(owned)) {
+    if (before[relative] && before[relative] !== hash) throw new Error(`Managed frontend file was edited outside the pipeline: ${relative}.`);
+  }
+  if (await exists(path.join(context.stateRoot, 'pending.json'))) throw new Error('A previous stage was interrupted; review recovery before packaging.');
+  if (previous && !(await exists(path.join(context.stateRoot, 'original.json')))) throw new Error('Original backup record is missing; refusing to treat a staged project as the original.');
+  const backup = await ensureBackup(context.project, context.stateRoot, before);
+  const files = Object.fromEntries(await Promise.all(production.map(async (relative) => [relative, await fileHash(path.join(context.dist, relative))])));
+  validateOwned(files, metadata);
+  context.log(`Prepared ${production.length} verified production files for a local packaging copy; original Tizen project unchanged.`);
+  return { backup, files, manifestHash: before['config.xml'], resources: metadata.resources, productionRoot: context.dist, previouslyManaged: Object.keys(owned) };
 }
 
 export async function packageProject(context, stage) {
@@ -150,22 +185,37 @@ export async function packageProject(context, stage) {
   for (const relative of await listFiles(context.project)) {
     if (relative.split('/').some((part) => ['.git', '.sign', '.build', '.buildResult', '.package'].includes(part))
         || /\.(?:wgt|p12|pfx|pem|key|crt|cer)$/i.test(relative)
-        || /(?:^|\/)(?:profiles\.xml|author-signature\.xml|signature\d*\.xml)$/i.test(relative)) continue;
+        || /(?:^|\/)(?:profiles\.xml|author-signature\.xml|signature\d*\.xml)$/i.test(relative)
+        || (stage.productionRoot && (Object.hasOwn(stage.files, relative) || stage.previouslyManaged.includes(relative)))) continue;
     const destination = path.join(source, relative);
     await mkdir(path.dirname(destination), { recursive: true });
     await copyFile(path.join(context.project, relative), destination);
   }
   if (await fileHash(path.join(source, 'config.xml')) !== stage.manifestHash) throw new Error('Manifest changed before packaging; deployment stopped.');
   for (const [relative, hash] of Object.entries(stage.files)) {
+    if (stage.productionRoot) {
+      if (await fileHash(path.join(stage.productionRoot, relative)) !== hash) throw new Error(`Frontend changed before packaging: ${relative}`);
+      const destination = path.join(source, relative);
+      await mkdir(path.dirname(destination), { recursive: true });
+      await copyFile(path.join(stage.productionRoot, relative), destination);
+    }
     if (await fileHash(path.join(source, relative)) !== hash) throw new Error(`Frontend changed before packaging: ${relative}`);
+  }
+  const policy = await packagingManifest(context);
+  if (policy.originalSha256 !== stage.manifestHash) throw new Error('Source manifest changed during packaging; deployment stopped.');
+  if (context.config.packagingPolicy) {
+    await atomicWrite(path.join(source, 'config.xml'), policy.manifest);
+    await atomicWrite(path.join(output, 'manifest-policy.json'), JSON.stringify({ policy: context.config.packagingPolicy, source: policy.originalSha256, packaged: policy.packagedSha256 }, null, 2));
+    context.log('Applied reviewed v0.2 read-only USB/weather policy to the fresh packaging copy only.');
   }
   await tool(context, context.tizen, ['build-web', '--', source], 'Tizen web build');
   const built = path.join(source, '.buildResult');
   await tool(context, context.tizen, ['package', '-t', 'wgt', '-s', context.config.profile, '--', built], 'Signing and packaging');
   const packages = (await readdir(built)).filter((file) => file.endsWith('.wgt'));
   if (packages.length !== 1 || (await lstat(path.join(built, packages[0]))).size === 0) throw new Error('Signing did not produce exactly one non-empty WGT package.');
-  if (await fileHash(path.join(built, 'config.xml')) !== stage.manifestHash) throw new Error('Tizen build changed config.xml; refusing installation.');
-  const expected = { ...stage.files, 'config.xml': stage.manifestHash };
+  if (await fileHash(path.join(built, 'config.xml')) !== policy.packagedSha256) throw new Error('Tizen build changed the expected packaging manifest; refusing installation.');
+  if (await fileHash(path.join(context.project, 'config.xml')) !== stage.manifestHash) throw new Error('Protected source config.xml changed; refusing installation.');
+  const expected = { ...stage.files, 'config.xml': policy.packagedSha256 };
   for (const resource of stage.resources) expected[resource] = await fileHash(path.join(source, resource));
   const expectedPath = path.join(output, 'expected-assets.json');
   await atomicWrite(expectedPath, JSON.stringify(expected));
@@ -181,7 +231,7 @@ export async function pipeline(mode, context) {
     const metadata = await inspect(context, mode !== 'stage');
     if (mode === 'check' || mode === 'deploy') await connectivity(context);
     if (mode === 'check') return;
-    const stage = await buildAndStage(context, metadata);
+    const stage = mode === 'package' ? await prepareLocalPackage(context, metadata) : await buildAndStage(context, metadata);
     if (mode === 'stage') return stage;
     const packaged = await packageProject(context, stage);
     if (mode === 'package') return packaged;

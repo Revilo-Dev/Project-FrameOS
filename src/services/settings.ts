@@ -1,7 +1,9 @@
 import type { Settings } from '../types/settings';
+import { wallpapers } from './wallpapers';
+import { DEFAULT_TIME_ZONE, isClockTimeZone } from './clock';
 
 export const SETTINGS_KEY = 'frameos.settings.v1';
-export const DEFAULT_SETTINGS: Settings = { version: 1, theme: 'slate', wallpaper: 'tidal', motion: 'subtle' };
+export const DEFAULT_SETTINGS: Settings = { version: 1, theme: 'slate', wallpaper: wallpapers[0].id, motion: 'subtle', weatherCity: 'brisbane', showFps: true, timeFormat: '12h', timeZone: DEFAULT_TIME_ZONE };
 export interface SettingsStorage { getItem(key: string): string | null; setItem(key: string, value: string): void }
 
 export function loadSettings(storage: SettingsStorage): Settings {
@@ -13,8 +15,12 @@ export function loadSettings(storage: SettingsStorage): Settings {
     return {
       version: 1,
       theme: ['slate', 'midnight', 'warm'].indexOf(saved.theme || '') >= 0 ? saved.theme! : DEFAULT_SETTINGS.theme,
-      wallpaper: ['tidal', 'dune', 'dusk'].indexOf(saved.wallpaper || '') >= 0 ? saved.wallpaper! : DEFAULT_SETTINGS.wallpaper,
+      wallpaper: wallpapers.some(item => item.id === saved.wallpaper) ? saved.wallpaper! : DEFAULT_SETTINGS.wallpaper,
       motion: ['full', 'subtle', 'off'].indexOf(saved.motion || '') >= 0 ? saved.motion! : DEFAULT_SETTINGS.motion,
+      weatherCity: ['brisbane', 'sydney', 'melbourne', 'perth', 'adelaide', 'hobart'].indexOf(saved.weatherCity || '') >= 0 ? saved.weatherCity! : DEFAULT_SETTINGS.weatherCity,
+      showFps: typeof saved.showFps === 'boolean' ? saved.showFps : true,
+      timeFormat: saved.timeFormat === '24h' ? '24h' : '12h',
+      timeZone: isClockTimeZone(saved.timeZone) ? saved.timeZone : DEFAULT_TIME_ZONE,
     };
   } catch { return { ...DEFAULT_SETTINGS }; }
 }

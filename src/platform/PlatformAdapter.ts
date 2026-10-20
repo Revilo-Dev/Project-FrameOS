@@ -1,8 +1,11 @@
 import type { ActionResult, NativeAction } from '../types/launcher';
+import type { MediaAdapter } from '../types/media';
 
 export interface PlatformAdapter {
   readonly kind: 'browser' | 'tizen';
+  readonly media: MediaAdapter;
   perform(action: NativeAction): Promise<ActionResult>;
+  exit(): Promise<ActionResult | null>;
 }
 
 export function plannedAction(action: NativeAction): ActionResult {

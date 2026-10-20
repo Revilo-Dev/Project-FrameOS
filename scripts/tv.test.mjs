@@ -6,7 +6,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createContext, pipeline, runProcess } from './tv.mjs';
 import { listFiles, localPath, validateProduction } from './tv-assets.mjs';
-import { exists, snapshot, stageProject, withLock } from './tv-stage.mjs';
+import { digest, exists, snapshot, stageProject, withLock } from './tv-stage.mjs';
+import { contentSecurityPolicy, createPackagingManifest, readOnlyPrivileges } from './tv-policy.mjs';
 
 const scratch = path.resolve(fileURLToPath(new URL('../artifacts/tv-tests/', import.meta.url)));
 const roots = [];
@@ -51,6 +52,16 @@ test('asset validation follows HTML, legacy entry, embedded CSS and runtime wall
   await rm(path.join(f.dist, 'wallpapers/soft.jpg'));
   await assert.rejects(validateProduction(f.dist), /Missing referenced production asset/);
   for (const file of ['../outside', '/absolute', 'C:/absolute', 'assets\\bad.js', 'assets/../config.xml', 'assets/file.']) assert.throws(() => localPath(file));
+});
+
+test('asset validation includes Vite JSON.parse wallpaper catalogs and SystemJS-relative font URLs', async () => {
+  const f = await fixture();
+  const catalog = [{ src: './wallpapers/photo.jpg', thumbnail: './wallpapers/photo-thumb.jpg', ambient: './wallpapers/photo-soft.jpg' }];
+  await put(f.dist, 'assets/app.js', `var catalog=JSON.parse(${JSON.stringify(JSON.stringify(catalog))});var font=new URL("fonts/clock.ttf",context.meta.url);`);
+  for (const file of ['wallpapers/photo.jpg', 'wallpapers/photo-thumb.jpg', 'wallpapers/photo-soft.jpg', 'assets/fonts/clock.ttf']) await put(f.dist, file);
+  assert.deepEqual(await validateProduction(f.dist), ['assets/app.js', 'assets/fonts/clock.ttf', 'index.html', 'wallpapers/photo-soft.jpg', 'wallpapers/photo-thumb.jpg', 'wallpapers/photo.jpg']);
+  await rm(path.join(f.dist, 'wallpapers/photo-thumb.jpg'));
+  await assert.rejects(validateProduction(f.dist), /Missing referenced production asset/);
 });
 
 test('first stage makes a verified immutable full backup and preserves all non-frontend resources', async () => {
@@ -212,3 +223,79 @@ for (const failure of ['offline', 'vite-build', 'build-web', 'package', 'verify-
     if (failure === 'install') assert(!calls.includes('run'));
   });
 }
+
+const policyManifest = Buffer.from('<?xml version="1.0" encoding="UTF-8"?>\r\n<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="http://original/app" version="7.8.9">\r\n    <tizen:application id="ExistingID.actualApp" package="ExistingID" required_version="2.3"/>\r\n    <content src="index.html"/>\r\n    <icon src="icon.png"/>\r\n    <name>Original app</name>\r\n    <tizen:setting background-support="disable"/>\r\n</widget>\r\n');
+const reviewedPolicy = (manifest = policyManifest) => ({ version: 1, release: '0.2.0', originalManifestSha256: digest(manifest) });
+
+test('v0.2 packaging policy inserts only documented read-only USB/weather declarations and preserves every original byte', () => {
+  const before = Buffer.from(policyManifest);
+  const result = createPackagingManifest(before, reviewedPolicy());
+  assert.deepEqual(before, policyManifest);
+  assert.equal(result.originalSha256, digest(policyManifest));
+  assert.equal(result.packagedSha256, digest(result.manifest));
+  assert.equal(result.manifest.toString().replace(result.additions, ''), policyManifest.toString());
+  assert.equal((result.additions.match(/<tizen:privilege/g) || []).length, 3);
+  for (const privilege of readOnlyPrivileges) assert(result.additions.includes(`name="${privilege}"`));
+  assert(result.additions.includes('<access origin="https://api.open-meteo.com" subdomains="false"/>'));
+  assert(!result.additions.includes('filesystem.write'));
+  assert(!result.additions.includes('geolocation'));
+  assert(!contentSecurityPolicy.includes('unsafe-eval'));
+  assert.equal(contentSecurityPolicy.split('connect-src ')[1].split(';')[0], "'self' https://api.open-meteo.com");
+  assert.deepEqual(createPackagingManifest(before, reviewedPolicy()).manifest, result.manifest);
+});
+
+test('changed baselines, existing policies and arbitrary policy keys fail closed without a write', () => {
+  assert.throws(() => createPackagingManifest(Buffer.concat([policyManifest, Buffer.from(' ')]), reviewedPolicy()), /differs from the reviewed policy baseline/);
+  assert.throws(() => createPackagingManifest(policyManifest, { ...reviewedPolicy(), applicationId: 'new identity' }), /Invalid v0.2 manifest policy/);
+  assert.throws(() => createPackagingManifest(policyManifest, { ...reviewedPolicy(), originalManifestSha256: undefined }), /Invalid v0.2 manifest policy/);
+  for (const declaration of ['<access origin="*"/>', '<tizen:privilege name="http://tizen.org/privilege/filesystem.write"/>', '<tizen:content-security-policy>default-src *</tizen:content-security-policy>', '<!DOCTYPE widget>']) {
+    const original = Buffer.from(policyManifest.toString().replace('</widget>', declaration + '</widget>'));
+    assert.throws(() => createPackagingManifest(original, reviewedPolicy(original)), /manual policy review is required/);
+  }
+});
+
+test('local package uses dist and patched expected manifest while every external project byte remains unchanged', async () => {
+  const f = await fixture();
+  await put(f.project, 'config.xml', policyManifest);
+  f.config.packagingPolicy = 'tizen/policy-v0.2.json';
+  await put(f.root, f.config.packagingPolicy, JSON.stringify(reviewedPolicy()));
+  await stage(f);
+  const before = await snapshot(f.project);
+  // A new local frontend package does not stage or delete the old external assets.
+  await put(f.dist, 'assets/new.js', 'var wallpaper="./wallpapers/default.jpg";');
+  await put(f.dist, 'index.html', '<script src="./assets/new.js"></script>');
+  const { context, calls } = await fakePipeline(f);
+  const original = context.sdk;
+  let packagingCopy;
+  context.sdk = async (request) => {
+    if (request.arguments?.[0] === 'build-web') {
+      packagingCopy = request.arguments.at(-1);
+      assert.equal(await readFile(path.join(packagingCopy, 'config.xml'), 'utf8'), createPackagingManifest(policyManifest, reviewedPolicy()).manifest.toString());
+      assert.equal(await exists(path.join(packagingCopy, 'assets/app.js')), false);
+      assert.equal(await exists(path.join(packagingCopy, 'wallpapers/soft.jpg')), false);
+      assert.equal(await exists(path.join(packagingCopy, 'assets/new.js')), true);
+      assert.equal(await exists(path.join(packagingCopy, 'assets/unrelated.txt')), true);
+    }
+    if (request.action === 'archive') {
+      const expected = JSON.parse(await readFile(request.expected, 'utf8'));
+      assert.equal(expected['config.xml'], createPackagingManifest(policyManifest, reviewedPolicy()).packagedSha256);
+      assert.equal(expected['icon.png'], before['icon.png']);
+    }
+    return original(request);
+  };
+  await pipeline('package', context);
+  assert(packagingCopy.startsWith(f.stateRoot + path.sep));
+  assert.deepEqual(await snapshot(f.project), before);
+  assert.deepEqual(calls, ['vite-build', 'build-web', 'package', 'verify-package']);
+});
+
+test('check validates reviewed manifest policy before building or contacting the TV', async () => {
+  const f = await fixture();
+  f.config.packagingPolicy = 'tizen/policy-v0.2.json';
+  await put(f.root, f.config.packagingPolicy, JSON.stringify(reviewedPolicy()));
+  const before = await snapshot(f.project);
+  const { context, calls } = await fakePipeline(f);
+  await assert.rejects(pipeline('check', context), /differs from the reviewed policy baseline/);
+  assert.deepEqual(calls, []);
+  assert.deepEqual(await snapshot(f.project), before);
+});
