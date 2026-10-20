@@ -1,0 +1,36 @@
+{
+  "name": "frameos",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": { "node": ">=22.12.0" },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "npm run typecheck && vite build && node scripts/verify-build.mjs",
+    "preview": "vite preview --host 127.0.0.1",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/navigation/remote.test.ts src/services/settings.test.ts src/platform/platform.test.ts scripts/tv.test.mjs",
+    "test:e2e": "playwright test",
+    "stage:tizen": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Stage-Tizen.ps1",
+    "check:tv": "node scripts/tv.mjs check",
+    "stage:tv": "node scripts/tv.mjs stage",
+    "deploy:tv": "node scripts/tv.mjs deploy"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/node": "^22.19.0",
+    "@types/react": "^18.3.27",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-legacy": "6.1.1",
+    "@vitejs/plugin-react": "4.7.0",
+    "acorn": "^8.15.0",
+    "terser": "^5.44.1",
+    "typescript": "~5.9.3",
+    "tsx": "^4.20.6",
+    "vite": "^6.4.1"
+  }
+}

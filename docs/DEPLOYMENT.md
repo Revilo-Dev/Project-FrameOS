@@ -1,0 +1,100 @@
+# FrameOS TV deployment
+
+Use a normal PowerShell session; Administrator permissions are not required.
+
+```powershell
+Set-Location 'C:\Users\revil\StudioProjects\frameos\Project-FrameOS'
+npm run check:tv
+npm run stage:tv
+# Only when you intend to update the physical TV:
+npm run deploy:tv
+```
+
+## Command behavior
+
+| Command | Behavior |
+| --- | --- |
+| `npm run check:tv` | Checks SDK tools, metadata, certificate availability and author continuity against the known-good WGT, then the exact SDB serial/model. Does not stage or install. |
+| `npm run stage:tv` | Builds with the existing Chromium 69 configuration, validates referenced production files, verifies/creates the original backup, and stages required frontend files. No signing, TV connection or installation required. |
+| `npm run deploy:tv` | Checks prerequisites and the TV; builds/stages; creates a fresh local packaging copy; builds/signs/verifies the WGT; rechecks the TV/manifest; installs and launches. Stops on the first failure. |
+| `node scripts/tv.mjs package` | Optional local build/stage/sign/verify check. Never installs or launches and does not require a TV connection. |
+
+`scripts/tv.config.json` explicitly selects:
+
+- Existing project: `C:\Users\revil\workspace\frameos`
+- SDK: `C:\samsungdev\tizen-studio`
+- SDB: `C:\samsungdev\tizen-studio\tools\sdb.exe`
+- CLI: `C:\samsungdev\tizen-studio\tools\ide\bin\tizen.bat`
+- Serial: `192.168.0.23:26101`; expected model: `QA32LS03TBWXXY`
+- Signing profile: `revilodev-frameos`
+- Reference package: the original `frameos.wgt` in the existing project
+- Pinned author SHA-256: `52abc2ad0bbfa4e2aea4a9effd08efa7e4f535a8b23ec7ebcff45fa425ddcc6c`
+
+The existing manifest supplies application `TdjFk7yyVS.frameos`, package `TdjFk7yyVS`, version `1.0.0` and entry `index.html`. These values are read from XML rather than guessed or rewritten. The entire manifest, icon, privileges, signing configuration and unrelated resources are preserved. A different content entry is rejected rather than changing `config.xml`.
+
+The author in the original signed WGT and original `.sign/author-signature.xml` matches the existing `revilodev-frameos` profile. The profile named `frameos` uses a different author and caused TV error `118, -11: Author certificate not match`. Signing now explicitly uses `-s revilodev-frameos`; the global active profile is not switched, and no profiles, keys or certificates are modified.
+
+Before building/signing, `check:tv`, `deploy:tv` and the local package operation compare the selected profile's public author `.crt` and original WGT author against the pinned SHA-256 fingerprint. The newly signed WGT's embedded author is checked again before installation, catching a stale public sidecar or changed signing profile. A mismatch stops the pipeline; it never uninstalls the existing app or changes identity to bypass the check. These comparisons use public certificates only. Signer diagnostics remain suppressed to avoid exposing credentials.
+
+## Backup, ownership and repeat runs
+
+Before the first frontend change, every original project file is copied to a fresh **`artifacts/tv/backups/original-<uuid>/`** folder in the React repository. SHA-256 verification completes before staging starts. `artifacts/tv/original.json` records the original snapshot. Backup files are never overwritten/pruned and are reverified on every run. Backups include the original WGT and signing configuration and remain outside the packaged application.
+
+`artifacts/tv/managed.json` records exact paths and hashes of frontend files owned by successful stages. Only `index.html`, `assets/` and `wallpapers/` can be managed. Unreferenced source artwork is not copied. Repeating an unchanged build reports zero changed/deleted files. No directory is recursively deleted from the Tizen project: stale files are unlinked individually only if owned by a prior stage and still matching the recorded hash.
+
+Unrelated collisions, edited managed files, damaged/missing backups, unsafe paths, links/junctions and concurrent runs stop staging. Writes use temporary files and atomic replacement. Pre-change copies under `artifacts/tv/runs/` allow automatic rollback when a stage fails. Interrupted or incomplete recovery leaves `pending.json` and blocks further staging for review.
+
+**Keep `artifacts/tv/` between deployments.** It holds the original backup, ownership records, recovery copies and signed packages. Do not move it into the application or commit it. It is ignored by Git, as are signing directories and certificate/private-key extensions. The legacy `stage:tizen` command remains a separate read-only scratch-copy workflow.
+
+## Packaging and installation
+
+The SDK builds a fresh copy under `artifacts/tv/packages/`, preserving application resources while excluding old WGTs, signing directories, private certificates and prior build outputs. No SDK build output is written into the original Tizen project. The CLI operations are:
+
+```text
+tizen build-web -- <fresh-project-copy>
+tizen package -t wgt -s revilodev-frameos -- <fresh-project-copy>\.buildResult
+```
+
+The WGT ZIP must contain both author/distributor signatures, the pinned matching author certificate, byte-identical manifest/resources and verified frontend hashes. Duplicate/unsafe entries, nested WGTs and included private signing material are rejected. These checks establish packaging integrity and author continuity; the TV still validates certificate trust and device installation permissions.
+
+Immediately before installing, the exact SDB serial must still be in `device` state with the expected model, and the original manifest must still match. Then:
+
+```text
+tizen install -s 192.168.0.23:26101 -n <new-wgt-name> -- <new-wgt-folder>
+tizen run -s 192.168.0.23:26101 -p <application-id-read-from-config.xml>
+```
+
+No uninstall, automatic startup, firmware or system-setting operations are performed. Build, signing, verification, connection, installation and launch errors produce a nonzero exit status and stop subsequent steps. If installation succeeds but launch fails, the newly installed app remains on the TV; there is no automatic TV rollback.
+
+The existing Vite compatibility settings remain: relative paths, classic/SystemJS scripts, removal of local-script CORS attributes, and Chromium 69 compatible CSS. Samsung requires updates to use the same author certificate as the original. References: [Samsung signing continuity](https://developer.samsung.com/smarttv/develop/getting-started/quick-start-guide.html), [Vite 6 compatibility](https://v6.vite.dev/guide/build), [Samsung SDK commands](https://developer.samsung.com/smarttv/develop/getting-started/using-sdk/command-line-interface.html).
+
+## Validate without installing
+
+```powershell
+npm test
+npm run build
+npm run test:e2e
+npm run check:tv
+npm run stage:tv
+npm run stage:tv  # Should report zero changes for the same build
+node scripts/tv.mjs package  # Optional local signing/archive verification
+```
+
+On a new machine, install the test browser with `npx playwright install chromium`. Pipeline tests use isolated ignored fixtures and simulated SDK operations; they never deploy to the TV. They exercise backups, repeated staging, stale cleanup, collision/edit refusal, partial-failure rollback, locking, and stopping at each failure. Browser tests include direct production `file:` loading without security overrides.
+
+## Connection and recovery
+
+If the TV is disconnected, reconnect with the working SDB and retry:
+
+```powershell
+& 'C:\samsungdev\tizen-studio\tools\sdb.exe' connect '192.168.0.23:26101'
+npm run check:tv
+```
+
+The pipeline never changes authorization or certificate profiles to bypass a failure. Inspect missing/expired certificates in the existing profile through Certificate Manager; do not generate replacement identities.
+
+If `deploy.lock` remains, inspect its recorded PID and confirm the process has stopped before removing only that lock file. If `pending.json` exists, inspect its recovery directory and listed changed/removed paths, then restore only affected frontend files from the pre-stage copies. Resolve concurrent manual edits before clearing the pending record. Preserve the original backup, `original.json` and `managed.json`. Missing/damaged original backups must be restored before further staging.
+
+The known-good original signed WGT remains at `C:\Users\revil\workspace\frameos\frameos.wgt` and in the immutable backup. Reinstalling it is a separate, explicitly approved TV action; no automatic rollback is performed.
+
+The first user-run installation was rejected because the old configured author did not match the installed app. It was not uninstalled or replaced. After correcting the selected existing profile and validating locally, run `npm run deploy:tv` again from this repository to retry the update. The obsolete `C:\samsungdev\frameos-ui` path does not exist and is not needed.

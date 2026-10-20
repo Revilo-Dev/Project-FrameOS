@@ -1,0 +1,9 @@
+{
+  "project": "C:\\Users\\revil\\workspace\\frameos",
+  "sdk": "C:\\samsungdev\\tizen-studio",
+  "serial": "192.168.0.23:26101",
+  "model": "QA32LS03TBWXXY",
+  "profile": "revilodev-frameos",
+  "referencePackage": "frameos.wgt",
+  "authorSha256": "52abc2ad0bbfa4e2aea4a9effd08efa7e4f535a8b23ec7ebcff45fa425ddcc6c"
+}
