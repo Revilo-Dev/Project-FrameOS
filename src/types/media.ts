@@ -41,5 +41,6 @@ export interface MediaAdapter {
   readonly diagnostics?: import('../platform/UsbDiagnostics').UsbDiagnostics;
   listStorages(): Promise<MediaStorage[]>;
   listDirectory(storage: MediaStorage, path: string): Promise<MediaEntry[]>;
+  resolveFile?(entry: MediaEntry): Promise<MediaEntry>;
   subscribeStorageChanges(listener: (change: MediaStorageChange) => void, onError?: (error: MediaError) => void): () => void;
 }

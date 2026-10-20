@@ -8,6 +8,6 @@ export function MediaDetails({ entry, focused, focus, close }: { entry: MediaEnt
     <header><span>File details</span><FocusButton id="details-close" focused={focused} onFocused={focus} className="round-button" aria-label="Close file details" onClick={close}><Icon name="close" /></FocusButton></header>
     <h2 id="media-details-title">{entry.name}</h2>
     <dl><dt>Type</dt><dd>{entry.type} · {entry.extension.toUpperCase() || 'Unknown extension'}</dd><dt>Size</dt><dd>{formatSize(entry.size)}</dd><dt>Storage</dt><dd>{entry.storageId}</dd><dt>Folder</dt><dd>{entry.parentPath}</dd><dt>Full path</dt><dd>{entry.path}</dd>{entry.uri && <><dt>URI</dt><dd>{entry.uri}</dd></>}</dl>
-    <p>{entry.type === 'video' ? 'Video playback is planned for v0.3. File extensions do not guarantee playback support.' : 'Preview is not available in this version.'}</p>
+    <p>{entry.type === 'video' ? 'Open this file to play it using Samsung AVPlay. Playback depends on the video and audio codecs supported by your TV.' : 'Preview is not available for this file type.'}</p>
   </section></div>;
 }

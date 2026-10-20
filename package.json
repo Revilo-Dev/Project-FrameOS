@@ -1,7 +1,7 @@
 {
   "name": "frameos",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "engines": { "node": ">=22.12.0" },
   "scripts": {
@@ -9,7 +9,7 @@
     "build": "npm run typecheck && vite build && node scripts/verify-build.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/navigation/remote.test.ts src/navigation/mediaLayout.test.ts src/services/settings.test.ts src/services/clock.test.ts src/services/weather.test.ts src/services/media.test.ts src/platform/platform.test.ts src/platform/TizenMediaAdapter.test.ts scripts/tv.test.mjs",
+    "test": "tsx --test src/navigation/remote.test.ts src/navigation/mediaLayout.test.ts src/navigation/HoldGesture.test.ts src/services/settings.test.ts src/services/clock.test.ts src/services/weather.test.ts src/services/media.test.ts src/services/mediaFeatures.test.ts src/services/thumbnails.test.ts src/platform/platform.test.ts src/platform/TizenMediaAdapter.test.ts src/platform/AvPlayController.test.ts src/platform/mediaKeys.test.ts scripts/tv.test.mjs",
     "test:e2e": "playwright test",
     "stage:tizen": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Stage-Tizen.ps1",
     "check:tv": "node scripts/tv.mjs check",

@@ -1,4 +1,12 @@
-# FrameOS v0.2 packaging policy review
+# FrameOS packaging policy review
+
+**Current release: v0.3.** The canonical policy is [policy-v0.3.json](policy-v0.3.json), selected in `scripts/tv.config.json`. The [v0.3 XML additions](config.xml.v0.3.diff) and [complete resulting manifest](config.xml.v0.3.preview) preserve the protected source and all existing metadata. Alongside the v0.2 declarations below, v0.3 adds only `http://tizen.org/privilege/content.read` for indexed thumbnails and `http://tizen.org/privilege/tv.inputdevice` for media-key registration. The CSP permits local `file:` images and the local AVPlay object. No filesystem/content write, obsolete AVPlay, firmware or autostart permission is added. The TV-provided `$WEBAPIS/webapis/webapis.js` is loaded locally before the frontend; it is not copied from a network source.
+
+The v0.3 packaged manifest SHA-256 is `d664e89bbf49306323f6d49637153a3770d6a7743b1361d32dac25e7721f8087`. The protected source remains `df9616f0175d656253ad7f55a534f07f6dca6c8e62be0e5695bd6d15fd54dd78`. Source widget version stays `1.0.0`; frontend version is `0.3.0`. The policy implementation accepts the current release only, fails closed on changed baselines and verifies the exact embedded manifest. See [the v0.3 report](../docs/V0.3.md) for validation and physical-TV acceptance steps. No physical installation is part of package preparation.
+
+## Historical v0.2 policy
+
+The following review describes the retained v0.2 policy and rollback artifacts. Use the v0.2 Git checkpoint to reproduce that release, rather than applying its policy with the v0.3 implementation.
 
 The protected `C:\Users\revil\workspace\frameos\config.xml` is **not edited**. The pipeline copies that project into an ignored, fresh `artifacts/tv/packages/package-*/project/` directory and adds the reviewed policy to that copy before the SDK build. [The exact XML diff](config.xml.v0.2.diff) and [complete resulting manifest](config.xml.v0.2.preview) are supplied for review. They are documentation, not a replacement source project.
 

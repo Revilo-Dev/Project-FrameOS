@@ -8,6 +8,7 @@ import { createContext, pipeline, runProcess } from './tv.mjs';
 import { listFiles, localPath, validateProduction } from './tv-assets.mjs';
 import { digest, exists, snapshot, stageProject, withLock } from './tv-stage.mjs';
 import { contentSecurityPolicy, createPackagingManifest, readOnlyPrivileges } from './tv-policy.mjs';
+import { samsungRuntimeScript } from './samsung-runtime.mjs';
 
 const scratch = path.resolve(fileURLToPath(new URL('../artifacts/tv-tests/', import.meta.url)));
 const roots = [];
@@ -62,6 +63,15 @@ test('asset validation includes Vite JSON.parse wallpaper catalogs and SystemJS-
   assert.deepEqual(await validateProduction(f.dist), ['assets/app.js', 'assets/fonts/clock.ttf', 'index.html', 'wallpapers/photo-soft.jpg', 'wallpapers/photo-thumb.jpg', 'wallpapers/photo.jpg']);
   await rm(path.join(f.dist, 'wallpapers/photo-thumb.jpg'));
   await assert.rejects(validateProduction(f.dist), /Missing referenced production asset/);
+});
+
+test('only the exact Samsung runtime SDK script is exempt from packaged asset checks', async () => {
+  const f = await fixture();
+  await put(f.dist, 'index.html', `<script src="${samsungRuntimeScript}"></script><script src="./assets/app.js"></script>`);
+  assert((await validateProduction(f.dist)).includes('assets/app.js'));
+  for (const html of ['<script src="$WEBAPIS/webapis/other.js"></script>', `<img src="${samsungRuntimeScript}">`]) {
+    await put(f.dist, 'index.html', html); await assert.rejects(validateProduction(f.dist), /Missing referenced production asset/);
+  }
 });
 
 test('first stage makes a verified immutable full backup and preserves all non-frontend resources', async () => {
@@ -225,16 +235,16 @@ for (const failure of ['offline', 'vite-build', 'build-web', 'package', 'verify-
 }
 
 const policyManifest = Buffer.from('<?xml version="1.0" encoding="UTF-8"?>\r\n<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="http://original/app" version="7.8.9">\r\n    <tizen:application id="ExistingID.actualApp" package="ExistingID" required_version="2.3"/>\r\n    <content src="index.html"/>\r\n    <icon src="icon.png"/>\r\n    <name>Original app</name>\r\n    <tizen:setting background-support="disable"/>\r\n</widget>\r\n');
-const reviewedPolicy = (manifest = policyManifest) => ({ version: 1, release: '0.2.0', originalManifestSha256: digest(manifest) });
+const reviewedPolicy = (manifest = policyManifest) => ({ version: 1, release: '0.3.0', originalManifestSha256: digest(manifest) });
 
-test('v0.2 packaging policy inserts only documented read-only USB/weather declarations and preserves every original byte', () => {
+test('v0.3 packaging policy inserts only documented read-only media/weather declarations and preserves every original byte', () => {
   const before = Buffer.from(policyManifest);
   const result = createPackagingManifest(before, reviewedPolicy());
   assert.deepEqual(before, policyManifest);
   assert.equal(result.originalSha256, digest(policyManifest));
   assert.equal(result.packagedSha256, digest(result.manifest));
   assert.equal(result.manifest.toString().replace(result.additions, ''), policyManifest.toString());
-  assert.equal((result.additions.match(/<tizen:privilege/g) || []).length, 3);
+  assert.equal((result.additions.match(/<tizen:privilege/g) || []).length, readOnlyPrivileges.length);
   for (const privilege of readOnlyPrivileges) assert(result.additions.includes(`name="${privilege}"`));
   assert(result.additions.includes('<access origin="https://api.open-meteo.com" subdomains="false"/>'));
   assert(!result.additions.includes('filesystem.write'));
@@ -246,8 +256,8 @@ test('v0.2 packaging policy inserts only documented read-only USB/weather declar
 
 test('changed baselines, existing policies and arbitrary policy keys fail closed without a write', () => {
   assert.throws(() => createPackagingManifest(Buffer.concat([policyManifest, Buffer.from(' ')]), reviewedPolicy()), /differs from the reviewed policy baseline/);
-  assert.throws(() => createPackagingManifest(policyManifest, { ...reviewedPolicy(), applicationId: 'new identity' }), /Invalid v0.2 manifest policy/);
-  assert.throws(() => createPackagingManifest(policyManifest, { ...reviewedPolicy(), originalManifestSha256: undefined }), /Invalid v0.2 manifest policy/);
+  assert.throws(() => createPackagingManifest(policyManifest, { ...reviewedPolicy(), applicationId: 'new identity' }), /Invalid v0.3 manifest policy/);
+  assert.throws(() => createPackagingManifest(policyManifest, { ...reviewedPolicy(), originalManifestSha256: undefined }), /Invalid v0.3 manifest policy/);
   for (const declaration of ['<access origin="*"/>', '<tizen:privilege name="http://tizen.org/privilege/filesystem.write"/>', '<tizen:content-security-policy>default-src *</tizen:content-security-policy>', '<!DOCTYPE widget>']) {
     const original = Buffer.from(policyManifest.toString().replace('</widget>', declaration + '</widget>'));
     assert.throws(() => createPackagingManifest(original, reviewedPolicy(original)), /manual policy review is required/);
@@ -257,7 +267,7 @@ test('changed baselines, existing policies and arbitrary policy keys fail closed
 test('local package uses dist and patched expected manifest while every external project byte remains unchanged', async () => {
   const f = await fixture();
   await put(f.project, 'config.xml', policyManifest);
-  f.config.packagingPolicy = 'tizen/policy-v0.2.json';
+  f.config.packagingPolicy = 'tizen/policy-v0.3.json';
   await put(f.root, f.config.packagingPolicy, JSON.stringify(reviewedPolicy()));
   await stage(f);
   const before = await snapshot(f.project);
@@ -291,7 +301,7 @@ test('local package uses dist and patched expected manifest while every external
 
 test('check validates reviewed manifest policy before building or contacting the TV', async () => {
   const f = await fixture();
-  f.config.packagingPolicy = 'tizen/policy-v0.2.json';
+  f.config.packagingPolicy = 'tizen/policy-v0.3.json';
   await put(f.root, f.config.packagingPolicy, JSON.stringify(reviewedPolicy()));
   const before = await snapshot(f.project);
   const { context, calls } = await fakePipeline(f);

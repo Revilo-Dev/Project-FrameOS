@@ -8,7 +8,7 @@ describe('remote navigation', () => {
     assert.equal(remoteKey({ key: 'Unidentified', keyCode: 10009 }), 'back');
     assert.equal(remoteKey({ key: 'Escape', keyCode: 27 }), 'back');
     assert.equal(remoteKey({ key: 'Unidentified', keyCode: 40 }), 'down');
-    assert.equal(remoteKey({ key: 'MediaPlay', keyCode: 415 }), null);
+    assert.equal(remoteKey({ key: 'MediaPlay', keyCode: 415 }), 'media-play');
   });
   it('reaches all seven tiles and the Media prompt without a redundant USB tile', () => {
     let id = 'app-youtube';

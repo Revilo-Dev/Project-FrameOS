@@ -4,6 +4,8 @@
  */
 export const WEATHER_LOCATIONS = [
   { id: 'brisbane', name: 'Brisbane', latitude: -27.4698, longitude: 153.0251, timezone: 'Australia/Brisbane' },
+  // Open-Meteo geocoding result 8348547 (New Beith, Logan, Queensland).
+  { id: 'new-beith', name: 'New Beith', latitude: -27.766, longitude: 152.942, timezone: 'Australia/Brisbane' },
   { id: 'sydney', name: 'Sydney', latitude: -33.8688, longitude: 151.2093, timezone: 'Australia/Sydney' },
   { id: 'melbourne', name: 'Melbourne', latitude: -37.8136, longitude: 144.9631, timezone: 'Australia/Melbourne' },
   { id: 'perth', name: 'Perth', latitude: -31.9523, longitude: 115.8613, timezone: 'Australia/Perth' },

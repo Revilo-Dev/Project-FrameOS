@@ -106,6 +106,22 @@ export class TizenMediaAdapter implements MediaAdapter {
     return mounted.map(asStorage).sort((a, b) => a.label.localeCompare(b.label));
   }
 
+  async resolveFile(entry: MediaEntry): Promise<MediaEntry> {
+    const filesystem = this.requireFilesystem();
+    const storage = this.states.get(entry.storageId);
+    if (!storage || storage.state !== 'MOUNTED') throw new MediaError('removed', 'The USB drive is no longer connected.');
+    const path = validMediaPath(asStorage(storage), entry.path);
+    const generation = this.generation.get(entry.storageId);
+    let file: TizenFile;
+    try { file = await this.call<TizenFile>((success, failure) => filesystem.resolve(path, success, error => { this.diagnostics.error('Video file resolution', error); failure(error); }, 'r')); }
+    catch (error) { if (error instanceof MediaError && error.code === 'inaccessible') throw new MediaError('inaccessible', 'The selected USB video is missing or cannot be read. Refresh the folder.'); throw error; }
+    if (generation !== this.generation.get(entry.storageId) || this.states.get(entry.storageId)?.state !== 'MOUNTED') throw new MediaError('removed', 'The USB drive was disconnected.');
+    if (file.isDirectory || file.name !== entry.name) throw new MediaError('inaccessible', 'The selected video is no longer available.');
+    let uri = entry.uri;
+    try { uri = file.toURI?.() || uri; } catch { /* Retain the verified native parent URI. */ }
+    return { ...entry, uri };
+  }
+
   async listDirectory(storage: MediaStorage, requestedPath: string): Promise<MediaEntry[]> {
     const filesystem = this.requireFilesystem();
     const path = validMediaPath(storage, requestedPath);

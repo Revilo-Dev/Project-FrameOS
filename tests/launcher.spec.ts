@@ -65,7 +65,9 @@ test('refreshed home has the supplied logo/icons, one serif clock, hourly weathe
   await expect(page.locator('.weather-temperature')).toContainText('24');
   await expect(page.getByText('Your home, reimagined')).toHaveCount(0);
   await expect(page.getByText('Coming soon', { exact: false })).toHaveCount(0);
-  for (const name of ['YouTube', 'Stan', 'Foxtel', 'Gallery', 'Art Mode', 'Browser', 'Settings']) await expect(page.getByRole('button', { name, exact: true })).toContainText(name);
+  for (const name of ['YouTube', 'Stan', 'Foxtel', 'Gallery', 'Art Mode', 'Browser']) await expect(page.getByRole('button', { name, exact: true })).toContainText(name);
+  await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeVisible();
+  await expect(page.locator('#app-settings .app-name')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'USB Media', exact: true })).toHaveCount(0);
   await expect(page.locator('.brand-logo')).toHaveAttribute('src', './assets/frameos.svg');
   await expect(page.locator('.fps-counter')).toBeVisible();
@@ -102,12 +104,13 @@ test('native insertion, root/nested browsing, details, multiple drives, cache an
   await expect(page.locator('#media-entry-1')).toContainText('.MKV');
   expect(await page.evaluate(() => window.__testUsb.reads)).toEqual(['USB A', 'USB A/Movies']);
   await page.keyboard.press('ArrowRight');
-  await page.keyboard.press('Enter');
+  await page.keyboard.press('ContextMenu');
+  await page.locator('#context-details').click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.locator('.media-details')).toContainText('USB A/Movies/');
   await expect(page.locator('.media-details')).toContainText('12.0 MB');
   await expect(page.locator('.media-details')).toContainText('file:///media/');
-  await expect(page.locator('.media-details')).toContainText('v0.3');
+  await expect(page.locator('.media-details')).toContainText('Samsung AVPlay');
   await page.keyboard.press('Escape');
   await expect(page.locator('#media-entry-1')).toBeFocused();
   await page.keyboard.press('Escape');
@@ -145,14 +148,15 @@ test('filters keep folders accessible, empty folders are clear and disconnect cl
   await expect(page.locator('#media-home')).toBeFocused();
 });
 
-test('large folders render at most 18 cards while arrows reach other pages and restore details focus', async ({ page }) => {
+test('large folders render at most 12 cards while arrows reach other pages and restore details focus', async ({ page }) => {
   await usbFixture(page, { count: 5000, drives: ['USB A'] });
   await page.goto('/'); await page.keyboard.press('ArrowDown');
   await expect(page.locator('#media-entry-0')).toBeFocused();
-  await expect(page.locator('.media-tile')).toHaveCount(18);
+  await expect(page.locator('.media-tile')).toHaveCount(12);
   await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
   await expect(page.locator('#media-entry-18')).toBeFocused();
-  await expect(page.locator('.media-tile')).toHaveCount(18);
+  await expect(page.locator('.media-tile')).toHaveCount(12);
+  const footer = await page.locator('.media-position').boundingBox(); expect(footer!.y + footer!.height).toBeLessThan(1080);
   await page.keyboard.press('Enter'); await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Escape'); await expect(page.locator('#media-entry-18')).toBeFocused();
   expect(await page.evaluate(() => window.__testUsb.reads)).toEqual(['USB A']);

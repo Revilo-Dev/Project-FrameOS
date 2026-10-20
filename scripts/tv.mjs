@@ -206,7 +206,7 @@ export async function packageProject(context, stage) {
   if (context.config.packagingPolicy) {
     await atomicWrite(path.join(source, 'config.xml'), policy.manifest);
     await atomicWrite(path.join(output, 'manifest-policy.json'), JSON.stringify({ policy: context.config.packagingPolicy, source: policy.originalSha256, packaged: policy.packagedSha256 }, null, 2));
-    context.log('Applied reviewed v0.2 read-only USB/weather policy to the fresh packaging copy only.');
+    context.log('Applied reviewed v0.3 read-only media/weather policy to the fresh packaging copy only.');
   }
   await tool(context, context.tizen, ['build-web', '--', source], 'Tizen web build');
   const built = path.join(source, '.buildResult');

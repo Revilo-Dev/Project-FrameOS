@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import legacy from '@vitejs/plugin-legacy';
+import { samsungRuntimeScript } from './scripts/samsung-runtime.mjs';
 
 export default defineConfig({
   base: './',
@@ -14,7 +15,7 @@ export default defineConfig({
       transformIndexHtml: {
         order: 'post',
         // Classic local widget scripts must not request CORS at a file: origin.
-        handler: (html) => html.replace(/<script\b[^>]*>/g, (tag) => tag.replace(/\s+crossorigin(?:="[^"]*")?/g, '')),
+        handler: (html) => html.replace(/<script\b[^>]*>/g, (tag) => tag.replace(/\s+crossorigin(?:="[^"]*")?/g, '')).replace('</head>', `<script type="text/javascript" src="${samsungRuntimeScript}"></script></head>`),
       },
     },
   ],

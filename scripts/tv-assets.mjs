@@ -1,6 +1,7 @@
 import { readFile, readdir, lstat } from 'node:fs/promises';
 import path from 'node:path';
 import { parse } from 'acorn';
+import { samsungRuntimeScript } from './samsung-runtime.mjs';
 
 export function localPath(value) {
   if (typeof value !== 'string' || !value || value.includes('\\') || /[\x00-\x1f<>:"|?*]/.test(value)
@@ -64,6 +65,7 @@ export async function validateProduction(directory) {
     const text = await readFile(path.join(directory, relative), 'utf8');
     if (extension === '.html' || extension === '.svg') {
       for (const match of text.matchAll(/\b(?:src|href|data-src|xlink:href)\s*=\s*["']([^"']+)["']/gi)) {
+        if (relative === 'index.html' && match[1] === samsungRuntimeScript && /<script\b[^>]*$/.test(text.slice(0, match.index))) continue;
         const found = reference(match[1], relative);
         if (found) pending.push(found);
       }

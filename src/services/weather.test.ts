@@ -29,7 +29,7 @@ function fetcher(body: unknown, status = 200): typeof fetch {
 
 describe('weather forecast mapping', () => {
   it('uses one documented timezone-aware request for each selectable Australian city', () => {
-    assert.equal(WEATHER_LOCATIONS.length, 6);
+    assert.equal(WEATHER_LOCATIONS.length, 7);
     for (const location of WEATHER_LOCATIONS) {
       const url = new URL(weatherUrl(location.id));
       assert.equal(url.origin, 'https://api.open-meteo.com');

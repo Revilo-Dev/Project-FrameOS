@@ -1,9 +1,14 @@
 import type { ActionResult, NativeAction } from '../types/launcher';
 import type { MediaAdapter } from '../types/media';
+import type { AvPlayController } from './AvPlayController';
+import type { ThumbnailService } from '../services/thumbnails';
 
 export interface PlatformAdapter {
   readonly kind: 'browser' | 'tizen';
   readonly media: MediaAdapter;
+  readonly player: AvPlayController;
+  readonly thumbnails: ThumbnailService;
+  registerMediaKeys(): () => void;
   perform(action: NativeAction): Promise<ActionResult>;
   exit(): Promise<ActionResult | null>;
 }

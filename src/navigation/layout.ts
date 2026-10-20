@@ -2,6 +2,7 @@ import type { FocusRows } from './remote';
 import { launcherItems } from '../services/catalog';
 import { wallpaperPageItems, wallpaperPages } from '../services/wallpapers';
 import { CLOCK_TIME_ZONES } from '../services/clock';
+import { WEATHER_LOCATIONS } from '../services/weather';
 
 export type SettingsTab = 'appearance' | 'clock' | 'wallpapers' | 'weather' | 'usb';
 export const settingsTabs: { id: SettingsTab; name: string }[] = [{ id: 'appearance', name: 'Appearance' }, { id: 'clock', name: 'Clock' }, { id: 'wallpapers', name: 'Wallpapers' }, { id: 'weather', name: 'Weather' }, { id: 'usb', name: 'USB diagnostics' }];
@@ -30,6 +31,6 @@ export function settingsLayout(tab: SettingsTab, page: number): FocusRows {
     const zones = CLOCK_TIME_ZONES.map((zone, i) => ({ id: `timezone-${zone.id}`, x: 240 + i % 3 * 280 }));
     return [...rows, [{ id: 'time-format-12h', x: 280 }, { id: 'time-format-24h', x: 700 }], ...Array.from({ length: Math.ceil(zones.length / 3) }, (_, i) => zones.slice(i * 3, (i + 1) * 3))];
   }
-  if (tab === 'weather') return [...rows, ['brisbane', 'sydney', 'melbourne'].map((id, i) => ({ id: `city-${id}`, x: 240 + i * 280 })), ['perth', 'adelaide', 'hobart'].map((id, i) => ({ id: `city-${id}`, x: 240 + i * 280 }))];
+  if (tab === 'weather') return [...rows, ...Array.from({ length: Math.ceil(WEATHER_LOCATIONS.length / 3) }, (_, row) => WEATHER_LOCATIONS.slice(row * 3, row * 3 + 3).map(({ id }, i) => ({ id: `city-${id}`, x: 240 + i * 280 })))];
   return [...rows, [{ id: 'usb-rescan', x: 800 }], [{ id: 'usb-scroll-up', x: 350 }, { id: 'usb-scroll-down', x: 650 }]];
 }

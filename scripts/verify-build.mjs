@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parse } from 'acorn';
+import { samsungRuntimeScript } from './samsung-runtime.mjs';
 
 const directory = new URL('../dist/', import.meta.url);
 const html = await readFile(new URL('index.html', directory), 'utf8');
@@ -10,10 +11,12 @@ assert(!/\b(?:src|href)=["'](?:\/|https?:)/.test(html), 'HTML assets must be rel
 assert(!html.includes('nomodule'), 'Classic-only output must run in module-capable Chrome 69');
 assert(!/<script\b[^>]*\bcrossorigin/.test(html), 'Local widget scripts must not request CORS');
 const scriptPaths = [...html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g)].map((match) => match[1]);
+assert.equal(scriptPaths.filter(value => value === samsungRuntimeScript).length, 1, 'Expected the documented TV-native AVPlay SDK script once');
 assert(scriptPaths.length >= 2, 'Expected local legacy runtime and application scripts');
 let total = 0;
 const styles = [];
 for (const script of scriptPaths) {
+  if (script === samsungRuntimeScript) continue;
   assert(script.startsWith('./'), `Non-relative asset: ${script}`);
   const source = await readFile(new URL(script, directory), 'utf8');
   // Chrome 66+ supports optional catch bindings (ES2019); ES2020 syntax is rejected.

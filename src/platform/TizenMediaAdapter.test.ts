@@ -2,6 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { MediaError } from '../types/media';
 import { TizenMediaAdapter, type TizenFile, type TizenFilesystem, type TizenStorage } from './TizenMediaAdapter';
+import { video } from '../../tests/mediaFixture';
 
 const drive = { id: 'removable-a', label: 'removable-a', rootPath: 'removable-a' };
 const mounted: TizenStorage = { label: drive.id, type: 'EXTERNAL', state: 'MOUNTED' };
@@ -28,6 +29,30 @@ function fixture(entries: TizenFile[] = []) {
 }
 
 describe('native read-only USB adapter', () => {
+  it('resolves the selected file in read mode before playback and rejects missing files or removed drives', async () => {
+    const api = fixture(); const adapter = new TizenMediaAdapter(api.filesystem);
+    await adapter.listStorages();
+    const entry = video('Episode 1.MKV', `${drive.id}/Series`);
+    let mode: unknown;
+    api.filesystem.resolve = (_path, success, _failure, readMode) => { mode = readMode; success({ ...file(entry.name), toURI: () => 'file:///media/usb/Series/Episode%201.MKV' }); };
+    assert.equal((await adapter.resolveFile(entry)).uri, 'file:///media/usb/Series/Episode%201.MKV'); assert.equal(mode, 'r');
+    api.filesystem.resolve = (_path, _success, failure) => failure?.({ name: 'NotFoundError', message: 'File removed' });
+    await assert.rejects(adapter.resolveFile(entry), /selected USB video is missing/);
+    assert.equal(adapter.diagnostics.get().lastError?.name, 'NotFoundError');
+    await assert.rejects(adapter.resolveFile({ ...entry, path: `${drive.id}/../bad.MKV` }));
+    api.setStorages([]); await adapter.listStorages(); await assert.rejects(adapter.resolveFile(entry), /no longer connected/);
+  });
+  it('rejects a stale selected-file resolution after USB removal and retains permission errors', async () => {
+    const api = fixture(); const adapter = new TizenMediaAdapter(api.filesystem); await adapter.listStorages();
+    const unsubscribe = adapter.subscribeStorageChanges(() => {});
+    const entry = video('Episode 1.MKV', `${drive.id}/Series`);
+    let done: (file: TizenFile) => void = () => {};
+    api.filesystem.resolve = (_path, success) => { done = success; };
+    const resolving = adapter.resolveFile(entry); api.emit({ ...mounted, state: 'REMOVED' }); done(file(entry.name));
+    await assert.rejects(resolving, { code: 'removed' });
+    api.emit(mounted); api.filesystem.resolve = (_path, _success, failure) => failure?.({ name: 'SecurityError', message: 'Read permission denied' });
+    await assert.rejects(adapter.resolveFile(entry), { code: 'permission-denied' }); unsubscribe();
+  });
   it('copies native WebIDL storage getters explicitly instead of losing non-enumerable properties', async () => {
     const nativeStorage = Object.create({ get label() { return 'removable_sdc7'; }, get type() { return 'EXTERNAL'; }, get state() { return 'MOUNTED'; } }) as TizenStorage;
     assert.deepEqual({ ...nativeStorage }, {});
