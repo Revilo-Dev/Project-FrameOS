@@ -4,6 +4,7 @@ import { mediaOption } from './mediaOptions';
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/$WEBAPIS/webapis/webapis.js', route => route.fulfill({ contentType: 'application/javascript', body: '' }));
+  await page.route('https://api.exchange.coinbase.com/**', route => route.abort());
   await page.route('https://api.open-meteo.com/**', route => route.abort());
 });
 
@@ -14,7 +15,7 @@ test('dock expands only the focused icon, reveals every full title and never ove
   await expect(page.locator('#app-stan')).toHaveCSS('width', '104px');
   await expect(page.locator('#app-stan .app-name')).toHaveCSS('opacity', '0');
   await expect(page.locator('#app-youtube')).toHaveCSS('border-top-color', 'rgb(255, 255, 255)');
-  for (const id of ['youtube', 'stan', 'foxtel', 'gallery', 'art', 'browser', 'settings']) {
+  for (const id of ['youtube', 'stan', 'prime', 'gallery', 'art', 'browser', 'settings']) {
     const tile = page.locator(`#app-${id}`);
     await expect(tile).toBeFocused();
     await expect(tile).toHaveCSS('width', '290px');

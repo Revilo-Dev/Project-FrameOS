@@ -1,8 +1,8 @@
-export type IconName = 'usb' | 'play' | 'stan' | 'foxtel' | 'gallery' | 'art' | 'browser' | 'settings' | 'arrow' | 'close' | 'check' | 'home' | 'moon' | 'file' | 'music';
+export type IconName = 'usb' | 'play' | 'stan' | 'prime' | 'gallery' | 'art' | 'browser' | 'settings' | 'arrow' | 'close' | 'check' | 'home' | 'moon' | 'file' | 'music';
 
 export type NativeAction =
   | { type: 'usb' }
-  | { type: 'launch-app'; app: 'youtube' | 'stan' | 'foxtel' }
+  | { type: 'launch-app'; app: 'youtube' | 'stan' | 'prime' }
   | { type: 'gallery' }
   | { type: 'art-mode' }
   | { type: 'browser' }

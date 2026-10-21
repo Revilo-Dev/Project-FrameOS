@@ -79,7 +79,6 @@ export const VideoPlayer = forwardRef<PlayerHandle, Props>(function VideoPlayer(
       else if (key === 'media-next' && hasNext && !snapshot.busy) next();
       else if (key === 'media-previous' && hasPrevious && !snapshot.busy) previous();
       else if (key === 'media-skip-forward' || key === 'media-skip-back') seekBy(key === 'media-skip-forward' ? 30000 : -30000);
-      else if (key === 'media-volume-forward' || key === 'media-volume-back') seekBy(key === 'media-volume-forward' ? 20000 : -20000);
       else if (key === 'media-forward' || key === 'media-rewind') seekBy(key === 'media-forward' ? 10000 : -10000);
       return true;
     }
@@ -102,15 +101,15 @@ export const VideoPlayer = forwardRef<PlayerHandle, Props>(function VideoPlayer(
     {transition && <div className="player-next-transition" role="status">Playing next episode<span>Back to cancel</span></div>}
     {(snapshot.status === 'ended' || exhausted) && !transition && <div className="player-ended" role="status">Video finished{!hasNext && <span>{exhausted ? 'No more playable videos in this folder' : 'End of this folder’s playback list'}</span>}</div>}
     <div className="player-bottom" aria-hidden={!visible || undefined}>
-      <FocusButton id="player-seek" focused={focused} onFocused={focus} className="player-timeline" role="slider" aria-label="Playback position" aria-valuemin={0} aria-valuemax={snapshot.duration} aria-valuenow={snapshot.position} aria-valuetext={`${mediaTime(snapshot.position)} of ${mediaTime(snapshot.duration)}`} aria-disabled={blocked} onClick={() => { reveal(); controller.toggle(); }}><span className="player-track"><span className="player-fill" style={{ width: `${percent}%` }} /><span className="player-knob" style={{ left: `${percent}%` }} /></span></FocusButton>
-      <div className="player-time">{mediaTime(snapshot.position)} <span>/ {mediaTime(snapshot.duration)}</span></div>
       <div className="player-controls">
-        <FocusButton id="player-previous" focused={focused} onFocused={focus} className="player-button" aria-label="Previous" aria-disabled={!hasPrevious || snapshot.busy} onClick={() => { reveal(); if (hasPrevious && !snapshot.busy) previous(); }}><TrackIcon /></FocusButton>
-        <FocusButton id="player-rewind" focused={focused} onFocused={focus} className="player-button" aria-label="Rewind 10 seconds" aria-disabled={blocked} onClick={() => seekBy(-10000)}><span className="player-skip-label" aria-hidden="true">−10</span></FocusButton>
+        <FocusButton id="player-previous" focused={focused} onFocused={focus} className="player-button" aria-label="Previous Episode" aria-disabled={!hasPrevious || snapshot.busy} onClick={() => { reveal(); if (hasPrevious && !snapshot.busy) previous(); }}><TrackIcon /></FocusButton>
+        <FocusButton id="player-rewind" focused={focused} onFocused={focus} className="player-button" aria-label="Rewind 10 seconds" aria-disabled={blocked} onClick={() => seekBy(-10000)}><span className="player-skip-label" aria-hidden="true">&#8722;10</span></FocusButton>
         <FocusButton id="player-toggle" focused={focused} onFocused={focus} className="player-button player-toggle" aria-label={snapshot.status === 'playing' ? 'Pause' : snapshot.status === 'ended' ? 'Replay' : 'Play'} aria-disabled={blocked} onClick={() => { reveal(); controller.toggle(); }}><svg className="icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true">{snapshot.status === 'playing' ? <path d="M17 10v28M31 10v28" /> : <path d="m16 10 23 14-23 14z" />}</svg></FocusButton>
         <FocusButton id="player-forward" focused={focused} onFocused={focus} className="player-button" aria-label="Forward 10 seconds" aria-disabled={blocked} onClick={() => seekBy(10000)}><span className="player-skip-label" aria-hidden="true">+10</span></FocusButton>
-        <FocusButton id="player-next" focused={focused} onFocused={focus} className="player-button" aria-label="Next" aria-disabled={!hasNext || snapshot.busy} onClick={() => { reveal(); if (hasNext && !snapshot.busy) next(); }}><TrackIcon /></FocusButton>
+        <FocusButton id="player-next" focused={focused} onFocused={focus} className="player-button" aria-label="Next Episode" aria-disabled={!hasNext || snapshot.busy} onClick={() => { reveal(); if (hasNext && !snapshot.busy) next(); }}><TrackIcon /></FocusButton>
       </div>
+      <div className="player-time">{mediaTime(snapshot.position)} <span>/ {mediaTime(snapshot.duration)}</span></div>
+      <FocusButton id="player-seek" focused={focused} onFocused={focus} className="player-timeline" role="slider" aria-label="Playback position" aria-valuemin={0} aria-valuemax={snapshot.duration} aria-valuenow={snapshot.position} aria-valuetext={`${mediaTime(snapshot.position)} of ${mediaTime(snapshot.duration)}`} aria-disabled={blocked} onClick={() => { reveal(); controller.toggle(); }}><span className="player-track"><span className="player-fill" style={{ width: `${percent}%` }} /><span className="player-knob" style={{ left: `${percent}%` }} /></span></FocusButton>
     </div>
   </section>;
 });

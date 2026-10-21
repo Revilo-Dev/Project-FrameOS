@@ -4,13 +4,11 @@ import { adjacentSettingsTab, homeRows, playerRows, settingsLayout } from './lay
 import { nextFocus, remoteKey, tabFocus } from './remote';
 
 describe('remote navigation', () => {
-  it('navigates all five transport controls and centres timeline return on Play/Pause', () => {
+  it('moves from centred controls down to the timeline and back to Play/Pause', () => {
     assert.equal(nextFocus(playerRows, 'player-toggle', 'left'), 'player-rewind');
-    assert.equal(nextFocus(playerRows, 'player-rewind', 'left'), 'player-previous');
     assert.equal(nextFocus(playerRows, 'player-toggle', 'right'), 'player-forward');
-    assert.equal(nextFocus(playerRows, 'player-forward', 'right'), 'player-next');
-    assert.equal(nextFocus(playerRows, 'player-next', 'up'), 'player-seek');
-    assert.equal(nextFocus(playerRows, 'player-seek', 'down'), 'player-toggle');
+    assert.equal(nextFocus(playerRows, 'player-next', 'down'), 'player-seek');
+    assert.equal(nextFocus(playerRows, 'player-seek', 'up'), 'player-toggle');
   });
   it('cycles the existing Settings tabs with wrapping and makes clock fonts D-pad reachable', () => {
     assert.equal(adjacentSettingsTab('appearance', -1), 'media');

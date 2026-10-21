@@ -1,3 +1,5 @@
+import { BitcoinWidget } from '../components/BitcoinWidget';
+import type { BitcoinState } from '../services/bitcoin';
 import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { FocusButton } from '../components/FocusButton';
 import { WeatherWidget } from '../components/WeatherWidget';
@@ -21,7 +23,7 @@ export function widgetPanelRows(id: WidgetId, organiser: LocalOrganiser, month: 
 }
 interface Props {
   id: WidgetId; settings: Settings; preferences: WidgetPreferences; organiser: LocalOrganiser;
-  updateOrganiser(value: LocalOrganiser): void; calendar: CalendarState; month: string; setMonth(value: string): void;
+  updateOrganiser(value: LocalOrganiser): void; calendar: CalendarState; bitcoin: BitcoinState; month: string; setMonth(value: string): void;
   selectedDay: string; selectDay(value: string): void; refreshCalendar(): void;
   focused: string; focus(id: string): void; close(): void; configure(): void; wallpaper: string; saved: boolean;
 }
@@ -65,6 +67,7 @@ export function WidgetPanel(props: Props) {
   return <div className="panel-scrim widget-scrim"><div className="settings-wallpaper" style={{ backgroundImage: `url("${wallpaper}")` }} /><section className={`widget-panel widget-panel-${id}`} role="dialog" aria-modal="true" aria-labelledby="widget-panel-title">
     <header className="widget-panel-header"><div><WidgetIcon id={id} /><h2 id="widget-panel-title">{WIDGETS.find(widget => widget.id === id)?.name}</h2></div><FocusButton id="widget-close" focused={focused} onFocused={focus} className="round-button" aria-label="Close widget" onClick={close}>×</FocusButton></header>
     <div className="widget-panel-content" ref={content}>
+      {id === 'bitcoin' && <><BitcoinWidget state={props.bitcoin} timeZone={settings.timeZone} detailed /><FocusButton id="widget-configure" focused={focused} onFocused={focus} className="option" onClick={configure}>Configure Home widgets</FocusButton></>}
       {id === 'weather' && <><WeatherWidget city={settings.weatherCity} timeFormat={settings.timeFormat} /><p className="widget-detail-note">Current conditions and hourly forecast · Open-Meteo</p><FocusButton id="widget-configure" focused={focused} onFocused={focus} className="option" onClick={configure}>Choose weather location</FocusButton></>}
       {id === 'world-clock' && <><WorldTimes cities={preferences.cities} timeFormat={settings.timeFormat} now={now} /><p className="widget-detail-note">Times update automatically. No internet connection is needed.</p><FocusButton id="widget-configure" focused={focused} onFocused={focus} className="option" onClick={configure}>Choose cities</FocusButton></>}
       {(id === 'todo' || reminder) && <>

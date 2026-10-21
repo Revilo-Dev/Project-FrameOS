@@ -18,40 +18,52 @@ function run(executable, args) {
     child.on('close', code => { clearTimeout(timer); code === 0 ? resolve(output.trim()) : reject(new Error(`${executable} failed (${code}): ${output.slice(-500)}`)); });
   });
 }
-export async function generateDirectory(directory, { ffmpeg = 'ffmpeg', ffprobe = 'ffprobe', recursive = false, execute = run, log = console.log } = {}) {
+export async function generateDirectory(directory, { ffmpeg = 'ffmpeg', ffprobe = 'ffprobe', recursive = false, output, include, execute = run, log = console.log } = {}) {
   directory = path.resolve(directory);
+  const destination = path.resolve(output || directory);
+  await mkdir(destination, { recursive: true });
   const entries = await readdir(directory, { withFileTypes: true });
   const files = Object.create(null); let old = {};
-  try { const value = JSON.parse(await readFile(path.join(directory, '.frameos-thumbnails.json'), 'utf8')); if (value.version === 1) old = value.files || {}; } catch { /* First generation. */ }
+  try { const value = JSON.parse(await readFile(path.join(destination, '.frameos-thumbnails.json'), 'utf8')); if (value.version === 1) old = value.files || {}; } catch { /* First generation. */ }
   for (const entry of entries) {
     if (entry.isSymbolicLink() || entry.name.startsWith('.')) continue;
     const input = path.join(directory, entry.name);
-    if (entry.isDirectory()) { if (recursive) await generateDirectory(input, { ffmpeg, ffprobe, recursive, execute, log }); continue; }
+    if (entry.isDirectory()) { if (recursive && path.resolve(input) !== destination) await generateDirectory(input, { ffmpeg, ffprobe, recursive, output: output ? path.join(destination, entry.name) : undefined, include, execute, log }); continue; }
     if (!entry.isFile() || !/\.(mp4|mkv|m4v|webm)$/i.test(entry.name)) continue;
+    if (include && !include.includes(entry.name)) continue;
     const metadata = await stat(input);
     const hash = createHash('sha256').update(JSON.stringify([entry.name, metadata.size, metadata.mtimeMs])).digest('hex').slice(0, 24);
     const image = `.frameos-thumbnails/${hash}.jpg`;
     try {
-      if (old[entry.name]?.image === image && (await stat(path.join(directory, image))).size > 0) { files[entry.name] = old[entry.name]; continue; }
+      if (old[entry.name]?.image === image && (await stat(path.join(destination, image))).size > 0) { files[entry.name] = old[entry.name]; continue; }
     } catch { /* Missing snapshot must be regenerated. */ }
-    await mkdir(path.join(directory, '.frameos-thumbnails'), { recursive: true });
+    await mkdir(path.join(destination, '.frameos-thumbnails'), { recursive: true });
     try {
       const duration = Number(await execute(ffprobe, ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', input]));
-      await execute(ffmpeg, snapshotArguments(input, path.join(directory, image), duration));
-      if (!(await stat(path.join(directory, image))).size) throw new Error('Empty snapshot');
-      files[entry.name] = { image, size: metadata.size, modified: Math.round(metadata.mtimeMs) }; log(`Snapshot: ${entry.name}`);
+      await execute(ffmpeg, snapshotArguments(input, path.join(destination, image), duration));
+      if (!(await stat(path.join(destination, image))).size) throw new Error('Empty snapshot');
+      files[entry.name] = { image, relativePath: entry.name, identity: JSON.stringify([entry.name, metadata.size, Math.round(metadata.mtimeMs)]), size: metadata.size, modified: Math.round(metadata.mtimeMs) }; log(`Snapshot: ${entry.name}`);
     } catch (error) { log(`Skipped ${entry.name}: ${error.message}`); }
   }
   if (Object.keys(files).length) {
     const manifest = JSON.stringify({ version: 1, files });
     if (Buffer.byteLength(manifest) > 256 * 1024) throw new Error('Manifest exceeds TV safety limit. Split this directory into smaller folders.');
-    const temporary = path.join(directory, `.frameos-thumbnails-${randomUUID()}.tmp`);
-    await writeFile(temporary, manifest); await rename(temporary, path.join(directory, '.frameos-thumbnails.json'));
+    const temporary = path.join(destination, `.frameos-thumbnails-${randomUUID()}.tmp`);
+    await writeFile(temporary, manifest); await rename(temporary, path.join(destination, '.frameos-thumbnails.json'));
   }
   return files;
 }
 if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url) {
   const args = process.argv.slice(2);
-  if (!args[0] || args.some(arg => arg.startsWith('--') && arg !== '--recursive')) { console.error('Usage: node scripts/generate-thumbnails.mjs <PC-media-folder> [--recursive] (FFmpeg and FFprobe on PATH)'); process.exitCode = 1; }
-  else { try { await generateDirectory(args[0], { recursive: args.includes('--recursive') }); } catch (error) { console.error(error.message); process.exitCode = 1; } }
+  try {
+    if (!args[0] || args[0].startsWith('--')) throw new Error('Usage: node scripts/generate-thumbnails.mjs <PC-media-folder> [--output <folder>] [--file <filename>] [--ffmpeg <exe>] [--ffprobe <exe>] [--recursive]');
+    const options = {};
+    for (let i = 1; i < args.length; i++) {
+      if (args[i] === '--recursive') options.recursive = true;
+      else if (['--output', '--ffmpeg', '--ffprobe', '--file'].includes(args[i]) && args[i + 1]) {
+        const key = args[i].slice(2), value = args[++i]; if (key === 'file') options.include = [...(options.include || []), value]; else options[key] = value;
+      } else throw new Error(`Unknown/incomplete option: ${args[i]}`);
+    }
+    await generateDirectory(args[0], options);
+  } catch (error) { console.error(error.message); process.exitCode = 1; }
 }

@@ -5,7 +5,9 @@ import { wallpapers, wallpaperPages, wallpaperPageItems } from '../services/wall
 import type { Settings, Theme, Motion } from '../types/settings';
 import { WEATHER_LOCATIONS } from '../services/weather';
 import { settingsTabs, type SettingsTab } from '../navigation/layout';
-import type { MediaAdapter } from '../types/media';
+import type { ThumbnailService } from '../services/thumbnails';
+import { ThumbnailDiagnosticsPanel } from './ThumbnailDiagnosticsPanel';
+import type { MediaEntry, MediaAdapter } from '../types/media';
 import { UsbDiagnosticsPanel } from './UsbDiagnosticsPanel';
 import { CLOCK_TIME_ZONES } from '../services/clock';
 import { CLOCK_FONTS } from '../services/clockFonts';
@@ -13,6 +15,7 @@ import { WidgetsSettings } from '../components/WidgetsSettings';
 import type { WidgetPreferences } from '../services/widgets';
 
 interface Props {
+  thumbnails: ThumbnailService; thumbnailEntries: MediaEntry[]; selectedThumbnail?: MediaEntry;
   autoplay: boolean; toggleAutoplay(): void; clearMediaCache(): Promise<void>;
   settings: Settings; focused: string; focus(id: string): void;
   change(settings: Settings): void; close(): void; saved: boolean;
@@ -24,7 +27,7 @@ interface Props {
 const themes: { id: Theme; name: string }[] = [{ id: 'slate', name: 'Slate' }, { id: 'midnight', name: 'Midnight' }, { id: 'warm', name: 'Warm' }];
 const motions: { id: Motion; name: string }[] = [{ id: 'full', name: 'All animations' }, { id: 'subtle', name: 'Subtle' }, { id: 'off', name: 'Off' }];
 
-export function SettingsPanel({ settings, focused, focus, change, close, saved, tab, selectTab, page, selectPage, media, autoplay, toggleAutoplay, clearMediaCache, closing, wallpaper, widgets, changeWidgets }: Props) {
+export function SettingsPanel({ settings, focused, focus, change, close, saved, tab, selectTab, page, selectPage, media, autoplay, toggleAutoplay, clearMediaCache, closing, wallpaper, widgets, changeWidgets, thumbnails, thumbnailEntries, selectedThumbnail }: Props) {
   const [cacheStatus, setCacheStatus] = useState('');
   const content = useRef<HTMLDivElement>(null);
   const scrollPositions = useRef<Partial<Record<SettingsTab, number>>>({});
@@ -32,7 +35,8 @@ export function SettingsPanel({ settings, focused, focus, change, close, saved, 
   useLayoutEffect(() => {
     const element = document.getElementById(focused), view = content.current;
     if (!element || !view?.contains(element)) return;
-    const rect = element.getBoundingClientRect(), bounds = view.getBoundingClientRect();
+    const target = element.closest('.thumbnail-diagnostic-overview') || element;
+    const rect = target.getBoundingClientRect(), bounds = view.getBoundingClientRect();
     const scale = bounds.height / view.clientHeight || 1;
     if (rect.top < bounds.top + 8) view.scrollTop -= (bounds.top + 8 - rect.top) / scale;
     else if (rect.bottom > bounds.bottom - 8) view.scrollTop += (rect.bottom - bounds.bottom + 8) / scale;
@@ -66,7 +70,7 @@ export function SettingsPanel({ settings, focused, focus, change, close, saved, 
         <FocusButton id="media-cache-clear" focused={focused} onFocused={focus} className="option" aria-disabled={cacheStatus === 'Clearing...'} onClick={() => { if (cacheStatus === 'Clearing...') return; setCacheStatus('Clearing...'); void clearMediaCache().then(() => setCacheStatus('Media cache cleared.'), () => setCacheStatus('Cache cleared for this session.')); }}>Clear Media Cache</FocusButton>
         <p className="setting-note" role="status">{cacheStatus || 'Clears directory metadata and thumbnails. Hidden-file and playback preferences are kept.'}</p>
       </>}
-      {tab === 'usb'  && <UsbDiagnosticsPanel adapter={media} focused={focused} focus={focus} />}
+      {tab === 'usb' && <><UsbDiagnosticsPanel adapter={media} focused={focused} focus={focus} /><ThumbnailDiagnosticsPanel entries={thumbnailEntries} selected={selectedThumbnail} service={thumbnails} focused={focused} focus={focus} /></>}
     </div>
     <div className={`save-status${saved ? '' : ' save-error'}`} role="status"><Icon name={saved ? 'check' : 'close'} /><span>{saved ? 'Changes saved automatically' : 'Changes apply for this session. Storage is unavailable.'}</span></div>
     <div className="panel-footer"><kbd>↶</kbd> Back to close<span>CH + / − · Switch tabs · D-pad to browse</span></div>

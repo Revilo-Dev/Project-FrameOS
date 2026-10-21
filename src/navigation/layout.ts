@@ -17,15 +17,15 @@ export const homeRows: FocusRows = [
   [{ id: 'home-media', x: 960 }],
 ];
 export const playerRows: FocusRows = [
-  [{ id: 'player-seek', x: 960 }],
   ['previous', 'rewind', 'toggle', 'forward', 'next'].map((id, i) => ({ id: `player-${id}`, x: 744 + i * 108 })),
+  [{ id: 'player-seek', x: 960 }],
 ];
 export function homeLayout(compact: boolean, widgets: WidgetId[] = []): FocusRows {
   const dashboard = widgets.length ? [widgets.map((id, i) => ({ id: `widget-${id}`, x: 960 + (i - (widgets.length - 1) / 2) * 560 }))] : [];
   const apps = widgets.length ? homeRows[1].map((node, i) => ({ ...node, x: 960 + (i - (homeRows[1].length - 1) / 2) * 124 })) : homeRows[1];
   return compact ? [homeRows[0], ...dashboard, apps.slice(0, 4), apps.slice(4).map((node, i) => ({ ...node, x: 300 + i * 440 })), homeRows[2]] : [homeRows[0], ...dashboard, apps, homeRows[2]];
 }
-export function settingsLayout(tab: SettingsTab, page: number, enabledWidgets: WidgetId[] = []): FocusRows {
+export function settingsLayout(tab: SettingsTab, page: number, enabledWidgets: WidgetId[] = [], hasThumbnailVideos = false): FocusRows {
   const rows: FocusRows = [[{ id: 'settings-close', x: 1800 }], settingsTabs.map((item, i) => ({ id: `settings-tab-${item.id}`, x: 140 + i * 180 }))];
   if (tab === 'appearance') return [...rows,
     ['slate', 'midnight', 'warm'].map((id, i) => ({ id: `theme-${id}`, x: 240 + i * 280 })),
@@ -49,5 +49,5 @@ export function settingsLayout(tab: SettingsTab, page: number, enabledWidgets: W
     return [{ id: `widget-toggle-${widget.id}`, x: 600 }, ...(index > 0 ? [{ id: `widget-earlier-${widget.id}`, x: 1250 }] : []), ...(index >= 0 && index < enabledWidgets.length - 1 ? [{ id: `widget-later-${widget.id}`, x: 1450 }] : [])];
   }), [{ id: 'calendar-privacy', x: 600 }], ...Array.from({ length: 3 }, (_, row) => WORLD_CITIES.slice(row * 3, row * 3 + 3).map((city, i) => ({ id: `world-city-${city.id}`, x: 500 + i * 360 })))];
   if (tab === 'weather') return [...rows, ...Array.from({ length: Math.ceil(WEATHER_LOCATIONS.length / 3) }, (_, row) => WEATHER_LOCATIONS.slice(row * 3, row * 3 + 3).map(({ id }, i) => ({ id: `city-${id}`, x: 240 + i * 280 })))];
-  return [...rows, [{ id: 'usb-rescan', x: 800 }], [{ id: 'usb-scroll-up', x: 350 }, { id: 'usb-scroll-down', x: 650 }]];
+  return [...rows, [{ id: 'usb-rescan', x: 800 }], [{ id: 'usb-scroll-up', x: 350 }, { id: 'usb-scroll-down', x: 650 }], ...(hasThumbnailVideos ? [[{ id: 'thumbnail-previous', x: 300 }, { id: 'thumbnail-next', x: 650 }, { id: 'thumbnail-retry', x: 1000 }], [{ id: 'thumbnail-scroll-up', x: 350 }, { id: 'thumbnail-scroll-down', x: 650 }]] : [])];
 }

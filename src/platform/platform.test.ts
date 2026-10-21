@@ -32,6 +32,8 @@ describe('platform boundary', () => {
     it(`${adapter.kind} reports every native action as unsupported without calling APIs`, async () => {
       for (const action of actions) {
         const result = await adapter.perform(action);
+        assert(result);
+        if (adapter.kind === 'tizen' && ['launch-app', 'gallery', 'browser', 'art-mode'].includes(action.type)) { assert.equal(result.status, 'unavailable'); continue; }
         assert.equal(result.status, 'unsupported');
         assert.match(result.message, /future version/);
       }

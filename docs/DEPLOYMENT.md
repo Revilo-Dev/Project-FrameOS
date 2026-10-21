@@ -1,5 +1,9 @@
 # FrameOS TV deployment
 
+The [v0.3.8 follow-up](V0.3.8.md) selects `tizen/policy-v0.3.8.json`: the Coinbase public-data origin for Bitcoin and the explicitly approved `application.launch` privilege for YouTube. Source app identity, certificates and the protected external manifest remain unchanged. Permission approval did not authorize TV installation.
+
+The current [v0.3.7 repair report](V0.3.7.md) records the signed candidate, real-media thumbnail evidence and remaining physical acceptance tests. It preserves the existing v0.4 packaging policy without adding privileges. Installation still requires explicit approval.
+
 The current [v0.4 packaging policy and handoff](V0.4.md) add native thumbnail creation and local-video CSP declarations only in the fresh packaging copy. The working `revilodev-frameos` author profile and source app identity are preserved. Installation requires user approval.
 
 Use a normal PowerShell session; Administrator permissions are not required.

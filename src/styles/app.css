@@ -87,7 +87,7 @@ h2 { font-weight: 400; }
 .tile-usb .app-art { background: linear-gradient(135deg, #304b65, #273c50); color: #c5e0ff; }
 .tile-youtube .app-art { background: linear-gradient(135deg, #50313b, #3f2e39); color: #f3bec1; --icon-cutout: #4d303a; }
 .tile-stan .app-art { background: linear-gradient(135deg, #244c67, #213d57); color: #bfdff4; }
-.tile-foxtel .app-art { background: linear-gradient(135deg, #564236, #47372f); color: #efd1af; }
+.tile-prime .app-art { background: linear-gradient(135deg, #564236, #47372f); color: #efd1af; }
 .tile-gallery .app-art { background: linear-gradient(135deg, #344e47, #2b3f3d); color: #c5ddc2; }
 .tile-art .app-art { background: linear-gradient(135deg, #4a435e, #3c364e); color: #d5c9e9; }
 .tile-browser .app-art { background: linear-gradient(135deg, #304552, #293b48); color: #c5dbe9; }
@@ -173,7 +173,7 @@ kbd { font: inherit; font-size: 12px; border: 1px solid rgba(186, 209, 225, .3);
 .tile-usb { color: #c9e1ff; }
 .tile-youtube { color: #d1dbe7; --icon-cutout: #243a4b; }
 .tile-stan { color: #bbd8f1; }
-.tile-foxtel { color: #e4d6bc; }
+.tile-prime { color: #e4d6bc; }
 .tile-gallery { color: #c3ddcf; }
 .tile-art { color: #d5cde6; }
 .tile-browser { color: #d4e3eb; }

@@ -1,3 +1,4 @@
+import { bitcoinFixture } from './bitcoinFixture';
 import { test, expect } from '@playwright/test';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -9,9 +10,11 @@ test('capture all FrameOS screens and assemble the reference gallery', async ({ 
   test.setTimeout(90000);
   const directory = resolve('artifacts/screens');
   await mkdir(directory, { recursive: true });
+  await bitcoinFixture(page);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.clock.install({ time: new Date('2026-10-21T08:23:00Z') });
   await page.addInitScript(() => {
+    if (!localStorage.getItem('frameos.widgets.v1')) localStorage.setItem('frameos.widgets.v1', JSON.stringify({ version: 1, bitcoinAdded: true, enabled: ['weather', 'calendar', 'world-clock'] }));
     localStorage.setItem('frameos.settings.v1', JSON.stringify({ version: 1, theme: 'slate', wallpaper: 'dark-mount', motion: 'off', weatherCity: 'brisbane', showFps: false, timeFormat: '12h', timeZone: 'Australia/Brisbane', clockFont: 'modern' }));
   });
   await nativeFixture(page, { channels: true, volumeKeys: true });

@@ -1,26 +1,26 @@
 export type Direction = 'left' | 'right' | 'up' | 'down';
-export type MediaKey = 'media-toggle' | 'media-play' | 'media-pause' | 'media-stop' | 'media-next' | 'media-previous' | 'media-forward' | 'media-rewind' | 'media-skip-forward' | 'media-skip-back' | 'media-volume-forward' | 'media-volume-back';
+export type MediaKey = 'media-toggle' | 'media-play' | 'media-pause' | 'media-stop' | 'media-next' | 'media-previous' | 'media-forward' | 'media-rewind' | 'media-skip-forward' | 'media-skip-back';
 export type RemoteKey = Direction | MediaKey | 'select' | 'back' | 'tab' | 'context' | null;
 const mediaNames: Record<string, MediaKey> = { MediaPlayPause: 'media-toggle', MediaPlay: 'media-play', MediaPause: 'media-pause', MediaStop: 'media-stop', MediaTrackNext: 'media-next', MediaTrackPrevious: 'media-previous', MediaFastForward: 'media-forward', MediaRewind: 'media-rewind' };
 const channelNames: Record<string, MediaKey> = { ChannelUp: 'media-skip-forward', ChannelDown: 'media-skip-back' };
-const volumeNames: Record<string, MediaKey> = { VolumeUp: 'media-volume-forward', VolumeDown: 'media-volume-back', AudioVolumeUp: 'media-volume-forward', AudioVolumeDown: 'media-volume-back' };
 let channelsActive = false;
-const activeVolumeKeys = new Set<MediaKey>();
+const systemVolumeCodes = new Set([447, 448, 449]);
+const systemVolumeNames = new Set(['VolumeUp', 'VolumeDown', 'VolumeMute', 'AudioVolumeUp', 'AudioVolumeDown', 'AudioVolumeMute']);
 const nativeMediaCodes = new Map<number, MediaKey>();
 export function bindMediaKeys(keys: { name: string; code: number }[]) {
   channelsActive = true;
-  activeVolumeKeys.clear();
-  for (const key of keys) if (volumeNames[key.name]) activeVolumeKeys.add(volumeNames[key.name]);
-  for (const key of keys) if (mediaNames[key.name] || channelNames[key.name] || volumeNames[key.name]) nativeMediaCodes.set(key.code, mediaNames[key.name] || channelNames[key.name] || volumeNames[key.name]);
-  return () => { channelsActive = false; activeVolumeKeys.clear(); for (const key of keys) nativeMediaCodes.delete(key.code); };
+  for (const key of keys) if (systemVolumeNames.has(key.name)) systemVolumeCodes.add(key.code);
+  for (const key of keys) if (mediaNames[key.name] || channelNames[key.name]) nativeMediaCodes.set(key.code, mediaNames[key.name] || channelNames[key.name]);
+  return () => { channelsActive = false; for (const key of keys) nativeMediaCodes.delete(key.code); };
 }
 export interface FocusNode { id: string; x: number }
 export type FocusRows = readonly (readonly FocusNode[])[];
 
 export function remoteKey(event: { key: string; keyCode: number }): RemoteKey {
+  if (systemVolumeNames.has(event.key) || systemVolumeCodes.has(event.keyCode)) return null;
   const keys: Record<string, RemoteKey> = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', Enter: 'select', Escape: 'back', Backspace: 'back', BrowserBack: 'back', GoBack: 'back', Tab: 'tab' };
   const codes: Record<number, RemoteKey> = { 37: 'left', 39: 'right', 38: 'up', 40: 'down', 13: 'select', 27: 'back', 8: 'back', 10009: 'back' };
-  return keys[event.key] || codes[event.keyCode] || mediaNames[event.key] || nativeMediaCodes.get(event.keyCode) || (channelsActive ? channelNames[event.key] : null) || (activeVolumeKeys.has(volumeNames[event.key]) ? volumeNames[event.key] : null) || (event.key === 'PageUp' ? 'media-skip-forward' : event.key === 'PageDown' ? 'media-skip-back' : event.key === ' ' ? 'media-toggle' : event.key === 'ContextMenu' ? 'context' : null);
+  return keys[event.key] || codes[event.keyCode] || mediaNames[event.key] || nativeMediaCodes.get(event.keyCode) || (channelsActive ? channelNames[event.key] : null) || (event.key === 'PageUp' ? 'media-skip-forward' : event.key === 'PageDown' ? 'media-skip-back' : event.key === ' ' ? 'media-toggle' : event.key === 'ContextMenu' ? 'context' : null);
 }
 
 export function nextFocus(rows: FocusRows, current: string, direction: Direction): string {

@@ -29,32 +29,14 @@ it('discovers channel keycodes, skips unadvertised keys, and releases bindings w
   assert.equal(unsupported.includes('ChannelUp'), false);
   assert.equal(remoteKey({ key: 'PageUp', keyCode: 0 }), 'media-skip-forward');
 });
-it('captures supported volume keys only when playback requests seeking, and releases both native and named mappings', () => {
-  const registered: string[] = [], removed: string[] = [];
-  const runtime = { tizen: { tvinputdevice: {
-    getSupportedKeys: () => [{ name: 'VolumeUp', code: 9201 }, { name: 'VolumeDown', code: 9202 }, { name: 'VolumeMute', code: 449 }],
-    registerKey(name: string) { registered.push(name); }, unregisterKey(name: string) { removed.push(name); },
-  } } };
-  registerMediaKeys(runtime)();
-  assert.equal(registered.includes('VolumeUp'), false);
-  assert.equal(remoteKey({ key: 'VolumeUp', keyCode: 9201 }), null);
-  const release = registerMediaKeys(runtime, { volumeSeek: true });
-  assert(registered.includes('VolumeUp')); assert(registered.includes('VolumeDown'));
-  assert.equal(registered.includes('VolumeMute'), false);
-  assert.equal(remoteKey({ key: 'Unidentified', keyCode: 9201 }), 'media-volume-forward');
-  assert.equal(remoteKey({ key: 'Unidentified', keyCode: 9202 }), 'media-volume-back');
-  assert.equal(remoteKey({ key: 'AudioVolumeUp', keyCode: 0 }), 'media-volume-forward');
-  assert.equal(remoteKey({ key: 'VolumeDown', keyCode: 0 }), 'media-volume-back');
-  release(); assert.equal(remoteKey({ key: 'VolumeUp', keyCode: 9201 }), null);
-  assert.equal(remoteKey({ key: 'AudioVolumeDown', keyCode: 0 }), null);
-  assert.deepEqual(removed, registered);
-});
-it('does not bind a volume direction whose native registration failed', () => {
+it('leaves standard and discovered volume keys entirely to the Samsung system', () => {
+  const registered: string[] = [];
   const release = registerMediaKeys({ tizen: { tvinputdevice: {
-    getSupportedKeys: () => [{ name: 'VolumeUp', code: 9201 }, { name: 'VolumeDown', code: 9202 }],
-    registerKey(name: string) { if (name === 'VolumeDown') throw new Error('unsupported'); }, unregisterKey() {},
-  } } }, { volumeSeek: true });
-  assert.equal(remoteKey({ key: 'VolumeDown', keyCode: 9202 }), null);
-  assert.equal(remoteKey({ key: 'Unidentified', keyCode: 9201 }), 'media-volume-forward');
-  release();
+    getSupportedKeys: () => [{ name: 'VolumeUp', code: 9201 }, { name: 'VolumeDown', code: 9202 }, { name: 'VolumeMute', code: 9203 }, { name: 'ChannelUp', code: 427 }],
+    registerKey(name: string) { registered.push(name); }, unregisterKey() {},
+  } } });
+  for (const [key, keyCode] of [['VolumeUp', 447], ['VolumeDown', 448], ['VolumeMute', 449], ['AudioVolumeUp', 9201], ['Unidentified', 9202], ['Unidentified', 9203]] as const) assert.equal(remoteKey({ key, keyCode }), null);
+  assert(!registered.some(name => name.startsWith('Volume')));
+  assert.equal(remoteKey({ key: 'Unidentified', keyCode: 427 }), 'media-skip-forward');
+  release(); assert.equal(remoteKey({ key: 'VolumeUp', keyCode: 9201 }), null);
 });

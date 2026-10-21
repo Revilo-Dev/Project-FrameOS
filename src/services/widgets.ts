@@ -2,6 +2,7 @@ import type { SettingsStorage } from './settings';
 
 export const WIDGETS = [
   { id: 'weather', name: 'Weather', description: 'Current conditions and the next six hours', symbol: 'weather' },
+  { id: 'bitcoin', name: 'Bitcoin', description: 'USD price, daily chart and 24-hour market stats', symbol: 'bitcoin' },
   { id: 'calendar', name: 'Calendar', description: 'Your day and upcoming appointments', symbol: 'calendar' },
   { id: 'reminders', name: 'Reminders', description: 'Local reminders with a due date and time', symbol: 'reminders' },
   { id: 'todo', name: 'To-do', description: 'A simple local task list', symbol: 'todo' },
@@ -23,12 +24,13 @@ export const WORLD_CITIES = [
 ] as const;
 export interface WidgetPreferences {
   version: 1;
+  bitcoinAdded?: boolean;
   enabled: WidgetId[];
   cities: string[];
   calendarPrivacy: boolean;
 }
 export function defaultWidgets(): WidgetPreferences {
-  return { version: 1, enabled: ['weather', 'calendar', 'world-clock'], cities: WORLD_CITIES.slice(0, 3).map(city => city.id), calendarPrivacy: false };
+  return { version: 1, bitcoinAdded: true, enabled: ['weather', 'bitcoin', 'world-clock'], cities: WORLD_CITIES.slice(0, 3).map(city => city.id), calendarPrivacy: false };
 }
 export function isWidgetId(value: unknown): value is WidgetId { return WIDGETS.some(widget => widget.id === value); }
 export function normaliseWidgets(value: unknown): WidgetPreferences {
@@ -37,10 +39,15 @@ export function normaliseWidgets(value: unknown): WidgetPreferences {
   const source = value as Partial<WidgetPreferences>;
   const enabled = Array.isArray(source.enabled) ? source.enabled.filter(isWidgetId).filter((id, i, ids) => ids.indexOf(id) === i).slice(0, MAX_WIDGETS) : defaults.enabled;
   const cities = Array.isArray(source.cities) ? source.cities.filter(id => WORLD_CITIES.some(city => city.id === id)).filter((id, i, ids) => ids.indexOf(id) === i).slice(0, 3) : [];
-  return { version: 1, enabled, cities: cities.length ? cities : defaults.cities, calendarPrivacy: source.calendarPrivacy === true };
+  return { version: 1, bitcoinAdded: true, enabled, cities: cities.length ? cities : defaults.cities, calendarPrivacy: source.calendarPrivacy === true };
 }
 export function loadWidgets(storage: SettingsStorage): WidgetPreferences {
-  try { return normaliseWidgets(JSON.parse(storage.getItem(WIDGETS_KEY) || 'null')); } catch { return defaultWidgets(); }
+  try {
+    const source = JSON.parse(storage.getItem(WIDGETS_KEY) || 'null');
+    // Upgrade only the old default trio, once. Saved custom/empty rows are kept.
+    if (source && !source.bitcoinAdded && Array.isArray(source.enabled) && source.enabled.join(',') === 'weather,calendar,world-clock') source.enabled[1] = 'bitcoin';
+    return normaliseWidgets(source);
+  } catch { return defaultWidgets(); }
 }
 export function saveWidgets(storage: SettingsStorage, preferences: WidgetPreferences): boolean {
   try { storage.setItem(WIDGETS_KEY, JSON.stringify(normaliseWidgets(preferences))); return true; } catch { return false; }

@@ -1,0 +1,7 @@
+--- prepared package policy (YouTube launch disabled)
++++ proposed package policy (YouTube launch enabled)
+@@ privilege declarations @@
+     <tizen:privilege name="http://tizen.org/privilege/content.write"/>
++    <tizen:privilege name="http://tizen.org/privilege/application.launch"/>
+
+Only one additional privilege. The protected external config.xml remains unchanged.

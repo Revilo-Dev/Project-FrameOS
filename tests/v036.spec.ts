@@ -1,7 +1,9 @@
+import { bitcoinFixture } from './bitcoinFixture';
 import { test, expect, type Page } from '@playwright/test';
 import { nativeFixture } from './nativeFixture';
 
 test.beforeEach(async ({ page }) => {
+  await bitcoinFixture(page);
   await page.clock.install({ time: new Date('2026-10-21T08:23:00Z') });
   await page.route('**/$WEBAPIS/webapis/webapis.js', route => route.fulfill({ contentType: 'application/javascript', body: '' }));
   await page.route('https://api.open-meteo.com/**', route => route.fulfill({ json: {
@@ -12,7 +14,7 @@ test.beforeEach(async ({ page }) => {
 });
 async function seed(page: Page, enabled: string[]) {
   await page.addInitScript(ids => {
-    if (!localStorage.getItem('frameos.widgets.v1')) localStorage.setItem('frameos.widgets.v1', JSON.stringify({ version: 1, enabled: ids, cities: ['Australia/Brisbane', 'Europe/Warsaw', 'America/New_York'], calendarPrivacy: false }));
+    if (!localStorage.getItem('frameos.widgets.v1')) localStorage.setItem('frameos.widgets.v1', JSON.stringify({ version: 1, bitcoinAdded: true, enabled: ids, cities: ['Australia/Brisbane', 'Europe/Warsaw', 'America/New_York'], calendarPrivacy: false }));
   }, enabled);
 }
 async function settings(page: Page) { await page.locator('#top-settings').click(); await page.locator('#settings-tab-widgets').click(); }
@@ -30,7 +32,7 @@ test('three default widgets fit between the centred clock and dock and are D-pad
   });
   expect(dailyFits).toBe(true);
   await expect(page.locator('.world-city')).toHaveCount(3);
-  await expect(page.locator('.dashboard-calendar')).toContainText('Google Calendar connection coming later');
+  await expect(page.locator('.dashboard-bitcoin')).toContainText('$67,250.00');
   await expect(page.locator('.dashboard-card .weather-icon-rain')).toHaveCSS('color', 'rgb(155, 171, 245)');
   const geometry = await page.evaluate(() => {
     const clock = document.querySelector('.clock')!.getBoundingClientRect(), dock = document.querySelector('.app-dock')!.getBoundingClientRect();
@@ -41,9 +43,9 @@ test('three default widgets fit between the centred clock and dock and are D-pad
   const headings = await page.locator('.dashboard-card .widget-heading').evaluateAll(items => items.map(item => item.getBoundingClientRect().top));
   expect(Math.max(...headings) - Math.min(...headings)).toBeLessThan(1);
   await page.keyboard.press('ArrowUp'); await expect(page.locator('#widget-weather')).toBeFocused();
-  await page.keyboard.press('ArrowRight'); await expect(page.locator('#widget-calendar')).toBeFocused();
-  await page.keyboard.press('Enter'); await expect(page.locator('.widget-panel-calendar')).toBeVisible();
-  await page.keyboard.press('Escape'); await expect(page.locator('#widget-calendar')).toBeFocused();
+  await page.keyboard.press('ArrowRight'); await expect(page.locator('#widget-bitcoin')).toBeFocused();
+  await page.keyboard.press('Enter'); await expect(page.locator('.widget-panel-bitcoin')).toBeVisible();
+  await page.keyboard.press('Escape'); await expect(page.locator('#widget-bitcoin')).toBeFocused();
   await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter');
   await expect(page.locator('.widget-panel-world-clock')).toBeVisible();
   await expect(page.locator('.widget-panel-world-clock .world-city')).toHaveCount(3);
@@ -57,11 +59,11 @@ test('Settings enforces the maximum, persists order and supports one, two and ze
   await page.locator('#widget-toggle-weather').click(); await page.locator('#widget-toggle-todo').click();
   await page.locator('#widget-earlier-todo').click(); await expect(page.locator('#widget-toggle-todo')).toBeFocused();
   await page.keyboard.press('Escape');
-  expect(await page.locator('.dashboard-card').evaluateAll(cards => cards.map(card => card.id))).toEqual(['widget-calendar', 'widget-todo', 'widget-world-clock']);
-  await page.reload(); expect(await page.locator('.dashboard-card').evaluateAll(cards => cards.map(card => card.id))).toEqual(['widget-calendar', 'widget-todo', 'widget-world-clock']);
+  expect(await page.locator('.dashboard-card').evaluateAll(cards => cards.map(card => card.id))).toEqual(['widget-bitcoin', 'widget-todo', 'widget-world-clock']);
+  await page.reload(); expect(await page.locator('.dashboard-card').evaluateAll(cards => cards.map(card => card.id))).toEqual(['widget-bitcoin', 'widget-todo', 'widget-world-clock']);
   await settings(page); await page.locator('#widget-toggle-todo').click(); await page.keyboard.press('Escape');
   await expect(page.locator('.widget-dashboard')).toHaveAttribute('data-widget-count', '2');
-  await settings(page); await page.locator('#widget-toggle-calendar').click(); await page.keyboard.press('Escape');
+  await settings(page); await page.locator('#widget-toggle-bitcoin').click(); await page.keyboard.press('Escape');
   await expect(page.locator('.dashboard-card')).toHaveCount(1);
   const single = await page.locator('.dashboard-card').boundingBox(); expect(single!.x + single!.width / 2).toBeCloseTo(960, 0);
   await settings(page); await page.locator('#widget-toggle-world-clock').click(); await page.keyboard.press('Escape');
@@ -95,7 +97,7 @@ test('local reminders retain due times, remain separate from Calendar and reject
   await page.locator('.organiser-complete').click(); await page.keyboard.press('Escape'); await expect(page.locator('.reminder-preview')).toHaveCount(0);
 });
 test('Calendar has an honest disconnected month view, D-pad day navigation and persistent Privacy Mode', async ({ page }) => {
-  await page.goto('/'); await page.locator('#widget-calendar').click();
+  await seed(page, ['calendar']); await page.goto('/'); await page.locator('#widget-calendar').click();
   await expect(page.locator('.calendar-state-unconfigured')).toContainText('connection coming later');
   await expect(page.locator('.calendar-day')).toHaveCount(42); await expect(page.locator('#calendar-refresh')).toBeDisabled();
   await page.locator('#calendar-next').click(); await expect(page.locator('.calendar-toolbar h3')).toHaveText('November 2026');

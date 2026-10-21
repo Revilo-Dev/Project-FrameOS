@@ -4,6 +4,7 @@ import { nativeFixture, openSeries } from './nativeFixture';
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/$WEBAPIS/webapis/webapis.js', route => route.fulfill({ contentType: 'application/javascript', body: '' }));
+  await page.route('https://api.exchange.coinbase.com/**', route => route.abort());
   await page.route('https://api.open-meteo.com/**', route => route.abort());
 });
 

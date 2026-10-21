@@ -2,7 +2,13 @@
 
 > **v0.3.5 interface release:** [behavior, checks and deployment](docs/V0.3.5.md) · [changed files](docs/V0.3.5-FILES.md). Existing media work and the successful TV deployment pipeline are preserved.
 
-# FrameOS v0.3.6
+# FrameOS v0.3.8
+
+Latest follow-up replaces Foxtel with Prime Video and wires all six native app destinations. Bitcoin's successive five-minute updates, pause in Media and overdue refresh on Home return have automated coverage. See the [follow-up report and signed candidate](docs/V0.3.8.md#native-app-destinations-and-refresh-follow-up). TV thumbnail failure remains under investigation; the diagnostic summary now keeps the key result fields visible above Retry.
+
+See the [v0.3.8 follow-up](docs/V0.3.8.md): restored Previous / −10 / Play-Pause / +10 / Next, thumb-only blue timeline focus, time above the right end of the bar, blurred Media wallpaper, Bitcoin replacing the default Calendar card, and native YouTube launch with the approved app-launch privilege.
+
+See the [v0.3.7 repair report](docs/V0.3.7.md) for thumbnail diagnostics and real MP4/MKV evidence, system volume handling, the corrected player layout/focus and full-width folder surfaces. The signed build is prepared; physical-TV acceptance awaits installation approval.
 
 See the [v0.4 handoff](docs/V0.4.md) for autoplay, channel skipping, continuous scrolling, persistent caching, native/HTML/FFmpeg thumbnail fallbacks and startup feasibility. Physical-TV installation requires approval.
 

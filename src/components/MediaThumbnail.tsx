@@ -16,5 +16,5 @@ export const MediaThumbnail = memo(function MediaThumbnail({ entry, service, act
     void service.get(entry, controller.signal).then(uri => { if (!controller.signal.aborted) setUri(uri); });
     return () => controller.abort();
   }, [entry, service, active, retry]);
-  return <span className="media-thumbnail">{uri ? <img src={uri} alt="" onError={() => { setUri(null); if (!retry) void service.forget(entry).then(() => { if (current.current === identity) setRetry(1); }); }} /> : <Icon name="play" />}<span className="media-thumbnail-badge">{entry.extension.toUpperCase()}</span></span>;
+  return <span className="media-thumbnail">{uri ? <img src={uri} alt="" onLoad={() => service.rendering(entry, true)} onError={() => { service.rendering(entry, false); setUri(null); if (!retry) void service.forget(entry).then(() => { if (current.current === identity) setRetry(1); }); }} /> : <Icon name="play" />}<span className="media-thumbnail-badge">{entry.extension.toUpperCase()}</span></span>;
 });

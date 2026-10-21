@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
 export const weatherOrigin = 'https://api.open-meteo.com';
+export const bitcoinOrigin = 'https://api.exchange.coinbase.com';
 export const readOnlyPrivileges = Object.freeze([
   'http://tizen.org/privilege/filesystem.read',
   'http://tizen.org/privilege/externalstorage',
@@ -10,14 +11,15 @@ export const readOnlyPrivileges = Object.freeze([
 ]);
 // Vite's classic SystemJS entry and injected local CSS require inline script/style.
 // Indexed local thumbnail URIs and the local AVPlay object; no remote code/write access.
-export const contentSecurityPolicy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: file:; connect-src 'self' https://api.open-meteo.com; media-src 'self' file:; object-src 'self'; base-uri 'none'; frame-src 'none'";
+export const contentSecurityPolicy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: file:; connect-src 'self' https://api.open-meteo.com https://api.exchange.coinbase.com; media-src 'self' file:; object-src 'self'; base-uri 'none'; frame-src 'none'";
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
 export function createPackagingManifest(original, policy) {
   if (!Buffer.isBuffer(original)) throw new Error('Policy overlay requires the original manifest bytes.');
-  if (!policy || policy.version !== 1 || !['0.3.0', '0.4.0'].includes(policy.release)
+  if (!policy || policy.version !== 1 || !['0.3.0', '0.4.0', '0.3.8'].includes(policy.release)
       || !/^[a-f\d]{64}$/.test(policy.originalManifestSha256 || '')
-      || Object.keys(policy).sort().join(',') !== 'originalManifestSha256,release,version') {
+      || Object.keys(policy).sort().join(',') !== (policy.release === '0.3.8' ? 'originalManifestSha256,release,version,youtubeLaunch' : 'originalManifestSha256,release,version')
+      || policy.release === '0.3.8' && typeof policy.youtubeLaunch !== 'boolean') {
     throw new Error('Invalid manifest policy; arbitrary metadata/policy changes are not supported.');
   }
   if (hash(original) !== policy.originalManifestSha256) throw new Error('Original config.xml differs from the reviewed policy baseline; no manifest was written.');
@@ -29,9 +31,10 @@ export function createPackagingManifest(original, policy) {
   }
   const newline = xml.includes('\r\n') ? '\r\n' : '\n';
   const additions = [
-    ...[...readOnlyPrivileges, ...(policy.release === '0.4.0' ? ['http://tizen.org/privilege/content.write'] : [])].map((privilege) => `    <tizen:privilege name="${privilege}"/>`),
+    ...[...readOnlyPrivileges, ...(['0.4.0', '0.3.8'].includes(policy.release) ? ['http://tizen.org/privilege/content.write'] : []), ...(policy.youtubeLaunch === true ? ['http://tizen.org/privilege/application.launch'] : [])].map((privilege) => `    <tizen:privilege name="${privilege}"/>`),
     `    <access origin="${weatherOrigin}" subdomains="false"/>`,
-    `    <tizen:content-security-policy>${contentSecurityPolicy}</tizen:content-security-policy>`,
+    ...(policy.release === '0.3.8' ? [`    <access origin="${bitcoinOrigin}" subdomains="false"/>`] : []),
+    `    <tizen:content-security-policy>${policy.release === '0.3.8' ? contentSecurityPolicy : contentSecurityPolicy.replace(' ' + bitcoinOrigin, '')}</tizen:content-security-policy>`,
   ].join(newline) + newline;
   const offset = original.indexOf(Buffer.from('</widget>'));
   const manifest = Buffer.concat([original.subarray(0, offset), Buffer.from(additions), original.subarray(offset)]);

@@ -21,6 +21,8 @@ export interface MediaEntry {
   readonly thumbnailRef?: string;
   readonly path: string;
   readonly uri?: string;
+  /** Optional native File.fullPath, captured only after resolving the actual file. */
+  readonly nativePath?: string;
   readonly storageId: string;
   readonly parentPath: string;
   readonly isDirectory: boolean;

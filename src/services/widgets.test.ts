@@ -6,11 +6,11 @@ import { adjacentSettingsTab, homeLayout, settingsLayout } from '../navigation/l
 function storage() { const values = new Map<string, string>(); return { getItem: (key: string) => values.get(key) || null, setItem: (key: string, value: string) => { values.set(key, value); } }; }
 test('widget defaults, maximum three, zero widgets and persistence', () => {
   const store = storage(), defaults = defaultWidgets();
-  assert.deepEqual(defaults.enabled, ['weather', 'calendar', 'world-clock']);
+  assert.deepEqual(defaults.enabled, ['weather', 'bitcoin', 'world-clock']);
   assert.equal(toggleWidget(defaults, 'todo'), defaults);
   let value = toggleWidget(defaults, 'weather');
   value = toggleWidget(value, 'todo');
-  assert.deepEqual(value.enabled, ['calendar', 'world-clock', 'todo']);
+  assert.deepEqual(value.enabled, ['bitcoin', 'world-clock', 'todo']);
   assert.equal(saveWidgets(store, value), true);
   assert.deepEqual(loadWidgets(store), value);
   value = value.enabled.reduce((state, id) => toggleWidget(state, id), value);
@@ -20,10 +20,10 @@ test('widget defaults, maximum three, zero widgets and persistence', () => {
 });
 test('widget ordering preserves enabled ids and is bounded', () => {
   const value = defaultWidgets(), moved = moveWidget(value, 'world-clock', -1);
-  assert.deepEqual(moved.enabled, ['weather', 'world-clock', 'calendar']);
+  assert.deepEqual(moved.enabled, ['weather', 'world-clock', 'bitcoin']);
   assert.equal(moveWidget(value, 'weather', -1), value);
   assert.equal(moveWidget(value, 'todo', 1), value);
-  assert.deepEqual(homeLayout(false, moved.enabled)[1].map(item => item.id), ['widget-weather', 'widget-world-clock', 'widget-calendar']);
+  assert.deepEqual(homeLayout(false, moved.enabled)[1].map(item => item.id), ['widget-weather', 'widget-world-clock', 'widget-bitcoin']);
 });
 test('invalid widget preferences migrate safely and retain privacy/city choices', () => {
   const store = storage();

@@ -120,7 +120,9 @@ export class TizenMediaAdapter implements MediaAdapter {
     if (file.isDirectory || file.name !== entry.name) throw new MediaError('inaccessible', 'The selected video is no longer available.');
     let uri = entry.uri;
     try { uri = file.toURI?.() || uri; } catch { /* Retain the verified native parent URI. */ }
-    return { ...entry, uri };
+    let nativePath: string | undefined;
+    try { if (typeof file.fullPath === 'string' && file.fullPath.startsWith('/')) nativePath = file.fullPath; } catch { /* Optional native attribute. */ }
+    return { ...entry, uri, ...(nativePath ? { nativePath } : {}) };
   }
 
   async listDirectory(storage: MediaStorage, requestedPath: string): Promise<MediaEntry[]> {

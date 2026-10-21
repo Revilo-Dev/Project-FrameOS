@@ -34,7 +34,7 @@
 .app-name { font-size: 22px; margin-top: 8px; font-weight: 500; }
 .tile-youtube, .tile-youtube.is-focused { background: linear-gradient(135deg, #8f3659, #4d2547); }
 .tile-stan, .tile-stan.is-focused { background: linear-gradient(135deg, #286fb4, #163765); }
-.tile-foxtel, .tile-foxtel.is-focused { background: linear-gradient(135deg, #aa7037, #63442c); }
+.tile-prime, .tile-prime.is-focused { background: linear-gradient(135deg, #aa7037, #63442c); }
 .tile-gallery, .tile-gallery.is-focused { background: linear-gradient(135deg, #657c56, #2b534d); }
 .tile-art, .tile-art.is-focused { background: linear-gradient(135deg, #8b72a8, #494364); }
 .tile-browser, .tile-browser.is-focused { background: linear-gradient(135deg, #39869c, #254f70); }

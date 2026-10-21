@@ -29,3 +29,31 @@
 .motion-off .widget-panel { animation: none; }.motion-off .dashboard-card { transition: none; }
 
 .calendar-agenda:focus, .agenda-day:focus { outline: 2px solid var(--focus-ring); outline-offset: -2px; border-radius: var(--radius-sm); }.calendar-agenda:focus { padding: 16px; }.agenda-day:focus { background: var(--card-glass); padding-left: 16px; }
+
+.widget-icon-bitcoin { color: #ffbc66; }
+.dashboard-bitcoin .widget-heading { margin-bottom: 8px; }
+.bitcoin-widget { color: var(--text); font-variant-numeric: tabular-nums; }
+.bitcoin-quote { display: flex; justify-content: space-between; align-items: center; line-height: 1.15; }
+.bitcoin-quote > strong { font-size: 35px; font-weight: 500; letter-spacing: -.7px; white-space: nowrap; }
+.bitcoin-quote > strong small { margin-left: 8px; font-size: 12px; color: var(--muted); letter-spacing: 0; }
+.bitcoin-change { text-align: right; font-size: 22px; color: #b8c9da; }
+.bitcoin-change small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.market-up .bitcoin-change, .market-up .bitcoin-chart { color: #8de0b6; }
+.market-down .bitcoin-change, .market-down .bitcoin-chart { color: #ffa89f; }
+.bitcoin-chart { height: 88px; margin: 6px 0 4px; color: #ffbc66; }
+.bitcoin-chart svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.bitcoin-grid { stroke: rgba(220,235,250,.1); stroke-width: 1; fill: none; }
+.bitcoin-chart-empty { display: flex; align-items: center; height: 100%; color: var(--muted); font-size: 15px; }
+.bitcoin-stats { display: flex; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 9px; line-height: 1.25; }
+.bitcoin-stats > span { min-width: 0; }
+.bitcoin-stats small { display: block; color: var(--muted); font-size: 11px; margin-bottom: 3px; }
+.bitcoin-stats strong { font-size: 16px; font-weight: 500; white-space: nowrap; }
+.bitcoin-source { color: var(--muted); font-size: 11px; margin-top: 8px; line-height: 1.3; }
+.bitcoin-source > span { display: block; margin-top: 18px; font-size: 18px; line-height: 1.6; }
+.bitcoin-empty { display: flex; flex-direction: column; justify-content: center; min-height: 170px; }
+.bitcoin-empty strong { font-size: 25px; font-weight: 500; }.bitcoin-empty span { color: var(--muted); font-size: 17px; margin-top: 12px; }
+.bitcoin-detail { max-width: 1080px; margin: 30px auto; }
+.bitcoin-detail .bitcoin-quote > strong { font-size: 66px; }.bitcoin-detail .bitcoin-quote > strong small { font-size: 22px; }
+.bitcoin-detail .bitcoin-change { font-size: 38px; }.bitcoin-detail .bitcoin-change small { font-size: 20px; }
+.bitcoin-detail .bitcoin-chart { height: 280px; margin: 28px 0; }.bitcoin-detail .bitcoin-stats small { font-size: 18px; }.bitcoin-detail .bitcoin-stats strong { font-size: 29px; }.bitcoin-detail .bitcoin-source { font-size: 16px; }
+.widget-panel-bitcoin #widget-configure { display: block; width: 600px; margin: 20px auto 0; }

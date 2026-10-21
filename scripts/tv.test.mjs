@@ -250,7 +250,7 @@ test('v0.3 packaging policy inserts only documented read-only media/weather decl
   assert(!result.additions.includes('filesystem.write'));
   assert(!result.additions.includes('geolocation'));
   assert(!contentSecurityPolicy.includes('unsafe-eval'));
-  assert.equal(contentSecurityPolicy.split('connect-src ')[1].split(';')[0], "'self' https://api.open-meteo.com");
+  assert.equal(contentSecurityPolicy.split('connect-src ')[1].split(';')[0], "'self' https://api.open-meteo.com https://api.exchange.coinbase.com");
   assert.deepEqual(createPackagingManifest(before, reviewedPolicy()).manifest, result.manifest);
 });
 
@@ -317,4 +317,15 @@ test('v0.4 permits only the documented native thumbnail creation privilege in ad
   assert(result.additions.includes("media-src 'self' file:"));
   assert(!result.additions.includes('filesystem.write'));
   assert.equal(result.manifest.toString().replace(result.additions, ''), policyManifest.toString());
+});
+
+test('Bitcoin permits only its API origin and YouTube launch privilege stays off until approved', () => {
+  const policy = { ...reviewedPolicy(), release: '0.3.8', youtubeLaunch: false };
+  const disabled = createPackagingManifest(policyManifest, policy);
+  assert(disabled.additions.includes('https://api.exchange.coinbase.com'));
+  assert(!disabled.additions.includes('application.launch'));
+  const enabled = createPackagingManifest(policyManifest, { ...policy, youtubeLaunch: true });
+  assert(enabled.additions.includes('http://tizen.org/privilege/application.launch'));
+  assert(!enabled.additions.includes('application.info')); assert(!enabled.additions.includes('filesystem.write'));
+  assert.equal(enabled.manifest.toString().replace(enabled.additions, ''), policyManifest.toString());
 });

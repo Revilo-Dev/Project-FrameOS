@@ -1,3 +1,5 @@
+import { BitcoinWidget } from './BitcoinWidget';
+import type { BitcoinState } from '../services/bitcoin';
 import { FocusButton } from './FocusButton';
 import { WeatherWidget } from './WeatherWidget';
 import { WidgetIcon } from './WidgetIcon';
@@ -16,8 +18,8 @@ export function WorldTimes({ cities, timeFormat, now }: { cities: string[]; time
     return <div className="world-city" key={id}><div><strong>{city?.name}</strong><small>{value.day}</small></div><time dateTime={now.toISOString()}>{value.time}</time></div>;
   })}</div>;
 }
-export function WidgetDashboard({ preferences, organiser, calendar, settings, focused, focus, open, wallpaper }: {
-  preferences: WidgetPreferences; organiser: LocalOrganiser; calendar: CalendarState; settings: Settings;
+export function WidgetDashboard({ preferences, organiser, calendar, bitcoin, settings, focused, focus, open, wallpaper }: {
+  preferences: WidgetPreferences; organiser: LocalOrganiser; calendar: CalendarState; bitcoin?: BitcoinState; settings: Settings;
   focused: string; focus(id: string): void; open(id: WidgetId): void; wallpaper: string;
 }) {
   const now = useMinute();
@@ -29,6 +31,7 @@ export function WidgetDashboard({ preferences, organiser, calendar, settings, fo
       <span className="widget-wallpaper" style={{ backgroundImage: `url("${wallpaper}")` }} />
       <span className="widget-heading"><WidgetIcon id={id} /><span>{WIDGETS.find(widget => widget.id === id)?.name}</span></span>
       {id === 'weather' && <WeatherWidget city={settings.weatherCity} timeFormat={settings.timeFormat} />}
+      {id === 'bitcoin' && <BitcoinWidget state={bitcoin || { status: 'loading', snapshot: null }} timeZone={settings.timeZone} />}
       {id === 'calendar' && <div className="calendar-preview">
         <p className="widget-date">{now.toLocaleDateString('en-AU', { timeZone: resolvedZone(settings.timeZone), weekday: 'long', day: 'numeric', month: 'long' })}</p>
         {calendar.status === 'unconfigured' || calendar.status === 'disconnected' || calendar.status === 'expired' ? <div className="widget-empty"><strong>{calendar.status === 'expired' ? 'Reconnect Google Calendar' : 'Your calendar, here'}</strong><span>{calendar.status === 'unconfigured' ? 'Google Calendar connection coming later' : 'Connect Google Calendar to see your events'}</span></div>

@@ -9,6 +9,7 @@ import { nativeFixture, openSeries } from './nativeFixture';
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/$WEBAPIS/webapis/webapis.js', route => route.fulfill({ contentType: 'application/javascript', body: '' }));
+  await page.route('https://api.exchange.coinbase.com/**', route => route.abort());
   await page.route('https://api.open-meteo.com/**', route => route.fulfill({ json: {
     timezone: 'Australia/Brisbane', current: { temperature_2m: 25, weather_code: 0, is_day: 1, time: '2026-10-20T12:00' },
     hourly: { time: Array.from({ length: 7 }, (_, i) => `2026-10-20T${12 + i}:00`), weather_code: [0,0,0,0,0,0,0], temperature_2m: [25,25,25,25,25,25,25], is_day: [1,1,1,1,1,1,1], precipitation_probability: [0,0,0,0,0,0,0] },
@@ -27,7 +28,7 @@ test('episode cards show full title on focus, native playback controls and order
   await expect(page.locator('.player-top h1')).toHaveText('Series.Name.S01E01.1080p');
   await page.keyboard.press('Enter'); await expect(page.locator('#player-toggle')).toHaveAttribute('aria-label', 'Play');
   await page.keyboard.press('Enter'); await expect(page.locator('#player-toggle')).toHaveAttribute('aria-label', 'Pause');
-  await page.keyboard.press('ArrowUp'); await expect(page.locator('#player-seek')).toBeFocused(); await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowDown'); await expect(page.locator('#player-seek')).toBeFocused(); await page.keyboard.press('ArrowRight');
   await expect(page.locator('#player-seek')).toHaveAttribute('aria-valuenow', '30000');
   await page.evaluate(() => document.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 9001, bubbles: true, cancelable: true })));
   await expect(page.locator('.player-top h1')).toHaveText('Series.Name.S01E02.1080p');
@@ -65,7 +66,9 @@ test('hidden videos are excluded from Next, and empty native thumbnail metadata 
   await page.locator('#media-entry-1').click(); await expect(page.locator('#player-toggle')).toHaveAttribute('aria-label', 'Pause');
   await page.locator('#player-next').click(); await expect(page.locator('.player-top h1')).toHaveText('Series.Name.S01E10.1080p');
   await page.keyboard.press('Escape'); await expect(page.locator('.media-thumbnail img')).toHaveCount(0);
-  expect(await page.evaluate(() => window.__playerFixture.thumbnails)).toBeLessThanOrEqual(5);
+  // Two root videos + three series videos; at most four targeted index
+  // queries each (URI, native path, decoded path, exact name), never a scan.
+  expect(await page.evaluate(() => window.__playerFixture.thumbnails)).toBeLessThanOrEqual(20);
 });
 test('controls hide after four seconds, first directional input reveals them, paused controls stay visible', async ({ page }) => {
   await page.clock.install(); await nativeFixture(page); await openSeries(page); await page.locator('#media-entry-1').click();
@@ -78,7 +81,7 @@ test('controls hide after four seconds, first directional input reveals them, pa
 });
 test('USB removal during a seek closes the UI immediately and defers native cleanup safely', async ({ page }) => {
   await nativeFixture(page, { delaySeek: true }); await openSeries(page); await page.locator('#media-entry-1').click(); await expect(page.locator('#player-toggle')).toHaveAttribute('aria-label', 'Pause');
-  await page.keyboard.press('ArrowUp'); await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowRight');
   await page.evaluate(() => window.__playerFixture.remove()); await expect(page.locator('.video-player')).toHaveCount(0);
   await expect(page.getByText('Connect a USB device', { exact: true })).toBeVisible(); await expect(page.locator('.media-message')).toContainText('disconnected');
   const before = await page.evaluate(() => window.__playerFixture.calls.length); await page.evaluate(() => window.__playerFixture.finishSeek());

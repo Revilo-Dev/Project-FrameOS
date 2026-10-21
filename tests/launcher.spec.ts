@@ -17,6 +17,7 @@ declare global {
 
 test.beforeEach(async ({ page }) => {
   await page.clock.install({ time: new Date('2026-10-20T08:23:00Z') });
+  await page.route('https://api.exchange.coinbase.com/**', route => route.abort());
   await page.route('https://api.open-meteo.com/**', async (route) => {
     const query = new URL(route.request().url()).searchParams;
     await route.fulfill({ json: {
@@ -67,7 +68,7 @@ test('refreshed home has the supplied logo/icons, one customisable clock, hourly
   await expect(page.locator('.weather-temperature')).toContainText('24');
   await expect(page.getByText('Your home, reimagined')).toHaveCount(0);
   await expect(page.getByText('Coming soon', { exact: false })).toHaveCount(0);
-  for (const name of ['YouTube', 'Stan', 'Foxtel', 'Gallery', 'Art Mode', 'Browser']) await expect(page.getByRole('button', { name, exact: true })).toContainText(name);
+  for (const name of ['YouTube', 'Stan', 'Prime Video', 'Gallery', 'Art Mode', 'Browser']) await expect(page.getByRole('button', { name, exact: true })).toContainText(name);
   await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeVisible();
   await expect(page.locator('#app-settings .app-name')).toHaveCSS('opacity', '0');
   await expect(page.getByRole('button', { name: 'USB Media', exact: true })).toHaveCount(0);
@@ -201,7 +202,7 @@ test('cached weather survives offline and an uncached city shows an honest unava
 
 test('all shortcuts remain reachable and unavailable integrations do not claim success', async ({ page }) => {
   await page.goto('/');
-  for (const id of ['youtube', 'stan', 'foxtel', 'gallery', 'art', 'browser', 'settings']) {
+  for (const id of ['youtube', 'stan', 'prime', 'gallery', 'art', 'browser', 'settings']) {
     if (id !== 'youtube') await page.keyboard.press('ArrowRight');
     await expect(page.locator(`#app-${id}`)).toBeFocused();
     await page.keyboard.press('Enter'); await expect(page.getByRole('dialog')).toBeVisible();
