@@ -256,8 +256,8 @@ test('v0.3 packaging policy inserts only documented read-only media/weather decl
 
 test('changed baselines, existing policies and arbitrary policy keys fail closed without a write', () => {
   assert.throws(() => createPackagingManifest(Buffer.concat([policyManifest, Buffer.from(' ')]), reviewedPolicy()), /differs from the reviewed policy baseline/);
-  assert.throws(() => createPackagingManifest(policyManifest, { ...reviewedPolicy(), applicationId: 'new identity' }), /Invalid v0.3 manifest policy/);
-  assert.throws(() => createPackagingManifest(policyManifest, { ...reviewedPolicy(), originalManifestSha256: undefined }), /Invalid v0.3 manifest policy/);
+  assert.throws(() => createPackagingManifest(policyManifest, { ...reviewedPolicy(), applicationId: 'new identity' }), /Invalid manifest policy/);
+  assert.throws(() => createPackagingManifest(policyManifest, { ...reviewedPolicy(), originalManifestSha256: undefined }), /Invalid manifest policy/);
   for (const declaration of ['<access origin="*"/>', '<tizen:privilege name="http://tizen.org/privilege/filesystem.write"/>', '<tizen:content-security-policy>default-src *</tizen:content-security-policy>', '<!DOCTYPE widget>']) {
     const original = Buffer.from(policyManifest.toString().replace('</widget>', declaration + '</widget>'));
     assert.throws(() => createPackagingManifest(original, reviewedPolicy(original)), /manual policy review is required/);
@@ -308,4 +308,13 @@ test('check validates reviewed manifest policy before building or contacting the
   await assert.rejects(pipeline('check', context), /differs from the reviewed policy baseline/);
   assert.deepEqual(calls, []);
   assert.deepEqual(await snapshot(f.project), before);
+});
+
+
+test('v0.4 permits only the documented native thumbnail creation privilege in addition to the existing media policy', () => {
+  const result = createPackagingManifest(policyManifest, { ...reviewedPolicy(), release: '0.4.0' });
+  assert(result.additions.includes('http://tizen.org/privilege/content.write'));
+  assert(result.additions.includes("media-src 'self' file:"));
+  assert(!result.additions.includes('filesystem.write'));
+  assert.equal(result.manifest.toString().replace(result.additions, ''), policyManifest.toString());
 });

@@ -20,6 +20,25 @@ function native() {
   return { api, calls, prepare: () => prepare(), seek: () => seek(), fail: (error: unknown) => failure(error), get listener() { return listener; }, get state() { return state; } };
 }
 describe('single-owner Samsung AVPlay lifecycle', () => {
+  it('ignores completion during pause, close and asynchronous seeks; repeated channel-sized seeks never overlap', () => {
+    const n = native(), player = new AvPlayController(n.api); player.open(video()); n.prepare();
+    player.pause(); n.listener.onstreamcompleted(); assert.equal(player.get().status, 'paused');
+    player.play(); assert.equal(player.seek(30000), true);
+    for (let i = 0; i < 30; i++) assert.equal(player.seek(60000), false);
+    n.listener.onstreamcompleted(); assert.equal(player.get().status, 'playing');
+    n.seek(); assert.equal(player.get().position, 30000);
+    player.seek(60000); n.fail('SeekError'); assert.equal(player.get().status, 'error');
+    n.listener.onstreamcompleted(); assert.equal(player.get().status, 'error');
+    player.close(); n.listener.onstreamcompleted(); assert.equal(player.get().status, 'closed');
+  });
+  it('preserves matching audio/subtitle languages across episodes without assuming equal track indices', () => {
+    const n = native(), selected: string[] = [];
+    n.api.getCurrentStreamInfo = () => [{ type: 'AUDIO', index: 1, extra_info: '{"language":"eng"}' }, { type: 'TEXT', index: 3, extra_info: '{"language":"eng"}' }];
+    n.api.getTotalTrackInfo = () => [{ type: 'AUDIO', index: 2, extra_info: '{"language":"eng"}' }, { type: 'TEXT', index: 4, extra_info: '{"language":"eng"}' }];
+    n.api.setSelectTrack = (type, index) => { selected.push(`${type}:${index}`); };
+    const player = new AvPlayController(n.api); player.open(video()); n.prepare(); n.listener.onstreamcompleted();
+    player.open(video('Episode 2.mp4')); n.prepare(); assert.deepEqual(selected, ['AUDIO:2', 'TEXT:4']); player.close();
+  });
   it('opens validated MP4/MKV paths, prepares asynchronously then sets fullscreen, plays, pauses and resumes', () => {
     const n = native(), player = new AvPlayController(n.api); player.open(video());
     assert.equal(player.get().status, 'preparing'); assert.equal(player.get().busy, true);
@@ -40,8 +59,8 @@ describe('single-owner Samsung AVPlay lifecycle', () => {
   it('retains pause through seeking, clamps positions and ignores invalid state transitions', () => {
     const n = native(), player = new AvPlayController(n.api); player.pause(); player.seek(1); assert.equal(n.calls.length, 0);
     player.open(video()); n.prepare(); player.pause(); player.seek(999999); n.seek();
-    assert.equal(player.get().position, 119999); assert.equal(player.get().status, 'paused'); assert.equal(n.state, 'PAUSED');
-    player.seek(-20); n.seek(); assert.equal(player.get().position, 0); player.close();
+    assert.equal(player.get().position, 119000); assert.equal(player.get().status, 'paused'); assert.equal(n.state, 'PAUSED');
+    player.seek(-20); n.seek(); assert.equal(player.get().position, 1); player.close();
   });
   it('handles EOS/replay, file changes, late events, preparation/seek failures and unsupported codecs', () => {
     const n = native(), player = new AvPlayController(n.api); player.open(video()); n.prepare(); const stale = n.listener;

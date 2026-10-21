@@ -5,6 +5,8 @@ import './styles/app.css';
 import './styles/weather.css';
 import './styles/refinement.css';
 import './styles/media-player.css';
+import './styles/oneui.css';
+import './styles/widgets.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode><App /></React.StrictMode>,

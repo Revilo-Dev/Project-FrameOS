@@ -9,6 +9,15 @@ export interface AvPlayApi {
   setListener(listener: AvPlayListener): void;
   prepareAsync(success: () => void, failure: (error: unknown) => void): void;
   seekTo(position: number, success: () => void, failure: (error: unknown) => void): void;
+  getCurrentStreamInfo?(): StreamInfo[];
+  getTotalTrackInfo?(): StreamInfo[];
+  setSelectTrack?(type: string, index: number): void;
+}
+interface StreamInfo { type: string; index: number; extra_info?: string }
+export function seekTarget(position: number, duration: number) {
+  // Samsung excludes the exact endpoints. Leave a one-second end margin so a
+  // channel skip cannot masquerade as natural completion through rounding.
+  return Math.round(Math.max(1, Math.min(Math.max(1, duration - 1000), position)));
 }
 export interface AvPlayListener {
   onbufferingstart(): void; onbufferingprogress(percent: number): void; onbufferingcomplete(): void;
@@ -35,6 +44,23 @@ export class AvPlayController {
   private finish: PlayerSnapshot['status'] | null = null;
   private generation = 0;
   private entry: MediaEntry | null = null;
+  private tracks: StreamInfo[] = [];
+  private captureTracks() {
+    if (!this.api?.getCurrentStreamInfo || !['playing', 'paused'].includes(this.snapshot.status)) return;
+    try { this.tracks = this.api.getCurrentStreamInfo().filter(track => ['AUDIO', 'TEXT'].includes(track.type)); } catch { /* Optional on older firmware. */ }
+  }
+  private restoreTracks() {
+    if (!this.api?.getTotalTrackInfo || !this.api.setSelectTrack) return;
+    const language = (track: StreamInfo) => { try { return JSON.parse(track.extra_info || '{}').language as string | undefined; } catch { return undefined; } };
+    try {
+      const available = this.api.getTotalTrackInfo();
+      for (const previous of this.tracks) {
+        const lang = language(previous);
+        const match = available.find(track => track.type === previous.type && (lang ? language(track) === lang : track.index === previous.index));
+        if (match) { try { this.api.setSelectTrack(match.type, match.index); } catch { /* Codec/track preference unsupported in this stream. */ } }
+      }
+    } catch { /* Preserve firmware defaults when track discovery is unsupported. */ }
+  }
   constructor(private api?: AvPlayApi, private timeoutMs = 15000) { this.available = Boolean(api); }
   get = () => this.snapshot;
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
@@ -42,6 +68,7 @@ export class AvPlayController {
   private cleanup(status: PlayerSnapshot['status']) {
     // A pending seek/prepare owns the native API until its real callback returns.
     if (this.busy) { this.finish = status; this.update({ status, buffering: false }); return; }
+    this.captureTracks();
     ++this.generation;
     try { const state = this.api?.getState(); if (state && ['READY', 'PLAYING', 'PAUSED'].includes(state)) this.api!.stop(); }
     catch { /* Always still try close, even if a disconnected file made stop fail. */ }
@@ -90,7 +117,7 @@ export class AvPlayController {
         onbufferingprogress: percent => { if (live()) this.update({ percent: Math.max(0, Math.min(100, percent)) }); },
         onbufferingcomplete: () => { if (live()) this.update({ buffering: false, percent: 100 }); },
         oncurrentplaytime: position => { if (live() && Number.isFinite(position) && Math.floor(position / 1000) !== Math.floor(this.snapshot.position / 1000)) this.update({ position: Math.max(0, position) }); },
-        onstreamcompleted: () => { if (live()) { this.update({ position: this.snapshot.duration }); this.cleanup('ended'); } },
+        onstreamcompleted: () => { if (live() && !this.busy && this.snapshot.status === 'playing') { this.update({ position: this.snapshot.duration }); this.cleanup('ended'); } },
         onerror: error => { if (live()) this.fail(error); },
       });
       // This API uses the TV's 1920x1080 logical coordinate space, not CSS pixels.
@@ -101,7 +128,7 @@ export class AvPlayController {
         this.update({ duration: Number.isFinite(duration) ? Math.max(0, duration) : 0 });
         this.api!.setDisplayRect(0, 0, 1920, 1080);
         this.api!.setDisplayMethod?.('PLAYER_DISPLAY_MODE_LETTER_BOX');
-        this.api!.play(); this.update({ status: 'playing', buffering: false });
+        this.api!.play(); this.restoreTracks(); this.update({ status: 'playing', buffering: false });
       });
     } catch (error) { this.fail(error); }
   }
@@ -117,9 +144,10 @@ export class AvPlayController {
   }
   toggle() { if (this.snapshot.status === 'playing') this.pause(); else this.play(); }
   seek(position: number) {
-    if (this.busy || !this.api || !['playing', 'paused'].includes(this.snapshot.status) || !Number.isFinite(position) || this.snapshot.duration <= 0) return;
-    const target = Math.round(Math.max(0, Math.min(this.snapshot.duration - 1, position)));
+    if (this.busy || !this.api || !['playing', 'paused'].includes(this.snapshot.status) || !Number.isFinite(position) || this.snapshot.duration <= 0) return false;
+    const target = seekTarget(position, this.snapshot.duration);
     this.asynchronous('seek', (success, failure) => this.api!.seekTo(target, success, failure), () => this.update({ position: target }));
+    return true;
   }
   close() { this.cleanup('closed'); }
 }

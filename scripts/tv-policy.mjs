@@ -10,15 +10,15 @@ export const readOnlyPrivileges = Object.freeze([
 ]);
 // Vite's classic SystemJS entry and injected local CSS require inline script/style.
 // Indexed local thumbnail URIs and the local AVPlay object; no remote code/write access.
-export const contentSecurityPolicy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: file:; connect-src 'self' https://api.open-meteo.com; object-src 'self'; base-uri 'none'; frame-src 'none'";
+export const contentSecurityPolicy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: file:; connect-src 'self' https://api.open-meteo.com; media-src 'self' file:; object-src 'self'; base-uri 'none'; frame-src 'none'";
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
 export function createPackagingManifest(original, policy) {
   if (!Buffer.isBuffer(original)) throw new Error('Policy overlay requires the original manifest bytes.');
-  if (!policy || policy.version !== 1 || policy.release !== '0.3.0'
+  if (!policy || policy.version !== 1 || !['0.3.0', '0.4.0'].includes(policy.release)
       || !/^[a-f\d]{64}$/.test(policy.originalManifestSha256 || '')
       || Object.keys(policy).sort().join(',') !== 'originalManifestSha256,release,version') {
-    throw new Error('Invalid v0.3 manifest policy; arbitrary metadata/policy changes are not supported.');
+    throw new Error('Invalid manifest policy; arbitrary metadata/policy changes are not supported.');
   }
   if (hash(original) !== policy.originalManifestSha256) throw new Error('Original config.xml differs from the reviewed policy baseline; no manifest was written.');
   const xml = original.toString('utf8');
@@ -29,7 +29,7 @@ export function createPackagingManifest(original, policy) {
   }
   const newline = xml.includes('\r\n') ? '\r\n' : '\n';
   const additions = [
-    ...readOnlyPrivileges.map((privilege) => `    <tizen:privilege name="${privilege}"/>`),
+    ...[...readOnlyPrivileges, ...(policy.release === '0.4.0' ? ['http://tizen.org/privilege/content.write'] : [])].map((privilege) => `    <tizen:privilege name="${privilege}"/>`),
     `    <access origin="${weatherOrigin}" subdomains="false"/>`,
     `    <tizen:content-security-policy>${contentSecurityPolicy}</tizen:content-security-policy>`,
   ].join(newline) + newline;

@@ -8,7 +8,7 @@ export interface PlatformAdapter {
   readonly media: MediaAdapter;
   readonly player: AvPlayController;
   readonly thumbnails: ThumbnailService;
-  registerMediaKeys(): () => void;
+  registerMediaKeys(options?: { volumeSeek?: boolean }): () => void;
   perform(action: NativeAction): Promise<ActionResult>;
   exit(): Promise<ActionResult | null>;
 }

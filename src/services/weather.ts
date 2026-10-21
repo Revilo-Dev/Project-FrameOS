@@ -25,12 +25,14 @@ export interface WeatherStorage {
 }
 
 export interface WeatherHour { time: string; code: number; temperature: number; isDay: boolean; rainChance: number }
+export interface WeatherDay { date: string; high: number; low: number }
 export interface WeatherSnapshot {
   city: WeatherCity;
   timezone: string;
   fetchedAt: number;
   current: { temperature: number; code: number; isDay: boolean; time: string };
   hours: WeatherHour[];
+  daily?: WeatherDay | null;
 }
 export interface WeatherResult {
   weather: WeatherSnapshot | null;
@@ -54,6 +56,7 @@ export function weatherUrl(city: WeatherCity): string {
     timezone: location.timezone,
     current: 'temperature_2m,weather_code,is_day',
     hourly: 'temperature_2m,weather_code,is_day,precipitation_probability',
+    daily: 'temperature_2m_max,temperature_2m_min',
     temperature_unit: 'celsius',
     forecast_days: '2',
   });
@@ -85,6 +88,20 @@ function currentTime(value: unknown): string {
   }
   date(value.slice(0, 10));
   return value;
+}
+function dailyValues(value: unknown, observationDay: string): WeatherDay | null {
+  try {
+    const saved = object(value), day = date(saved.date), high = number(saved.high), low = number(saved.low);
+    return day === observationDay && high >= low ? { date: day, high, low } : null;
+  } catch { return null; }
+}
+function dailyForecast(value: unknown, observationDay: string): WeatherDay | null {
+  try {
+    const daily = object(value);
+    if (!Array.isArray(daily.time) || !Array.isArray(daily.temperature_2m_max) || !Array.isArray(daily.temperature_2m_min) || daily.time.length !== daily.temperature_2m_max.length || daily.time.length !== daily.temperature_2m_min.length) return null;
+    const index = daily.time.indexOf(observationDay);
+    return dailyValues({ date: observationDay, high: daily.temperature_2m_max[index], low: daily.temperature_2m_min[index] }, observationDay);
+  } catch { return null; }
 }
 /** Retain API-local hourly times; never reinterpret them in the host timezone. */
 export function mapWeatherResponse(value: unknown, city: WeatherCity, fetchedAt = Date.now()): WeatherSnapshot {
@@ -119,6 +136,7 @@ export function mapWeatherResponse(value: unknown, city: WeatherCity, fetchedAt 
     fetchedAt,
     current: { temperature: number(current.temperature_2m), code: code(current.weather_code), isDay: current.is_day === 1, time },
     hours,
+    daily: dailyForecast(response.daily, time.slice(0, 10)),
   };
 }
 
@@ -143,6 +161,7 @@ function validateSnapshot(value: unknown, city: WeatherCity): WeatherSnapshot {
   return {
     city, timezone: weatherLocation(city).timezone, fetchedAt,
     current: { temperature: number(current.temperature), code: code(current.code), isDay: current.isDay, time }, hours,
+    ...(saved.daily !== undefined ? { daily: dailyValues(saved.daily, time.slice(0, 10)) } : {}),
   };
 }
 
@@ -204,7 +223,8 @@ export async function loadWeather(city: WeatherCity, options: {
   const now = options.now || Date.now;
   const cached = readWeatherCache(options.storage, city);
   if (options.signal && options.signal.aborted) throw abortError();
-  if (isWeatherFresh(cached, now())) return { weather: cached, status: 'fresh' };
+  // Upgrade older cache records on the next successful request while retaining offline fallback.
+  if (isWeatherFresh(cached, now()) && cached?.daily !== undefined) return { weather: cached, status: 'fresh' };
   try {
     const response = await fetchWeather(city, options.fetcher || fetch, options.signal, options.timeoutMs || WEATHER_TIMEOUT_MS);
     if (options.signal && options.signal.aborted) throw abortError();

@@ -2,6 +2,7 @@ export type Theme = 'slate' | 'midnight' | 'warm';
 export type WallpaperId = string;
 export type Motion = 'full' | 'subtle' | 'off';
 export type TimeFormat = '12h' | '24h';
+export type ClockFont = 'modern' | 'rounded' | 'minimal' | 'bold' | 'digital' | 'classic';
 export type { WeatherCity } from '../services/weather';
 import type { WeatherCity } from '../services/weather';
 
@@ -14,4 +15,5 @@ export interface Settings {
   showFps: boolean;
   timeFormat: TimeFormat;
   timeZone: string;
+  clockFont: ClockFont;
 }

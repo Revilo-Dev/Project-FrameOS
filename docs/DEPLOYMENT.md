@@ -1,5 +1,7 @@
 # FrameOS TV deployment
 
+The current [v0.4 packaging policy and handoff](V0.4.md) add native thumbnail creation and local-video CSP declarations only in the fresh packaging copy. The working `revilodev-frameos` author profile and source app identity are preserved. Installation requires user approval.
+
 Use a normal PowerShell session; Administrator permissions are not required.
 
 ```powershell

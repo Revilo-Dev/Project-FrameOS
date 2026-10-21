@@ -105,7 +105,7 @@ describe('native read-only USB adapter', () => {
     const entries = await adapter.listDirectory(drive, drive.rootPath);
     assert.equal(entries[0].type, 'folder');
     const movie = entries.find(entry => entry.name === 'movie.MP4')!;
-    assert.deepEqual(movie, { id: JSON.stringify([drive.id, `${drive.rootPath}/movie.MP4`]), name: 'movie.MP4', path: `${drive.rootPath}/movie.MP4`, uri: 'file:///media/usb/movie.MP4', parentPath: drive.rootPath, storageId: drive.id, extension: 'mp4', size: 1024, isDirectory: false, type: 'video' });
+    assert.deepEqual(movie, { id: JSON.stringify([drive.id, `${drive.rootPath}/movie.MP4`]), name: 'movie.MP4', path: `${drive.rootPath}/movie.MP4`, uri: 'file:///media/usb/movie.MP4', parentPath: drive.rootPath, storageId: drive.id, extension: 'mp4', size: 1024, modified: undefined, hidden: false, isDirectory: false, type: 'video' });
     assert.equal(entries.find(entry => entry.extension === 'mkv')?.type, 'video');
     assert.equal(entries.find(entry => entry.extension === 'jpg')?.type, 'image');
     assert.equal(entries.find(entry => entry.extension === 'flac')?.type, 'audio');

@@ -1,3 +1,4 @@
+import { mediaOption } from './mediaOptions';
 import { test, expect, type Page } from '@playwright/test';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
@@ -21,6 +22,7 @@ test.beforeEach(async ({ page }) => {
     await route.fulfill({ json: {
       timezone: query.get('timezone'),
       current: { temperature_2m: 23.6, weather_code: 2, is_day: 1, time: '2026-10-20T18:00' },
+      daily: { time: ['2026-10-20', '2026-10-21'], temperature_2m_max: [29.2, 30.4], temperature_2m_min: [17.8, 18.1] },
       hourly: { time: ['2026-10-20T18:00','2026-10-20T19:00','2026-10-20T20:00','2026-10-20T21:00','2026-10-20T22:00','2026-10-20T23:00','2026-10-21T00:00'], weather_code: [2,0,3,61,2,3,0], temperature_2m: [23.6,23,22,21,20,20,19], is_day: [1,0,0,0,0,0,0], precipitation_probability: [0,0,10,70,20,10,0] },
     } });
   });
@@ -53,7 +55,7 @@ async function usbFixture(page: Page, options: { count: number; drives: string[]
   }, options);
 }
 
-test('refreshed home has the supplied logo/icons, one serif clock, hourly weather and seven gradient tiles', async ({ page }) => {
+test('refreshed home has the supplied logo/icons, one customisable clock, hourly weather and seven squircle icons', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('#app-youtube')).toBeFocused();
   await expect(page.locator('.clock time')).toHaveCount(1);
@@ -67,7 +69,7 @@ test('refreshed home has the supplied logo/icons, one serif clock, hourly weathe
   await expect(page.getByText('Coming soon', { exact: false })).toHaveCount(0);
   for (const name of ['YouTube', 'Stan', 'Foxtel', 'Gallery', 'Art Mode', 'Browser']) await expect(page.getByRole('button', { name, exact: true })).toContainText(name);
   await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeVisible();
-  await expect(page.locator('#app-settings .app-name')).toHaveCount(0);
+  await expect(page.locator('#app-settings .app-name')).toHaveCSS('opacity', '0');
   await expect(page.getByRole('button', { name: 'USB Media', exact: true })).toHaveCount(0);
   await expect(page.locator('.brand-logo')).toHaveAttribute('src', './assets/frameos.svg');
   await expect(page.locator('.fps-counter')).toBeVisible();
@@ -76,7 +78,7 @@ test('refreshed home has the supplied logo/icons, one serif clock, hourly weathe
   await expect(page.locator('.home .weather-attribution')).toHaveCount(0);
   await expect(page.locator('#home-media')).toContainText('Media');
   await page.evaluate(() => document.fonts.ready);
-  expect(await page.evaluate(() => document.fonts.check('700 24px "Libre Caslon"'))).toBe(true);
+  expect(await page.evaluate(() => document.fonts.check('400 24px "Frame Clock Modern"'))).toBe(true);
 });
 
 test('Down from dock opens genuine no-USB state and Back restores the selected tile', async ({ page }) => {
@@ -89,7 +91,7 @@ test('Down from dock opens genuine no-USB state and Back restores the selected t
   await expect(page.locator('.media-tile')).toHaveCount(0);
   await page.keyboard.press('Escape');
   await expect(page.locator('#app-stan')).toBeFocused();
-  expect(await page.evaluate(() => window.__testUsb.removeCount)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => typeof window.__testUsb.listener)).toBe('function'); // Startup cache watcher also detects USB changes on Home.
 });
 
 test('native insertion, root/nested browsing, details, multiple drives, cache and removal work', async ({ page }) => {
@@ -121,7 +123,7 @@ test('native insertion, root/nested browsing, details, multiple drives, cache an
   await page.locator('#drive-1').click();
   await expect(page.locator('#media-entry-0')).toBeFocused();
   expect(await page.evaluate(() => window.__testUsb.reads)).toContain('USB B');
-  await page.locator('#media-refresh').click();
+  await mediaOption(page, 'media-refresh');
   await expect(page.locator('#media-entry-0')).toBeFocused();
   expect((await page.evaluate(() => window.__testUsb.reads)).filter((path) => path === 'USB B')).toHaveLength(2);
   await page.evaluate(() => { window.__testUsbChange('USB A', false); window.__testUsbChange('USB B', false); });
@@ -134,13 +136,13 @@ test('filters keep folders accessible, empty folders are clear and disconnect cl
   await page.goto('/'); await page.keyboard.press('ArrowDown');
   await expect(page.locator('#media-entry-0')).toBeFocused(); await page.keyboard.press('Enter');
   await expect(page.locator('#media-entry-0')).toContainText('Empty folder');
-  await page.locator('#filter-video').click(); await expect(page.locator('.media-tile')).toHaveCount(2);
-  await page.locator('#filter-image').click(); await expect(page.locator('.media-tile')).toHaveCount(2);
+  await mediaOption(page, 'filter-video'); await expect(page.locator('.media-tile')).toHaveCount(2);
+  await mediaOption(page, 'filter-image'); await expect(page.locator('.media-tile')).toHaveCount(2);
   await expect(page.locator('#media-entry-1')).toContainText('photo.jpg');
-  await page.locator('#filter-folder').click(); await expect(page.locator('.media-tile')).toHaveCount(1);
+  await mediaOption(page, 'filter-folder'); await expect(page.locator('.media-tile')).toHaveCount(1);
   await page.locator('#media-entry-0').click(); await expect(page.getByText('This folder is empty', { exact: true })).toBeVisible();
   await page.keyboard.press('Escape'); await expect(page.locator('#media-entry-0')).toBeFocused();
-  await page.locator('#filter-all').click(); await page.locator('#media-entry-1').click();
+  await mediaOption(page, 'filter-all'); await page.locator('#media-entry-1').click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.evaluate(() => window.__testUsbChange('USB A', false));
   await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -148,14 +150,15 @@ test('filters keep folders accessible, empty folders are clear and disconnect cl
   await expect(page.locator('#media-home')).toBeFocused();
 });
 
-test('large folders render at most 12 cards while arrows reach other pages and restore details focus', async ({ page }) => {
+test('large folders render a bounded scrolling window while arrows restore details focus', async ({ page }) => {
   await usbFixture(page, { count: 5000, drives: ['USB A'] });
   await page.goto('/'); await page.keyboard.press('ArrowDown');
   await expect(page.locator('#media-entry-0')).toBeFocused();
-  await expect(page.locator('.media-tile')).toHaveCount(12);
+  expect(await page.locator('.media-tile').count()).toBeLessThanOrEqual(31);
   await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
   await expect(page.locator('#media-entry-18')).toBeFocused();
-  await expect(page.locator('.media-tile')).toHaveCount(12);
+  expect(await page.locator('.media-tile').count()).toBeLessThanOrEqual(31);
+  await expect(page.locator('.page-stack')).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, -1080)');
   const footer = await page.locator('.media-position').boundingBox(); expect(footer!.y + footer!.height).toBeLessThan(1080);
   await page.keyboard.press('Enter'); await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Escape'); await expect(page.locator('#media-entry-18')).toBeFocused();
@@ -228,7 +231,7 @@ test('narrow arrangement, rapid input, modal Tab and reduced motion remain usabl
   await page.keyboard.press('Enter'); await page.locator('#settings-tab-weather').click(); await page.locator('#city-hobart').focus(); await page.keyboard.press('Tab');
   await expect(page.locator('#settings-close')).toBeFocused();
   await page.keyboard.press('Escape'); await expect(page.locator('#app-settings')).toBeFocused();
-  await expect(page.locator('#app-settings')).toHaveCSS('transition-duration', '0s, 0s, 0s');
+  expect(await page.locator('#app-settings').evaluate(element => getComputedStyle(element).transitionDuration.split(',').every(value => value.trim() === '0s'))).toBe(true);
   const dock = await page.locator('.app-dock').boundingBox();
   expect(dock!.x).toBeGreaterThanOrEqual(0); expect(dock!.x + dock!.width).toBeLessThanOrEqual(801);
 });
@@ -282,14 +285,14 @@ test('native diagnostics read the packaged privilege and enumerate genuine nativ
   await expect(page.locator('.diagnostic-facts dd').nth(2)).toHaveText('Yes');
   await expect(page.locator('.diagnostic-records')).toContainText('USB A');
   await expect(page.locator('.diagnostic-records')).toContainText('5 entries');
-  expect(await page.evaluate(() => window.__testUsb.reads)).toEqual(['USB A', 'USB B']);
+  expect(await page.evaluate(() => window.__testUsb.reads)).toEqual(['USB A', 'USB A', 'USB B']); // App root preload, then explicit diagnostic root scans.
   await page.screenshot({ path: 'artifacts/v02-usb-diagnostics.png' });
 });
 
 for (const fail of ['discover', 'resolve', 'enumerate'] as const) test(`native ${fail} failures remain errors and are never presented as no USB or empty directories`, async ({ page }) => {
   await usbFixture(page, { count: 3, drives: ['removable_sdc7'], fail });
   await page.goto('/'); await page.keyboard.press('ArrowDown');
-  await expect(page.locator('.media-error')).toBeInViewport();
+  await expect(page.locator(fail === 'discover' ? '.media-error' : '.media-recovery')).toBeInViewport();
   await expect(page.getByText('Connect a USB device', { exact: true })).toHaveCount(0);
   await expect(page.getByText('This folder is empty', { exact: true })).toHaveCount(0);
   await page.keyboard.press('Escape'); await page.locator('#top-settings').click(); await page.locator('#settings-tab-usb').click();
@@ -307,6 +310,7 @@ test('network and exit controls are remote accessible, and animation/FPS prefere
   await expect(page.locator('.frameos')).toHaveClass(/motion-full/);
   await page.locator('#fps-toggle').click(); await page.keyboard.press('Escape');
   await expect(page.locator('.fps-counter')).toHaveCount(0);
+  await page.keyboard.press('ArrowDown'); await expect(page.locator('#widget-world-clock')).toBeFocused();
   await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
   await expect(page.locator('.page-stack')).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, -1080)');
   await expect(page.locator('.home')).toHaveAttribute('aria-hidden', 'true');

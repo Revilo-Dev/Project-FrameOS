@@ -10,6 +10,7 @@ function response() {
   return {
     timezone: 'Australia/Brisbane',
     current: { time: '2026-10-20T12:00', temperature_2m: 26.4, weather_code: 2, is_day: 1 },
+    daily: { time: ['2026-10-20', '2026-10-21'], temperature_2m_max: [28.7, 30.1], temperature_2m_min: [18.2, 19.4] },
     hourly: {
       time: ['2026-10-20T12:00', '2026-10-20T13:00', '2026-10-20T14:00', '2026-10-20T15:00', '2026-10-20T16:00', '2026-10-20T17:00', '2026-10-20T18:00'],
       weather_code: [2, 3, 61, 0, 95, 2, 3],
@@ -39,7 +40,7 @@ describe('weather forecast mapping', () => {
       assert.equal(url.searchParams.get('forecast_days'), '2');
       assert.equal(url.searchParams.get('temperature_unit'), 'celsius');
       assert.equal(url.searchParams.get('current'), 'temperature_2m,weather_code,is_day');
-      assert.equal(url.searchParams.has('daily'), false);
+      assert.equal(url.searchParams.get('daily'), 'temperature_2m_max,temperature_2m_min');
       assert.equal(url.searchParams.get('hourly'), 'temperature_2m,weather_code,is_day,precipitation_probability');
       assert.equal(url.searchParams.has('apikey'), false);
       assert.equal(isWeatherCity(location.id), true);
@@ -56,8 +57,21 @@ describe('weather forecast mapping', () => {
     assert.equal(weather.current.isDay, true);
     assert.equal(weather.timezone, 'Australia/Brisbane');
     assert.equal(weather.fetchedAt, now);
+    assert.deepEqual(weather.daily, { date: '2026-10-20', high: 28.7, low: 18.2 });
     assert.deepEqual(weather.hours.map(hour => hour.time), response().hourly.time.slice(1));
     assert.deepEqual(weather.hours[0], { time: '2026-10-20T13:00', code: 3, temperature: 27.3, isDay: true, rainChance: 10 });
+  });
+
+  it('selects the observation day in the city timezone and tolerates unavailable daily values', () => {
+    const original = response();
+    const shifted = { ...original, daily: { time: ['2026-10-19', '2026-10-20', '2026-10-21'], temperature_2m_max: [40, 28.7, 30.1], temperature_2m_min: [22, 18.2, 19.4] } };
+    assert.deepEqual(mapWeatherResponse(shifted, 'brisbane', now).daily, { date: '2026-10-20', high: 28.7, low: 18.2 });
+    for (const daily of [undefined, null, {}, { ...original.daily, time: ['2026-10-19', '2026-10-21'] }, { ...original.daily, temperature_2m_max: [null, 30] }, { ...original.daily, temperature_2m_max: [10, 30] }, { ...original.daily, temperature_2m_min: [18] }]) {
+      const weather = mapWeatherResponse({ ...original, daily }, 'brisbane', now);
+      assert.equal(weather.daily, null);
+      assert.equal(weather.hours.length, 6);
+      assert.equal(weather.current.temperature, 26.4);
+    }
   });
 
   it('rejects missing/null/invalid values and wrong locations instead of inventing data', () => {
@@ -90,6 +104,18 @@ describe('weather forecast mapping', () => {
 });
 
 describe('weather cache and nonblocking failures', () => {
+  it('upgrades old hourly-only caches and preserves them offline without inventing daily temperatures', async () => {
+    const memory = storage(), legacy = { ...mapWeatherResponse(response(), 'brisbane', now) };
+    delete legacy.daily;
+    writeWeatherCache(memory, legacy);
+    const offline = await loadWeather('brisbane', { storage: memory, now: () => now + 1000, fetcher: (async () => { throw Error('offline'); }) as typeof fetch });
+    assert.equal(offline.status, 'cached'); assert.equal(offline.weather?.daily, undefined); assert.equal(offline.weather?.hours.length, 6);
+    const updated = await loadWeather('brisbane', { storage: memory, now: () => now + 1000, fetcher: fetcher(response()) });
+    assert.equal(updated.status, 'fresh'); assert.deepEqual(updated.weather?.daily, { date: '2026-10-20', high: 28.7, low: 18.2 });
+    assert.deepEqual(readWeatherCache(memory, 'brisbane')?.daily, updated.weather?.daily);
+    const malformed = JSON.stringify({ version: 2, weather: { ...updated.weather, daily: { date: '2026-10-19', high: 30, low: 20 } } });
+    assert.equal(readWeatherCache({ getItem: () => malformed, setItem() {} }, 'brisbane')?.daily, null);
+  });
   it('round trips separate city caches and rejects malformed or mismatched records', () => {
     const memory = storage();
     const weather = mapWeatherResponse(response(), 'brisbane', now);

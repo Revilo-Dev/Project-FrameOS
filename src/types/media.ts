@@ -13,6 +13,12 @@ export interface MediaEntry {
   readonly name: string;
   readonly extension: string;
   readonly size?: number;
+  readonly modified?: number;
+  readonly hidden?: boolean;
+  readonly displayTitle?: string;
+  readonly episode?: number;
+  readonly season?: number;
+  readonly thumbnailRef?: string;
   readonly path: string;
   readonly uri?: string;
   readonly storageId: string;

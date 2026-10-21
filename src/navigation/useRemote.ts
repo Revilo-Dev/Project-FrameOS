@@ -21,6 +21,9 @@ export function useRemote(state: RemoteState) {
     const handle = (event: KeyboardEvent) => {
       const key = event.key === 'F10' && event.shiftKey ? 'context' : remoteKey(event);
       if (!key) return;
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      // Let native editors own arrows/channel buttons while their keyboard is open.
+      if (event.isComposing || target?.isContentEditable || target?.matches('input, textarea, select')) return;
       const active = latest.current;
       if (active.input?.(key, active.current)) { event.preventDefault(); return; }
       if (key.startsWith('media-')) return;

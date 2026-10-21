@@ -1,8 +1,8 @@
 import { memo, useEffect, useState } from 'react';
 import { formatClock } from '../services/clock';
-import type { TimeFormat } from '../types/settings';
+import type { ClockFont, TimeFormat } from '../types/settings';
 
-export const Clock = memo(function Clock({ timeFormat, timeZone }: { timeFormat: TimeFormat; timeZone: string }) {
+export const Clock = memo(function Clock({ timeFormat, timeZone, font }: { timeFormat: TimeFormat; timeZone: string; font: ClockFont }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
@@ -19,5 +19,5 @@ export const Clock = memo(function Clock({ timeFormat, timeZone }: { timeFormat:
     return () => { clearTimeout(timer); document.removeEventListener('visibilitychange', visibility); };
   }, []);
   const { time, period, date } = formatClock(now, timeZone, timeFormat);
-  return <div className="clock"><time dateTime={now.toISOString()}><span className="clock-digits">{time}</span>{period && <small className="clock-period"> {period}</small>}</time><span>{date}</span></div>;
+  return <div className={`clock clock-font-${font}`}><time dateTime={now.toISOString()}><span className="clock-face"><span className="clock-digits">{time}</span>{period && <small className="clock-period"> {period}</small>}</span></time><span>{date}</span></div>;
 });

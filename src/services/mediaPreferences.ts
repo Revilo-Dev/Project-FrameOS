@@ -2,8 +2,8 @@ import type { MediaEntry } from '../types/media';
 import type { SettingsStorage } from './settings';
 
 export const MEDIA_PREFERENCES_KEY = 'frameos.media.v1';
-export interface MediaPreferences { version: 1; showHidden: boolean; hidden: string[] }
-export const defaultMediaPreferences = (): MediaPreferences => ({ version: 1, showHidden: false, hidden: [] });
+export interface MediaPreferences { version: 1; showHidden: boolean; hidden: string[]; autoplayNext: boolean }
+export const defaultMediaPreferences = (): MediaPreferences => ({ version: 1, showHidden: false, hidden: [], autoplayNext: true });
 function relativePath(storage: string, path: string) { return path.startsWith(`${storage}/`) ? path.slice(storage.length + 1) : path; }
 export function hiddenIdentity(storage: string, path: string): string { return JSON.stringify([storage, relativePath(storage, path)]); }
 function validIdentity(key: unknown): key is string {
@@ -15,13 +15,14 @@ export function loadMediaPreferences(storage: SettingsStorage): MediaPreferences
   try {
     const value = JSON.parse(storage.getItem(MEDIA_PREFERENCES_KEY) || 'null') as Partial<MediaPreferences> | null;
     if (value?.version !== 1) return defaultMediaPreferences();
-    return { version: 1, showHidden: value.showHidden === true, hidden: Array.isArray(value.hidden) ? [...new Set(value.hidden.filter(validIdentity))].slice(0, 4096) : [] };
+    return { version: 1, showHidden: value.showHidden === true, autoplayNext: value.autoplayNext !== false, hidden: Array.isArray(value.hidden) ? [...new Set(value.hidden.filter(validIdentity))].slice(0, 4096) : [] };
   } catch { return defaultMediaPreferences(); }
 }
 export function saveMediaPreferences(storage: SettingsStorage, preferences: MediaPreferences): boolean {
   try { storage.setItem(MEDIA_PREFERENCES_KEY, JSON.stringify(preferences)); return true; } catch { return false; }
 }
 export function isMediaHidden(entry: MediaEntry, hidden: ReadonlySet<string>): boolean {
+  if (entry.hidden || entry.path.split('/').some(part => part.startsWith('.'))) return true;
   let path = entry.path;
   while (path.includes('/')) {
     if (hidden.has(hiddenIdentity(entry.storageId, path))) return true;

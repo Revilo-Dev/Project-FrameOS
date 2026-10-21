@@ -8,6 +8,7 @@ export interface TizenFile {
   fullPath: string;
   isDirectory: boolean;
   fileSize?: number;
+  modified?: Date;
   toURI?(): string;
   listFiles?(success: (files: TizenFile[]) => void, failure?: (error: unknown) => void): void;
 }
@@ -165,12 +166,14 @@ export class TizenMediaAdapter implements MediaAdapter {
           seen.add(entryPath);
           const isDirectory = Boolean(file.isDirectory);
           let size: number | undefined;
+          let modified: number | undefined;
+          try { const value = file.modified?.getTime(); if (Number.isFinite(value)) modified = value; } catch { /* Optional on USB filesystems. */ }
           let uri: string | undefined;
           try { const value = file.fileSize; if (!isDirectory && typeof value === 'number' && Number.isFinite(value) && value >= 0) size = value; } catch { /* Optional metadata may be inaccessible. */ }
           // Convert the directory once rather than making a native toURI call
           // for every file in a large folder. No file contents are read.
           try { if (directoryUri) uri = `${directoryUri}/${encodeURIComponent(name)}`; } catch { /* Preserve unusual UTF-16 names through the virtual path. */ }
-          entries.push({ id: JSON.stringify([storage.id, entryPath]), name, extension: isDirectory ? '' : mediaExtension(name), size, path: entryPath, uri, storageId: storage.id, parentPath: path, isDirectory, type: classifyMedia(name, isDirectory) });
+          entries.push({ id: JSON.stringify([storage.id, entryPath]), name, extension: isDirectory ? '' : mediaExtension(name), size, modified, hidden: name.startsWith('.'), path: entryPath, uri, storageId: storage.id, parentPath: path, isDirectory, type: classifyMedia(name, isDirectory) });
         } catch { /* Ignore an invalid native path, never change it on the drive. */ }
         if (index > 0 && index % 500 === 0) { await new Promise<void>(resolve => setTimeout(resolve, 0)); ensurePresent(); }
       }

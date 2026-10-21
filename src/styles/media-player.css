@@ -49,10 +49,44 @@ html.native-playback, .native-playback body, .native-playback #root, .native-pla
 .player-controls { display: flex; align-items: center; margin-top: 12px; }
 .player-time { font-size: 22px; font-variant-numeric: tabular-nums; margin-right: auto; }
 .player-time > span { color: #a8b8c8; }
-.player-button { background: rgba(255,255,255,.09); border: 2px solid transparent; border-radius: 16px; padding: 15px 32px; color: #e8f0f8; font-size: 23px; margin-left: 15px; }
+.player-button { background: rgba(255,255,255,.09); border: 2px solid transparent; border-radius: 50%; padding: 0; color: #e8f0f8; font-size: 23px; }
 .player-button.is-focused { background: rgba(255,255,255,.18); border-color: #e6eff8; }
 .player-button[aria-disabled=true] { opacity: .45; }
-.player-hint { text-align: right; color: #9fadb9; font-size: 16px; margin: 24px 0 0; }
 .player-message, .player-ended { position: absolute; top: 44%; left: 20%; width: 60%; text-align: center; font-size: 27px; line-height: 1.5; color: #e7edf4; padding: 22px; background: rgba(10,19,29,.86); border-radius: 20px; }
 .player-ended > span { display: block; font-size: 18px; color: #b3c2d0; }
 @keyframes title-arrive { from { opacity: .35; transform: translateY(3px); } to { opacity: 1; } }
+
+/* v0.4 continuous library viewport: fixed row geometry keeps focus predictable. */
+.media-hub { display: flex; flex-direction: column; padding-bottom: 28px; }
+.media-header, .drive-row, .media-filters, .breadcrumbs, .focused-media-title, .media-position { flex-shrink: 0; }
+.media-viewport { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; margin: 0 -8px; scrollbar-width: thin; }
+.media-viewport::-webkit-scrollbar { width: 5px; }
+.media-viewport::-webkit-scrollbar-thumb { background: rgba(221,234,245,.25); border-radius: 4px; }
+.media-grid { position: relative; display: block; margin: 0; }
+.media-tile { height: 264px; justify-content: flex-start; }
+.media-tile > .icon { margin: auto 0; }
+.media-tile.is-focused { transform: none; }
+.motion-full .media-grid .media-tile { animation: none; }
+.compact .media-tile { height: 324px; }
+.media-recovery .primary-button { margin-top: 20px; min-width: 200px; }
+.updating-indicator { display: block; width: 30px; height: 30px; margin: 0 auto 30px; border: 3px solid rgba(210,230,245,.2); border-top-color: #d8e9f5; border-radius: 50%; animation: updating-spin 1.8s linear infinite; }
+@keyframes updating-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .updating-indicator { animation: none; } }
+.player-top h1 { margin: 0; }
+.player-controls { justify-content: center; }
+.player-button { display: inline-flex; align-items: center; justify-content: center; width: 80px; height: 80px; min-width: 80px; flex: 0 0 80px; margin: 0 14px; }
+.player-button .icon { width: 32px; height: 32px; }
+.player-toggle, .player-toggle.is-focused { background: #fff; color: #142331; }
+.player-toggle.is-focused { border-color: #fff; box-shadow: 0 0 0 4px rgba(255,255,255,.3); }
+#player-previous .icon { transform: scaleX(-1); }
+.player-skip-label { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.player-time { text-align: center; margin: 0 0 12px; }
+.player-timeline { border: 0; outline: none; box-shadow: none; padding: 22px 0; }
+.player-timeline.is-focused, .player-timeline:focus { border: 0; outline: none; box-shadow: none; background: transparent; }
+.player-track { position: relative; height: 9px; overflow: visible; border-radius: 6px; }
+.player-track > .player-fill { border-radius: 6px; transition: width 1s linear; }
+.player-track > .player-knob { position: absolute; top: 50%; width: 17px; height: 17px; border-radius: 50%; transform: translate(-50%,-50%); background: #f0f6fa; transition: left 1s linear; }
+.player-timeline.is-focused .player-knob { outline: 2px solid rgba(240,246,250,.6); outline-offset: 3px; }
+.player-skip-feedback { position: absolute; left: 50%; top: 48%; transform: translate(-50%,-50%); padding: 15px 24px; border-radius: 20px; background: rgba(10,19,29,.7); color: #eef5fc; font-size: 32px; }
+.player-next-transition { position: absolute; bottom: 300px; left: 50%; transform: translateX(-50%); padding: 18px 30px; border-radius: 18px; background: rgba(10,19,29,.85); color: #eef5fc; font-size: 24px; text-align: center; }
+.player-next-transition > span { display: block; margin-top: 6px; font-size: 16px; color: #afc2d3; }

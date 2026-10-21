@@ -1,0 +1,5 @@
+--- v0.3 packaging copy
++++ v0.4 packaging copy
+-    <tizen:content-security-policy>default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: file:; connect-src 'self' https://api.open-meteo.com; object-src 'self'; base-uri 'none'; frame-src 'none'</tizen:content-security-policy>
++    <tizen:privilege name="http://tizen.org/privilege/content.write"/>
++    <tizen:content-security-policy>default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: file:; connect-src 'self' https://api.open-meteo.com; media-src 'self' file:; object-src 'self'; base-uri 'none'; frame-src 'none'</tizen:content-security-policy>

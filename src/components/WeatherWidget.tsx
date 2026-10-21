@@ -102,6 +102,10 @@ export const WeatherWidget = memo(function WeatherWidget({ city, timeFormat }: {
         <WeatherIcon name={condition.icon} />
         <span className="weather-temperature">{Math.round(weather.current.temperature)}<small>°C</small></span>
         <div className="weather-summary"><span className="weather-city">{location.name}</span><span className="weather-condition">{condition.label}</span></div>
+        <div className="weather-daily" aria-label="Daily high and low">
+          <span className="weather-high"><small>High</small><strong>{weather.daily ? `${Math.round(weather.daily.high)}°` : '—'}</strong></span>
+          <span className="weather-low"><small>Low</small><strong>{weather.daily ? `${Math.round(weather.daily.low)}°` : '—'}</strong></span>
+        </div>
       </div>
       <div className="weather-forecast" aria-label="Next six hours">
         {weather.hours.map((hour) => {

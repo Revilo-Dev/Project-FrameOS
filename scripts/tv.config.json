@@ -6,5 +6,5 @@
   "profile": "revilodev-frameos",
   "referencePackage": "frameos.wgt",
   "authorSha256": "52abc2ad0bbfa4e2aea4a9effd08efa7e4f535a8b23ec7ebcff45fa425ddcc6c",
-  "packagingPolicy": "tizen/policy-v0.3.json"
+  "packagingPolicy": "tizen/policy-v0.4.json"
 }

@@ -1,4 +1,10 @@
-# FrameOS 0.3
+> **v0.3.6 widget release:** [features, validation and deployment](docs/V0.3.6.md) · [Google Calendar deferred integration](docs/GOOGLE-CALENDAR.md). Five configurable widgets, up to three active. Google account connection will be added later.
+
+> **v0.3.5 interface release:** [behavior, checks and deployment](docs/V0.3.5.md) · [changed files](docs/V0.3.5-FILES.md). Existing media work and the successful TV deployment pipeline are preserved.
+
+# FrameOS v0.3.6
+
+See the [v0.4 handoff](docs/V0.4.md) for autoplay, channel skipping, continuous scrolling, persistent caching, native/HTML/FFmpeg thumbnail fallbacks and startup feasibility. Physical-TV installation requires approval.
 
 A quiet, remote-first launcher, read-only USB Media Hub and Samsung AVPlay video player for a 2020 Samsung Frame. React 18, TypeScript and Vite; no component libraries, remote scripts or CDNs. Artwork, SVG branding and the licensed clock font are bundled locally. Weather uses Open-Meteo; the installed TV provides its local Samsung SDK script.
 
@@ -14,7 +20,7 @@ Open the printed local URL. Use arrows to move, Enter to select, and Escape/Back
 
 ## Included
 
-- Minimal home with one bold serif Brisbane clock/date, hourly weather, supplied FrameOS logo, restored separators, and seven gradient app tiles. The Settings tile uses its icon without a visible label and retains its accessible name.
+- Centred clock/date with six local fonts, five configurable widgets (zero to three active), pre-blurred widget surfaces and seven branded squircle shortcuts that expand on remote focus. Calendar is disconnected pending the later Google API integration; local Reminders and To-do work now.
 - Settings → Clock selects 12-hour (default) or 24-hour time and one of 18 time zones, including device local time and UTC. Brisbane remains the default zone. Clock/date respect daylight saving; hourly weather uses the selected time format and its own weather city's zone. Preferences survive restarts.
 - All 47 supplied wallpapers, available in four Settings pages. Optimized TV-compatible JPEGs, 320px thumbnails and pre-baked soft companions; no runtime AVIF decoding or live blur.
 - Slate, Midnight and Warm themes; All animations, Subtle and Off motion settings. Reduced motion overrides animation. Temporary FPS counter below the logo, switchable in Settings.

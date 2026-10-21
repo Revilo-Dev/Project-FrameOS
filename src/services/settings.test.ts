@@ -2,8 +2,18 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { DEFAULT_SETTINGS, loadSettings, saveSettings, SETTINGS_KEY } from './settings';
 import { wallpapers } from './wallpapers';
+import { CLOCK_FONTS } from './clockFonts';
 
 describe('settings persistence', () => {
+  it('round trips every clock font and migrates missing/invalid fonts safely', () => {
+    for (const font of CLOCK_FONTS) {
+      const storage = { getItem: () => JSON.stringify({ ...DEFAULT_SETTINGS, clockFont: font.id }), setItem() {} };
+      assert.equal(loadSettings(storage).clockFont, font.id);
+    }
+    for (const clockFont of [undefined, 'not-a-font', null, 42]) {
+      assert.equal(loadSettings({ getItem: () => JSON.stringify({ ...DEFAULT_SETTINGS, clockFont }), setItem() {} }).clockFont, 'modern');
+    }
+  });
   it('preserves theme and motion and replaces a removed v0.1 wallpaper with the new default', () => {
     const storage = { getItem: () => JSON.stringify({ version: 1, theme: 'warm', wallpaper: 'dusk', motion: 'off' }), setItem() {} };
     assert.deepEqual(loadSettings(storage), { ...DEFAULT_SETTINGS, theme: 'warm', motion: 'off' });
