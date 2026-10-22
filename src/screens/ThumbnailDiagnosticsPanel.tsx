@@ -54,6 +54,10 @@ export function ThumbnailDiagnosticsPanel({ entries, selected, service, focused,
       <div className="thumbnail-diagnostic-records" ref={records}>
       <dl className="thumbnail-diagnostic-facts">
         <dt>Actual file path</dt><dd>{state.path}</dd><dt>Resolved source URI</dt><dd>{state.sourceUri || 'Unavailable'}</dd>
+        <dt>Thumbnail source</dt><dd>{state.source || 'None'}</dd>
+        <dt>Frame / image produced</dt><dd>{state.frame || 'Not checked this session'}</dd>
+        <dt>Output image URI</dt><dd>{state.imageUri || 'Unavailable'}</dd>
+        <dt>Output image access</dt><dd>{state.imageAccess || 'Not checked this session'}</dd>
         <dt>Storage identifier / extension</dt><dd>{state.storage} / {state.extension.toUpperCase()}</dd>
         <dt>File accessibility</dt><dd>{state.accessibility}</dd>
         <dt>Native Content API</dt><dd>find: {available(state.nativeFind)}; createThumbnail: {available(state.nativeCreate)}; scanDirectory: {available(state.nativeScan)} (never called)</dd>

@@ -1,11 +1,19 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { video } from '../../tests/mediaFixture';
-import { compareMediaNames, detectEpisode, playbackQueue } from './episodes';
+import { compareMediaNames, detectEpisode, playbackQueue, videoDisplayTitle } from './episodes';
 import { defaultMediaPreferences, hiddenIdentity, isMediaHidden, loadMediaPreferences, saveMediaPreferences, toggleMediaHidden } from './mediaPreferences';
 import { localFilePath, playbackPath } from './playbackPath';
 
 describe('episode identification and playback lists', () => {
+  it('formats display titles without renaming files or changing episode detection', () => {
+    assert.equal(videoDisplayTitle('EP03-the_first_one.mkv'), 'EP03-The first one');
+    assert.equal(videoDisplayTitle('EP03-the_first_one'), 'EP03-The first one');
+    assert.equal(videoDisplayTitle('S01E02_the_one_with_PBS.MP4'), 'S01E02 The one with PBS');
+    assert.equal(videoDisplayTitle('EP04__the__one_with_Joey.m4v'), 'EP04 The one with Joey');
+    assert.equal(videoDisplayTitle('A title with NASA.mp4'), 'A title with NASA');
+    assert.equal(detectEpisode('EP03-the_first_one.mkv')?.episode, 3);
+  });
   it('recognises explicit episode patterns, season and series while preserving filenames', () => {
     for (const [filename, episode] of [['Episode 1.mkv', 1], ['Episode 02.mp4', 2], ['Ep 3.mkv', 3], ['E04.mp4', 4], ['S01E05.mkv', 5], ['Series.Name.S02E06.1080p.mkv', 6], ['1x07.mp4', 7]] as const) {
       const result = detectEpisode(filename)!;

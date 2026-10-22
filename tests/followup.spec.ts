@@ -15,7 +15,7 @@ test('Bitcoin replaces Calendar with genuine-shaped daily chart, USD quote, stat
   await expect(card).toContainText('24h volume'); await expect(card.locator('svg[role=img]')).toBeVisible();
   expect(await card.evaluate(element => element.scrollHeight <= element.clientHeight)).toBe(true);
   await page.screenshot({ path: 'artifacts/v038/home-bitcoin.png' });
-  await page.keyboard.press('ArrowUp'); await page.keyboard.press('ArrowRight'); await expect(card).toBeFocused();
+  await page.keyboard.press('ArrowLeft'); await page.keyboard.press('ArrowUp'); await page.keyboard.press('ArrowRight'); await expect(card).toBeFocused();
   await page.keyboard.press('Enter'); await expect(page.locator('.bitcoin-detail')).toBeVisible();
   await expect(page.locator('.bitcoin-detail')).toContainText('midnight in Australia/Brisbane');
   await page.clock.runFor(600);
@@ -49,7 +49,7 @@ test('Media uses the selected preblurred wallpaper and restores native transpare
 test('opening Media during USB discovery focuses arriving cards without stealing later navigation', async ({ page }) => {
   await nativeFixture(page, { delayDirectory: true }); await page.goto('/');
   await expect.poll(() => page.evaluate(() => window.__playerFixture.reads.length)).toBe(1);
-  await page.keyboard.press('ArrowDown'); await expect(page.locator('#media-home')).toBeFocused();
+  await page.keyboard.press('ArrowDown'); await expect(page.locator('#media-options')).toBeFocused();
   await page.evaluate(() => { window.__playerFixture.delayDirectory = false; window.__playerFixture.finishDirectory(); });
   await expect(page.locator('#media-entry-0')).toBeFocused();
   await page.keyboard.press('ArrowRight'); await expect(page.locator('#media-entry-1')).toBeFocused();
@@ -75,7 +75,7 @@ test('Bitcoin fetches fresh prices every five minutes and refreshes overdue data
 test('every installed dock app uses the intended native app, including Prime instead of Foxtel', async ({ page }) => {
   await nativeFixture(page, { apps: true }); await page.goto('/');
   await expect(page.getByRole('button', { name: 'Foxtel', exact: true })).toHaveCount(0);
-  for (const [tile, id] of [['youtube', '9Ur5IzDKqV.TizenYouTube'], ['stan', '73iTZRTc34.Stan'], ['prime', 'org.tizen.primevideo'], ['gallery', 'com.samsung.tv.gallery'], ['browser', 'com.samsung.tv.knox-browser'], ['art', 'org.tizen.art-app']]) {
+  for (const [tile, id] of [['youtube', '9Ur5IzDKqV.TizenYouTube'], ['stan', '73iTZRTc34.Stan'], ['prime', 'org.tizen.primevideo'], ['gallery', 'com.samsung.tv.gallery'], ['browser', 'com.samsung.tv.knox-browser']]) {
     await page.locator(`#app-${tile}`).click();
     await expect.poll(() => page.evaluate(id => window.__playerFixture.calls.filter(call => call === `launch:${id}`).length, id)).toBe(1);
     await expect(page.getByRole('dialog')).toHaveCount(0);

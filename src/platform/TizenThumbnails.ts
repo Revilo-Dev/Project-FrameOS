@@ -27,8 +27,11 @@ export function tizenThumbnailProvider(runtime: unknown, create: boolean | (() =
     if (!tizen?.content?.find || !tizen.AttributeFilter) return undefined;
     const api = tizen.content;
     let blocked = '', creationBlocked = '';
+    let blockedUntil = 0, creationBlockedUntil = 0;
     const note = (entry: MediaEntry, stage: string, error?: unknown) => options.diagnostics?.attempt(entry, stage, error);
     const provider: ThumbnailProvider = async (entry, signal) => {
+      if (Date.now() >= blockedUntil) blocked = '';
+      if (Date.now() >= creationBlockedUntil) creationBlocked = '';
       options.diagnostics?.update(entry, { nativeFind: true, nativeCreate: typeof api.createThumbnail === 'function', nativeScan: typeof api.scanDirectory === 'function' });
       if (signal?.aborted || !entry.uri) return null;
       if (blocked) { note(entry, 'native-find', blocked); return null; }
@@ -37,7 +40,7 @@ export function tizenThumbnailProvider(runtime: unknown, create: boolean | (() =
       const find = (field: string, value: string) => new Promise<ContentItem[]>(resolve => {
         let done = false;
         const finish = (items: ContentItem[]) => { if (done) return; done = true; clearTimeout(timer); resolve(items); };
-        const fail = (error: unknown) => { const name = (error as { name?: string })?.name; if (name === 'SecurityError' || name === 'NotSupportedError' || name === 'TimeoutError') blocked = name; note(entry, 'native-find', error); finish([]); };
+        const fail = (error: unknown) => { const name = (error as { name?: string })?.name; if (name === 'SecurityError' || name === 'NotSupportedError' || name === 'TimeoutError') { blocked = name; blockedUntil = Date.now() + 300000; } note(entry, 'native-find', error); finish([]); };
         const timer = setTimeout(() => fail({ name: 'TimeoutError', message: 'Content lookup did not respond within 3 seconds' }), 3000);
         try { api.find(finish, fail, null, new tizen.AttributeFilter!(field, 'EXACTLY', value), null, field === 'name' ? 16 : 1, 0); } catch (error) { fail(error); }
       });
@@ -58,6 +61,7 @@ export function tizenThumbnailProvider(runtime: unknown, create: boolean | (() =
       for (const value of item.thumbnailURIs || []) {
         const uri = nativeThumbnailUri(value); if (!uri) { note(entry, 'native-image', 'Invalid thumbnail URI: ' + String(value).slice(0, 160)); continue; }
         note(entry, 'native-image');
+        options.diagnostics?.update(entry, { imageUri: uri, imageAccess: 'Checking indexed image decode' });
         const accepted = options.validate ? await options.validate(uri, signal) : uri;
         if (accepted) return accepted;
         note(entry, 'native-image', 'ImageLoadError: indexed thumbnail cannot render');
@@ -71,11 +75,12 @@ export function tizenThumbnailProvider(runtime: unknown, create: boolean | (() =
       const uri = await new Promise<string | null>(resolve => {
         let done = false;
         const finish = (uri: string | null) => { if (done) return; done = true; clearTimeout(timer); resolve(uri); };
-        const fail = (error: unknown) => { const name = (error as { name?: string })?.name; if (name === 'SecurityError' || name === 'NotSupportedError' || name === 'TimeoutError') creationBlocked = name; note(entry, 'native-create', error); finish(null); };
+        const fail = (error: unknown) => { const name = (error as { name?: string })?.name; if (name === 'SecurityError' || name === 'NotSupportedError' || name === 'TimeoutError') { creationBlocked = name; creationBlockedUntil = Date.now() + 300000; } note(entry, 'native-create', error); finish(null); };
         const timer = setTimeout(() => fail({ name: 'TimeoutError', message: 'Native thumbnail creation did not respond within 8 seconds' }), 8000);
         try { api.createThumbnail!(item!, result => { const uri = nativeThumbnailUri(result); if (!uri) note(entry, 'native-create', 'Invalid native output path'); finish(uri); }, fail); } catch (error) { fail(error); }
       });
       if (!uri || signal?.aborted) return null;
+      options.diagnostics?.update(entry, { imageUri: uri, imageAccess: 'Native output returned; checking decode' });
       const accepted = options.validate ? await options.validate(uri, signal) : uri;
       if (!accepted) note(entry, 'native-create', 'ImageLoadError: generated native thumbnail cannot render');
       return accepted;

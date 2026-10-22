@@ -81,4 +81,9 @@ export class BoundedMediaCache<T> {
   }
   async clear() { ++this.generation; await this.ready; this.records.clear(); await this.persist(); }
   async delete(key: string) { await this.ready; this.records.delete(key); await this.persist(); }
+  async deleteMatching(matches: (value: T) => boolean) {
+    await this.ready;
+    for (const [key, record] of this.records) if (matches(record.value as T)) this.records.delete(key);
+    await this.persist();
+  }
 }

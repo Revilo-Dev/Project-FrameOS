@@ -71,7 +71,7 @@ test('continuous remote scrolling keeps focus visible with thousands of files an
   expect(await page.locator('.media-viewport').evaluate(element => element.scrollTop)).toBeGreaterThan(3000);
   const card = await focused.boundingBox(), viewport = await page.locator('.media-viewport').boundingBox();
   expect(card!.y).toBeGreaterThanOrEqual(viewport!.y); expect(card!.y + card!.height).toBeLessThanOrEqual(viewport!.y + viewport!.height + 1);
-  expect(card!.width).toBeGreaterThanOrEqual(240); expect(card!.width).toBeLessThanOrEqual(300);
+  expect(card!.width).toBeGreaterThanOrEqual(320); expect(card!.width).toBeLessThanOrEqual(360); // Five-column default.
   await expect(focused).toHaveCSS('border-top-color', 'rgb(255, 255, 255)');
   await page.screenshot({ path: 'artifacts/v04-media.png' });
 });
@@ -91,7 +91,29 @@ test('recoverable updating state retries once, permission errors stay distinct, 
   await page.evaluate(() => { window.__playerFixture.delayDirectory = false; window.__playerFixture.finishDirectory(); }); await expect(page.locator('#media-entry-1')).toBeVisible();
   await page.evaluate(() => { window.__playerFixture.failDirectory = 'SecurityError'; }); await mediaOption(page, 'media-refresh');
   await expect(page.locator('.media-error')).toContainText('denied'); await expect(page.locator('.media-recovery')).toHaveCount(0);
-  await page.evaluate(() => window.__playerFixture.remove()); await expect(page.getByText('Connect a USB device', { exact: true })).toBeVisible();
+  await page.evaluate(() => window.__playerFixture.remove()); await expect(page.getByText('USB disconnected', { exact: true })).toBeVisible();
+});
+
+test('known USB removal wins over failed rediscovery and clears on reconnect', async ({ page }) => {
+  await nativeFixture(page); await openSeries(page);
+  await page.evaluate(() => {
+    const fs = (window as unknown as { tizen: { filesystem: { listStorages: (...args: any[]) => void } } }).tizen.filesystem;
+    const original = fs.listStorages;
+    fs.listStorages = (_success, failure) => failure({ name: 'UnknownError' });
+    window.__playerFixture.remove();
+    (window as unknown as { restoreDiscovery(): void }).restoreDiscovery = () => { fs.listStorages = original; };
+  });
+  await expect(page.getByRole('heading', { name: 'USB disconnected', exact: true })).toBeVisible();
+  await expect(page.locator('.media-recovery')).toHaveCount(0);
+  await expect(page.locator('#media-options')).toBeFocused();
+  await mediaOption(page, 'media-refresh');
+  await expect(page.getByRole('heading', { name: 'USB disconnected', exact: true })).toBeVisible();
+  await page.evaluate(() => {
+    (window as unknown as { restoreDiscovery(): void }).restoreDiscovery();
+    window.__playerFixture.reinsert();
+  });
+  await expect(page.locator('#media-entry-0')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'USB disconnected', exact: true })).toHaveCount(0);
 });
 
 test('persistent cached root appears before a delayed reconciliation and clearing cache retains preferences', async ({ page }) => {
@@ -140,8 +162,8 @@ test('USB removal during a delayed refresh clears cached playback paths immediat
   await page.evaluate(() => { window.__playerFixture.delayDirectory = true; }); await mediaOption(page, 'media-refresh');
   await expect.poll(() => page.evaluate(() => window.__playerFixture.reads.length)).toBe(before + 1);
   await page.evaluate(() => window.__playerFixture.remove());
-  await expect(page.getByText('Connect a USB device', { exact: true })).toBeVisible(); await expect(page.locator('.media-tile')).toHaveCount(0);
+  await expect(page.getByText('USB disconnected', { exact: true })).toBeVisible(); await expect(page.locator('.media-tile')).toHaveCount(0);
   await page.evaluate(() => { window.__playerFixture.delayDirectory = false; window.__playerFixture.finishDirectory(); });
-  await expect(page.locator('#media-home')).toBeFocused();
+  await expect(page.locator('#media-options')).toBeFocused();
   await page.evaluate(() => window.__playerFixture.reinsert()); await expect(page.locator('#media-entry-0')).toBeFocused();
 });

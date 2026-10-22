@@ -42,7 +42,7 @@ test('three default widgets fit between the centred clock and dock and are D-pad
   expect(geometry).toBe(true);
   const headings = await page.locator('.dashboard-card .widget-heading').evaluateAll(items => items.map(item => item.getBoundingClientRect().top));
   expect(Math.max(...headings) - Math.min(...headings)).toBeLessThan(1);
-  await page.keyboard.press('ArrowUp'); await expect(page.locator('#widget-weather')).toBeFocused();
+  await page.keyboard.press('ArrowLeft'); await page.keyboard.press('ArrowUp'); await expect(page.locator('#widget-weather')).toBeFocused();
   await page.keyboard.press('ArrowRight'); await expect(page.locator('#widget-bitcoin')).toBeFocused();
   await page.keyboard.press('Enter'); await expect(page.locator('.widget-panel-bitcoin')).toBeVisible();
   await page.keyboard.press('Escape'); await expect(page.locator('#widget-bitcoin')).toBeFocused();

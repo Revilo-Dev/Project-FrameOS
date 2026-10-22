@@ -33,9 +33,9 @@ describe('platform boundary', () => {
       for (const action of actions) {
         const result = await adapter.perform(action);
         assert(result);
-        if (adapter.kind === 'tizen' && ['launch-app', 'gallery', 'browser', 'art-mode'].includes(action.type)) { assert.equal(result.status, 'unavailable'); continue; }
+        if (adapter.kind === 'tizen' && ['launch-app', 'gallery', 'browser'].includes(action.type)) { assert.equal(result.status, 'unavailable'); continue; }
         assert.equal(result.status, 'unsupported');
-        assert.match(result.message, /future version/);
+        assert.match(result.message, action.type === 'art-mode' ? /FrameOS Home/ : /future version/);
       }
     });
   }

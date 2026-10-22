@@ -25,13 +25,14 @@ describe('remote navigation', () => {
     assert.equal(remoteKey({ key: 'MediaPlay', keyCode: 415 }), 'media-play');
   });
   it('reaches all seven tiles and the Media prompt without a redundant USB tile', () => {
-    let id = 'app-youtube';
+    let id = 'app-art';
     const visited = [id];
     for (let i = 0; i < 15; i++) { id = nextFocus(homeRows, id, 'right'); visited.push(id); }
     assert.equal(new Set(visited).size, 7);
     assert.equal(id, 'app-settings');
     assert.equal(nextFocus(homeRows, id, 'down'), 'home-media');
-    assert.equal(nextFocus(homeRows, 'app-youtube', 'left'), 'app-youtube');
+    assert.equal(nextFocus(homeRows, 'app-youtube', 'left'), 'app-art');
+    assert.equal(nextFocus(homeRows, 'app-art', 'left'), 'app-art');
   });
   it('moves vertically to the nearest column and provides a route out of each row', () => {
     const settingsRows = settingsLayout('appearance', 0);

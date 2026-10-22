@@ -19,7 +19,7 @@ test.beforeEach(async ({ page }) => {
 test('episode cards show full title on focus, native playback controls and ordered Next/Previous restore folder focus', async ({ page }) => {
   await nativeFixture(page); await openSeries(page);
   await page.keyboard.press('ArrowRight');
-  await expect(page.locator('.focused-media-title')).toHaveText('Series.Name.S01E01.1080p.mp4');
+  await expect(page.locator('.focused-media-title')).toHaveText('Series.Name.S01E01.1080p');
   await expect(page.locator('#media-entry-1 .media-filename')).toHaveText('Episode 01');
   await expect(page.locator('#media-entry-2 .media-filename')).toHaveText('Episode 02');
   await expect(page.locator('#media-entry-3 .media-filename')).toHaveText('Episode 10');
@@ -42,6 +42,15 @@ test('episode cards show full title on focus, native playback controls and order
   expect(await page.evaluate(() => window.__playerFixture.reads)).toEqual(['removable_sdc7', 'removable_sdc7/Series']);
   await page.screenshot({ path: 'artifacts/v03-media.png' });
 });
+test('underscore episode titles are readable while native playback keeps the original filename', async ({ page }) => {
+  await nativeFixture(page, { videoNames: ['EP03-the_first_one.mkv'] }); await openSeries(page);
+  await page.locator('#media-entry-1').focus();
+  await expect(page.locator('.focused-media-title')).toHaveText('EP03-The first one');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.player-top h1')).toHaveText('EP03-The first one');
+  expect(await page.evaluate(() => window.__playerFixture.calls)).toContain('open:/media/removable_sdc7/Series/EP03-the_first_one.mkv');
+});
+
 test('long OK hides without opening, Options restores hidden files, toggle and folder preferences persist', async ({ page }) => {
   await page.clock.install(); await nativeFixture(page); await openSeries(page); await page.keyboard.press('ArrowRight');
   await page.keyboard.down('Enter'); await page.clock.runFor(760); await expect(page.locator('#context-hide')).toHaveText('Hide');
@@ -83,10 +92,10 @@ test('USB removal during a seek closes the UI immediately and defers native clea
   await nativeFixture(page, { delaySeek: true }); await openSeries(page); await page.locator('#media-entry-1').click(); await expect(page.locator('#player-toggle')).toHaveAttribute('aria-label', 'Pause');
   await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowRight');
   await page.evaluate(() => window.__playerFixture.remove()); await expect(page.locator('.video-player')).toHaveCount(0);
-  await expect(page.getByText('Connect a USB device', { exact: true })).toBeVisible(); await expect(page.locator('.media-message')).toContainText('disconnected');
+  await expect(page.getByText('USB disconnected', { exact: true })).toBeVisible(); await expect(page.locator('.media-message')).toContainText('disconnected');
   const before = await page.evaluate(() => window.__playerFixture.calls.length); await page.evaluate(() => window.__playerFixture.finishSeek());
   expect((await page.evaluate(() => window.__playerFixture.calls)).slice(before)).toEqual(['state', 'stop', 'state', 'close']);
-  await expect(page.locator('#media-home')).toBeFocused();
+  await expect(page.locator('#media-options')).toBeFocused();
   await page.evaluate(() => window.__playerFixture.reinsert()); await expect(page.locator('#media-entry-0')).toBeFocused();
   await expect(page.locator('.media-message')).toHaveCount(0);
 });

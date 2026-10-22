@@ -11,11 +11,11 @@ export function browseEntries(entries: readonly MediaEntry[], filter: MediaFilte
   return entries.filter((entry) => filter === 'all' || entry.isDirectory || entry.type === filter)
     .sort(sort === 'natural' ? compareMediaNames : (a, b) => Number(b.isDirectory) - Number(a.isDirectory) || nameOrder.compare(a.name, b.name) * (sort === 'name-desc' ? -1 : 1));
 }
-export function mediaHeaderRows(): FocusRows { return [[{ id: 'media-home', x: 160 }, { id: 'media-options', x: 1700 }]]; }
+export function mediaHeaderRows(): FocusRows { return [[{ id: 'media-options', x: 1700 }]]; }
 export function mediaOptionsRows(hasSelection: boolean): FocusRows {
-  return [...mediaFilters.map(item => `filter-${item.id}`), ...mediaSorts.map(item => `sort-${item.id}`), 'media-hidden', 'media-refresh', ...(hasSelection ? ['media-item-options'] : [])].map(id => [{ id, x: 1700 }]);
+  return [...[...mediaFilters.map(item => `filter-${item.id}`), ...mediaSorts.map(item => `sort-${item.id}`)].map(id => [{ id, x: 1700 }]), [3, 4, 5, 6, 7].map((size, i) => ({ id: `grid-${size}`, x: 1500 + i * 70 })), ...['media-hidden', 'media-refresh', ...(hasSelection ? ['media-item-options'] : [])].map(id => [{ id, x: 1700 }])];
 }
-export function mediaUpReturnsHome(id: string): boolean { return id === 'media-home' || id === 'media-options'; }
+export function mediaUpReturnsHome(id: string): boolean { return id === 'media-options'; }
 export function entryRows(count: number, columns: number): FocusRows {
   const rows = [];
   for (let start = 0; start < count; start += columns) {

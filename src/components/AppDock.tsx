@@ -9,12 +9,12 @@ type OpenApp = (item: LauncherItem, origin: string) => void;
 const DockTile = memo(function DockTile({ item, active, focus, open }: { item: LauncherItem; active: boolean; focus(id: string): void; open: OpenApp }) {
   const id = `app-${item.id}`;
   return <FocusButton id={id} focused={active ? id : ''} onFocused={focus} className={`app-tile tile-${item.id}`} aria-label={item.name} onClick={() => open(item, id)}>
-    <span className="app-icon-centre">{appIcons[item.id] ? <img src={appIcons[item.id]} alt="" /> : <Icon name={item.icon} />}</span>
+    <span className="app-icon-centre">{item.action.type !== 'installed-app' && appIcons[item.id] ? <img src={appIcons[item.id]} alt="" /> : <Icon name={item.icon} />}</span>
     <span className="app-name" aria-hidden="true">{item.name}</span>
   </FocusButton>;
 });
-export function AppDock({ focused, focus, open }: { focused: string; focus(id: string): void; open: OpenApp }) {
+export function AppDock({ focused, focus, open, items = launcherItems }: { focused: string; focus(id: string): void; open: OpenApp; items?: LauncherItem[] }) {
   const action = useRef(open); action.current = open;
   const invoke = useCallback<OpenApp>((item, origin) => action.current(item, origin), []);
-  return <div className="dock-section"><nav className="app-dock" aria-label="Applications">{launcherItems.map(item => <DockTile key={item.id} item={item} active={focused === `app-${item.id}`} focus={focus} open={invoke} />)}</nav></div>;
+  return <div className="dock-section"><nav className="app-dock" aria-label="Applications">{items.map(item => <DockTile key={item.id} item={item} active={focused === `app-${item.id}`} focus={focus} open={invoke} />)}</nav></div>;
 }

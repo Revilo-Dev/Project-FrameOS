@@ -15,7 +15,8 @@ test('dock expands only the focused icon, reveals every full title and never ove
   await expect(page.locator('#app-stan')).toHaveCSS('width', '104px');
   await expect(page.locator('#app-stan .app-name')).toHaveCSS('opacity', '0');
   await expect(page.locator('#app-youtube')).toHaveCSS('border-top-color', 'rgb(255, 255, 255)');
-  for (const id of ['youtube', 'stan', 'prime', 'gallery', 'art', 'browser', 'settings']) {
+  await page.keyboard.press('ArrowLeft');
+  for (const id of ['art', 'youtube', 'stan', 'prime', 'gallery', 'browser', 'settings']) {
     const tile = page.locator(`#app-${id}`);
     await expect(tile).toBeFocused();
     await expect(tile).toHaveCSS('width', '290px');
@@ -130,15 +131,14 @@ test('Media Options contains filters, sorting, hidden files and Refresh without 
   expect(await page.evaluate(() => window.__playerFixture.reads.length)).toBe(reads + 1);
 });
 
-test('Media Up reaches breadcrumbs then header before returning Home; Back retains folder hierarchy', async ({ page }) => {
+test('Media Up skips display-only breadcrumbs before returning Home; Back retains folder hierarchy', async ({ page }) => {
   await nativeFixture(page); await page.goto('/'); await expect(page.locator('#app-youtube')).toBeFocused();
   await page.keyboard.press('ArrowRight'); await expect(page.locator('#app-stan')).toBeFocused(); await page.keyboard.press('ArrowDown');
   await expect(page.locator('#media-entry-0')).toBeFocused(); await page.keyboard.press('Enter');
   await expect(page.locator('#media-entry-0')).toContainText('Extras');
   await page.keyboard.press('Escape'); await expect(page.locator('#media-entry-0')).toContainText('Series');
-  await page.keyboard.press('ArrowUp'); await expect(page.locator('#crumb-0')).toBeFocused();
-  await expect(page.locator('.page-stack')).toHaveClass(/page-stack-media/);
-  await page.keyboard.press('ArrowUp'); await expect(page.locator('#media-home')).toBeFocused();
+  await expect(page.locator('.breadcrumbs button')).toHaveCount(0);
+  await page.keyboard.press('ArrowUp'); await expect(page.locator('#media-options')).toBeFocused();
   await expect(page.locator('.page-stack')).toHaveClass(/page-stack-media/);
   await page.keyboard.press('ArrowUp'); await expect(page.locator('#app-stan')).toBeFocused();
   await expect(page.locator('.page-stack')).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, 0)');

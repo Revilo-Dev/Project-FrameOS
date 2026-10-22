@@ -7,6 +7,8 @@ export type NativeAction =
   | { type: 'art-mode' }
   | { type: 'browser' }
   | { type: 'system-settings' }
+  | { type: 'samsung-home' }
+  | { type: 'installed-app'; appId: string; name: string }
   | { type: 'avplay'; source: string };
 
 export type LauncherAction = NativeAction | { type: 'settings' };

@@ -1,3 +1,4 @@
+import { videoDisplayTitle } from '../services/episodes';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import type { PlatformAdapter } from '../platform/PlatformAdapter';
 import type { MediaEntry } from '../types/media';
@@ -91,8 +92,7 @@ export const VideoPlayer = forwardRef<PlayerHandle, Props>(function VideoPlayer(
   const exhausted = automatic && !hasNext && (snapshot.status === 'error' || !!resolveError);
   const percent = snapshot.duration > 0 ? Math.min(100, snapshot.position / snapshot.duration * 100) : 0;
   const blocked = snapshot.busy || !['playing', 'paused', 'ended'].includes(snapshot.status);
-  const title = entry.extension && entry.name.toLowerCase().endsWith(`.${entry.extension.toLowerCase()}`)
-    ? entry.name.slice(0, -(entry.extension.length + 1)) : entry.name;
+  const title = videoDisplayTitle(entry.name);
   return <section className={`video-player${visible ? ' controls-visible' : ''}${controller.available ? '' : ' player-unavailable'}`} role="dialog" aria-modal="true" aria-label={`Video player: ${entry.name}`} onMouseMove={reveal} onClick={() => { if (!visible) reveal(); }}>
     {platform.player.available && <object className="native-video-surface" type="application/avplayer" aria-label="Native video surface" />}
     <header className="player-top"><h1>{title}</h1></header>

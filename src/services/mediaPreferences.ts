@@ -2,8 +2,10 @@ import type { MediaEntry } from '../types/media';
 import type { SettingsStorage } from './settings';
 
 export const MEDIA_PREFERENCES_KEY = 'frameos.media.v1';
-export interface MediaPreferences { version: 1; showHidden: boolean; hidden: string[]; autoplayNext: boolean }
-export const defaultMediaPreferences = (): MediaPreferences => ({ version: 1, showHidden: false, hidden: [], autoplayNext: true });
+export const mediaGridSizes = [3, 4, 5, 6, 7] as const;
+export type MediaGridSize = typeof mediaGridSizes[number];
+export interface MediaPreferences { version: 1; showHidden: boolean; hidden: string[]; autoplayNext: boolean; gridColumns: MediaGridSize }
+export const defaultMediaPreferences = (): MediaPreferences => ({ version: 1, showHidden: false, hidden: [], autoplayNext: true, gridColumns: 5 });
 function relativePath(storage: string, path: string) { return path.startsWith(`${storage}/`) ? path.slice(storage.length + 1) : path; }
 export function hiddenIdentity(storage: string, path: string): string { return JSON.stringify([storage, relativePath(storage, path)]); }
 function validIdentity(key: unknown): key is string {
@@ -15,7 +17,7 @@ export function loadMediaPreferences(storage: SettingsStorage): MediaPreferences
   try {
     const value = JSON.parse(storage.getItem(MEDIA_PREFERENCES_KEY) || 'null') as Partial<MediaPreferences> | null;
     if (value?.version !== 1) return defaultMediaPreferences();
-    return { version: 1, showHidden: value.showHidden === true, autoplayNext: value.autoplayNext !== false, hidden: Array.isArray(value.hidden) ? [...new Set(value.hidden.filter(validIdentity))].slice(0, 4096) : [] };
+    return { version: 1, showHidden: value.showHidden === true, autoplayNext: value.autoplayNext !== false, gridColumns: mediaGridSizes.includes(value.gridColumns as MediaGridSize) ? value.gridColumns! : 5, hidden: Array.isArray(value.hidden) ? [...new Set(value.hidden.filter(validIdentity))].slice(0, 4096) : [] };
   } catch { return defaultMediaPreferences(); }
 }
 export function saveMediaPreferences(storage: SettingsStorage, preferences: MediaPreferences): boolean {

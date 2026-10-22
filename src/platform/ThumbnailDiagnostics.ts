@@ -5,6 +5,7 @@ export interface ThumbnailDiagnostic {
   accessibility: string; nativeFind: boolean | null; nativeCreate: boolean | null; nativeScan: boolean | null;
   privilege: 'unknown' | 'declared' | 'not declared'; indexed: string;
   method: string; lastError: string; uri: string; cache: string; rendering: string;
+  source?: string; imageUri?: string; imageAccess?: string; frame?: string;
   attempts: { method: string; error: string; at: number }[];
 }
 export function thumbnailError(error: unknown) {

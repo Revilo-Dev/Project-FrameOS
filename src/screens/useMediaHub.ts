@@ -23,7 +23,13 @@ export function useMediaHub(adapter: MediaAdapter, active: boolean, columns: num
   const directoryGate = useRef<{ key: string; token: number } | null>(null);
   const queuedDiscovery = useRef(false);
   const resumeRef = useRef(() => {});
+  const usbRemoved = useRef(false);
   const report = (failure: unknown) => {
+    // A failed rescan after an explicit removal must not replace that known
+    // state with the generic filesystem-recovery message.
+    if (usbRemoved.current) {
+      setErrorCode('removed'); setRecovery(false); setError(''); return;
+    }
     const code = failure instanceof MediaError ? failure.code : 'inaccessible';
     setErrorCode(code); setRecovery(code === 'timeout' || code === 'inaccessible');
     setError(failure instanceof Error ? failure.message : 'This folder could not be opened.');
@@ -49,6 +55,7 @@ export function useMediaHub(adapter: MediaAdapter, active: boolean, columns: num
     const token = ++sequence.current;
     directoryGate.current = { key: requestKey, token };
     selection.current = { storage: drive, path: directory };
+    usbRemoved.current = false;
     setStorage(drive); setPath(directory); setLoading(true); setError(''); setRecovery(false); setErrorCode('');
     if (path !== directory || storage?.id !== drive.id) setEntries([]);
     focus('media-options');
@@ -80,7 +87,7 @@ export function useMediaHub(adapter: MediaAdapter, active: boolean, columns: num
     try {
       const drives = await service.listStorages();
       if (!alive.current || token !== discovery.current) return;
-      setError(''); setRecovery(false); setErrorCode('');
+      setError(''); setRecovery(false); setErrorCode(!drives.length && usbRemoved.current ? 'removed' : '');
       setStorages(drives);
       const previous = selection.current;
       const selected = drives.find((drive) => drive.id === previous.storage?.id);
@@ -89,10 +96,10 @@ export function useMediaHub(adapter: MediaAdapter, active: boolean, columns: num
         setEntries([]); setStorage(null); setPath(''); setLoading(false);
         selection.current = { storage: null, path: '' };
         if (drives[0]) await openDirectory(drives[0], drives[0].rootPath);
-        else focus('media-home');
+        else focus('media-options');
       } else if (reload) await openDirectory(selected, previous.path || selected.rootPath, remembered.current.get(`${selected.id}:${previous.path}`));
     } catch (failure) {
-      if (alive.current && token === discovery.current) { report(failure); setLoading(false); focus(failure instanceof MediaError && ['timeout', 'inaccessible'].includes(failure.code) ? 'media-recovery-refresh' : 'media-options'); }
+      if (alive.current && token === discovery.current) { report(failure); setLoading(false); focus(!usbRemoved.current && failure instanceof MediaError && ['timeout', 'inaccessible'].includes(failure.code) ? 'media-recovery-refresh' : 'media-options'); }
     } finally { if (token === discovery.current) { scanGate.current = false; if (alive.current) { setScanning(false); if (queuedDiscovery.current) { queuedDiscovery.current = false; void discover(true); } } } }
   };
   useEffect(() => {
@@ -104,12 +111,14 @@ export function useMediaHub(adapter: MediaAdapter, active: boolean, columns: num
     void discover(true);
     const unsubscribe = service.subscribeStorageChanges((change) => {
       if (!alive.current) return;
-      if (change.storage.id === selection.current.storage?.id) { ++sequence.current; directoryGate.current = null; }
-      if (change.state !== 'mounted') disconnected.current(change.storage.id, change.storage.id === selection.current.storage?.id);
+      const wasSelected = change.storage.id === selection.current.storage?.id;
+      if (wasSelected) { ++sequence.current; directoryGate.current = null; }
       if (change.state !== 'mounted') setStorages(current => current.filter(drive => drive.id !== change.storage.id));
-      if (change.state !== 'mounted' && selection.current.storage?.id === change.storage.id) {
-        selection.current = { storage: null, path: '' }; setStorage(null); setEntries([]); setPath(''); setLoading(false); setRecovery(false); setError(''); focus('media-home');
+      if (change.state !== 'mounted' && wasSelected) {
+        usbRemoved.current = true;
+        selection.current = { storage: null, path: '' }; setStorage(null); setEntries([]); setPath(''); setLoading(false); setRecovery(false); setError(''); setErrorCode('removed'); focus('media-options');
       }
+      if (change.state !== 'mounted') disconnected.current(change.storage.id, wasSelected);
       if (scanGate.current) queuedDiscovery.current = true;
       else void discover(change.storage.id === selection.current.storage?.id);
     }, (failure) => { if (alive.current) setError(failure.message); });
@@ -140,7 +149,6 @@ export function useMediaHub(adapter: MediaAdapter, active: boolean, columns: num
   const rows: FocusRows = useMemo(() => recovery ? [...mediaHeaderRows(), [{ id: 'media-recovery-refresh', x: 960 }]] : [
     ...mediaHeaderRows(),
     ...(storages.length > 1 ? [storages.map((_, i) => ({ id: `drive-${i}`, x: 160 + i * 300 }))] : []),
-    ...(breadcrumbs.length ? [breadcrumbs.map((_, i) => ({ id: `crumb-${i}`, x: 160 + i * 250 }))] : []),
     ...entryRows(filtered.length, columns),
   ], [storages, breadcrumbs, filtered.length, columns, recovery]);
   return { rememberFocus: remember, recovery, errorCode, clearCache: () => service.clearCache(), storages, storage, path, entries: filtered, allEntries: visibleEntries, hidden, directoryCount: entries.length, filter, sort, changeSort: (next: MediaSort) => { setSort(next); sortRef.current = next; }, loading, scanning, error, breadcrumbs, rows, parent, refresh, changeFilter, enter,

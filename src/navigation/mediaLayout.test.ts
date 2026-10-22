@@ -24,8 +24,8 @@ test('Home exit is gated by header focus and Options contains all library contro
   assert.equal(mediaUpReturnsHome('media-entry-0'), false);
   assert.equal(mediaUpReturnsHome('crumb-0'), false);
   assert.equal(mediaUpReturnsHome('media-options'), true);
-  assert.equal(mediaUpReturnsHome('media-home'), true);
-  assert.equal(nextFocus([...mediaHeaderRows(), ...entryRows(12, 6)], 'media-entry-0', 'up'), 'media-home');
+  assert.equal(mediaUpReturnsHome('media-home'), false);
+  assert.equal(nextFocus([...mediaHeaderRows(), ...entryRows(12, 6)], 'media-entry-0', 'up'), 'media-options');
   const ids = mediaOptionsRows(true).flat().map(item => item.id);
   for (const id of ['filter-all', 'filter-video', 'filter-image', 'filter-folder', 'sort-natural', 'sort-name', 'sort-name-desc', 'media-hidden', 'media-refresh', 'media-item-options']) assert(ids.includes(id));
 });

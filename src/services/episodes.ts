@@ -2,6 +2,16 @@ import type { MediaEntry } from '../types/media';
 
 export interface Episode { episode: number; season?: number; series?: string; label: string }
 const separator = '[ ._-]';
+/** Presentation only: never use this title as a file path or thumbnail key. */
+export function videoDisplayTitle(filename: string): string {
+  const title = filename.replace(/\.(mp4|mkv|m4v|webm|avi|mov|wmv|ts|m2ts|mts|mpg|mpeg|vob|3gp)$/i, '')
+    .replace(/_+/g, ' ').replace(/\s+/g, ' ').trim();
+  // Keep episode codes, punctuation, acronyms and proper-name casing intact.
+  const episode = /^((?:(?:episode|ep|e)\s*\d{1,3}|s\d{1,2}e\d{1,3}|\d{1,2}x\d{1,3})[ .-]+)(\S)/i;
+  return episode.test(title)
+    ? title.replace(episode, (_match, prefix: string, first: string) => prefix + first.toLocaleUpperCase())
+    : title.replace(/^\S/, first => first.toLocaleUpperCase());
+}
 const patterns = [
   new RegExp(`(?:^|${separator})S(\\d{1,2})E(\\d{1,3})(?=$|${separator})`, 'ig'),
   new RegExp(`(?:^|${separator})(\\d{1,2})x(\\d{1,3})(?=$|${separator})`, 'ig'),

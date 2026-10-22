@@ -119,7 +119,7 @@ test('capture all FrameOS screens and assemble the reference gallery', async ({ 
   await page.evaluate(() => window.__playerFixture.listener!.onerror('UnsupportedCodec'));
   await expect(page.locator('.player-message')).toContainText('UnsupportedCodec'); await capture('player-error', 'Player · playback error', true);
   await page.keyboard.press('Escape'); await page.evaluate(() => window.__playerFixture.remove());
-  await expect(page.getByText('Connect a USB device', { exact: true })).toBeVisible(); await capture('no-usb', 'Media Hub · USB disconnected');
+  await expect(page.getByText('USB disconnected', { exact: true })).toBeVisible(); await capture('no-usb', 'Media Hub · USB disconnected');
 
   expect(captures).toHaveLength(33);
   const html = `<!doctype html><html lang="en"><meta charset="utf-8"><title>FrameOS screen references</title><style>

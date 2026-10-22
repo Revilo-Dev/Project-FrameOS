@@ -25,12 +25,14 @@ export function homeLayout(compact: boolean, widgets: WidgetId[] = []): FocusRow
   const apps = widgets.length ? homeRows[1].map((node, i) => ({ ...node, x: 960 + (i - (homeRows[1].length - 1) / 2) * 124 })) : homeRows[1];
   return compact ? [homeRows[0], ...dashboard, apps.slice(0, 4), apps.slice(4).map((node, i) => ({ ...node, x: 300 + i * 440 })), homeRows[2]] : [homeRows[0], ...dashboard, apps, homeRows[2]];
 }
-export function settingsLayout(tab: SettingsTab, page: number, enabledWidgets: WidgetId[] = [], hasThumbnailVideos = false): FocusRows {
+export function settingsLayout(tab: SettingsTab, page: number, enabledWidgets: WidgetId[] = [], hasThumbnailVideos = false, appearanceRows?: FocusRows): FocusRows {
   const rows: FocusRows = [[{ id: 'settings-close', x: 1800 }], settingsTabs.map((item, i) => ({ id: `settings-tab-${item.id}`, x: 140 + i * 180 }))];
+  if (tab === 'appearance' && appearanceRows) return [...rows, ...appearanceRows];
   if (tab === 'appearance') return [...rows,
     ['slate', 'midnight', 'warm'].map((id, i) => ({ id: `theme-${id}`, x: 240 + i * 280 })),
     ['full', 'subtle', 'off'].map((id, i) => ({ id: `motion-${id}`, x: 240 + i * 280 })),
     [{ id: 'fps-toggle', x: 400 }],
+    ...['home', 'apps', 'performance', 'backup'].map(id => [{ id: `launcher-${id}`, x: 600 }]),
   ];
   if (tab === 'wallpapers') {
     const choices = wallpaperPageItems(page).map((wallpaper, i) => ({ id: `wallpaper-${wallpaper.id}`, x: 160 + (i % 4) * 240 }));

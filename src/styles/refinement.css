@@ -126,3 +126,26 @@
 @keyframes wallpaper-arrive { from { opacity: .3; } to { opacity: 1; } }
 .motion-off *, .motion-off *::before { animation: none !important; }
 @media (prefers-reduced-motion: reduce) { .frameos { --page-duration: 0ms; } .frameos *, .frameos *::before { animation: none !important; } }
+/* Keep Home and its clock mounted; preserve clock geometry and wallpaper crop. */
+.art-mode .home > :not(.home-centre),
+.art-mode .media-hub,
+.art-mode > .ambient-wallpaper,
+.art-mode > .wallpaper-shade { visibility: hidden; pointer-events: none; }
+.art-mode .page-stack { transition: none; }
+.media-grid-options { display: flex; }
+.media-grid-options .menu-option { justify-content: center; flex: 1; padding: 10px; }
+.media-grid-options .menu-option.is-selected { background: rgba(143,190,235,.2); }
+/* Launcher tools reuse Settings materials; no additional background rendering. */
+.launcher-tools .option { text-align: left; width: 100%; margin-bottom: 12px; }
+.launcher-actions { display: flex; flex-wrap: wrap; align-items: center; margin: 18px 0; }
+.launcher-actions > * { margin: 0 16px 12px 0; }
+.launcher-slot-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.launcher-app-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.launcher-slot-grid .option, .launcher-app-grid .option { width: calc(100% - 12px); margin: 6px; }
+.launcher-slot-grid .option { min-height: 64px; padding: 12px 16px; }
+.launcher-app-grid .option { min-height: 90px; padding: 12px 16px; }
+.launcher-app-grid .option { display: flex; flex-direction: column; align-items: flex-start; overflow-wrap: break-word; }
+.launcher-app-grid small { opacity: .65; font-size: 16px; margin-top: 8px; }
+.launcher-report { max-height: 250px; overflow: auto; font: 18px/1.5 monospace; white-space: pre-wrap; overflow-wrap: break-word; user-select: text; padding: 20px; border: 1px solid rgba(255,255,255,.15); border-radius: 12px; }
+.launcher-backup { width: 100%; height: 200px; padding: 16px; color: inherit; background: rgba(0,0,0,.2); border: 1px solid rgba(255,255,255,.2); border-radius: 12px; font: 18px/1.4 monospace; resize: vertical; }
+.launcher-backup.is-focused { outline: 3px solid currentColor; }

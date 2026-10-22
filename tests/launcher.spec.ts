@@ -128,8 +128,8 @@ test('native insertion, root/nested browsing, details, multiple drives, cache an
   await expect(page.locator('#media-entry-0')).toBeFocused();
   expect((await page.evaluate(() => window.__testUsb.reads)).filter((path) => path === 'USB B')).toHaveLength(2);
   await page.evaluate(() => { window.__testUsbChange('USB A', false); window.__testUsbChange('USB B', false); });
-  await expect(page.getByText('Connect a USB device', { exact: true })).toBeVisible();
-  await expect(page.locator('#media-home')).toBeFocused();
+  await expect(page.getByRole('heading', { name: 'USB disconnected', exact: true })).toBeVisible();
+  await expect(page.locator('#media-options')).toBeFocused();
 });
 
 test('filters keep folders accessible, empty folders are clear and disconnect closes stale details', async ({ page }) => {
@@ -147,8 +147,8 @@ test('filters keep folders accessible, empty folders are clear and disconnect cl
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.evaluate(() => window.__testUsbChange('USB A', false));
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(page.getByText('Connect a USB device', { exact: true })).toBeVisible();
-  await expect(page.locator('#media-home')).toBeFocused();
+  await expect(page.getByText('USB disconnected', { exact: true })).toBeVisible();
+  await expect(page.locator('#media-options')).toBeFocused();
 });
 
 test('large folders render a bounded scrolling window while arrows restore details focus', async ({ page }) => {
@@ -157,12 +157,12 @@ test('large folders render a bounded scrolling window while arrows restore detai
   await expect(page.locator('#media-entry-0')).toBeFocused();
   expect(await page.locator('.media-tile').count()).toBeLessThanOrEqual(31);
   await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
-  await expect(page.locator('#media-entry-18')).toBeFocused();
+  await expect(page.locator('#media-entry-15')).toBeFocused();
   expect(await page.locator('.media-tile').count()).toBeLessThanOrEqual(31);
   await expect(page.locator('.page-stack')).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, -1080)');
   const footer = await page.locator('.media-position').boundingBox(); expect(footer!.y + footer!.height).toBeLessThan(1080);
   await page.keyboard.press('Enter'); await expect(page.getByRole('dialog')).toBeVisible();
-  await page.keyboard.press('Escape'); await expect(page.locator('#media-entry-18')).toBeFocused();
+  await page.keyboard.press('Escape'); await expect(page.locator('#media-entry-15')).toBeFocused();
   expect(await page.evaluate(() => window.__testUsb.reads)).toEqual(['USB A']);
 });
 
@@ -202,8 +202,11 @@ test('cached weather survives offline and an uncached city shows an honest unava
 
 test('all shortcuts remain reachable and unavailable integrations do not claim success', async ({ page }) => {
   await page.goto('/');
-  for (const id of ['youtube', 'stan', 'prime', 'gallery', 'art', 'browser', 'settings']) {
-    if (id !== 'youtube') await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowLeft'); await expect(page.locator('#app-art')).toBeFocused();
+  await page.keyboard.press('Enter'); await expect(page.locator('.frameos')).toHaveClass(/art-mode/);
+  await page.keyboard.press('Escape');
+  for (const id of ['youtube', 'stan', 'prime', 'gallery', 'browser', 'settings']) {
+    await page.keyboard.press('ArrowRight');
     await expect(page.locator(`#app-${id}`)).toBeFocused();
     await page.keyboard.press('Enter'); await expect(page.getByRole('dialog')).toBeVisible();
     if (id !== 'settings') await expect(page.getByText(/planned for a future version/)).toBeVisible();

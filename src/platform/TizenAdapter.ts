@@ -7,16 +7,18 @@ import { fallbackThumbnailProvider } from './thumbnailFallbacks';
 import { browserStorage } from '../services/settings';
 import { ThumbnailDiagnostics } from './ThumbnailDiagnostics';
 import { registerMediaKeys } from './mediaKeys';
-import { launchTvApp } from './launchTvApp';
+import { TvApplications } from './launchTvApp';
 
 export class TizenAdapter implements PlatformAdapter {
   readonly kind = 'tizen' as const;
   readonly media: TizenMediaAdapter;
   readonly player: AvPlayController;
   readonly thumbnails: ThumbnailService;
+  readonly apps: TvApplications;
   constructor(runtime: unknown = typeof window === 'undefined' ? undefined : window) {
     this.media = new TizenMediaAdapter(mediaFilesystem(runtime), { runtimeAvailable: true });
     this.runtime = runtime;
+    this.apps = new TvApplications(runtime);
     this.player = new AvPlayController(avPlayApi(runtime));
     const diagnostics = new ThumbnailDiagnostics();
     this.thumbnails = new ThumbnailService(fallbackThumbnailProvider(runtime, { diagnostics, resolveFile: entry => this.media.resolveFile(entry) }), browserStorage(), Date.now, undefined, diagnostics);
@@ -32,9 +34,9 @@ export class TizenAdapter implements PlatformAdapter {
     } catch { return { status: 'error' as const, title: 'Unable to close FrameOS', message: 'Use the TV remote to return to Samsung Home.' }; }
   }
   async perform(action: NativeAction) {
-    if (action.type === 'launch-app') return launchTvApp(this.runtime, action.app);
-    if (action.type === 'gallery' || action.type === 'browser') return launchTvApp(this.runtime, action.type);
-    if (action.type === 'art-mode') return launchTvApp(this.runtime, 'art');
+    if (action.type === 'launch-app') return this.apps.launch(action.app);
+    if (action.type === 'gallery' || action.type === 'browser' || action.type === 'samsung-home') return this.apps.launch(action.type);
+    if (action.type === 'installed-app') return this.apps.launchInstalled({ id: action.appId, name: action.name });
     return plannedAction(action);
   }
   registerMediaKeys() { return registerMediaKeys(this.runtime); }

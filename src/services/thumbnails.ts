@@ -5,8 +5,9 @@ import { BoundedMediaCache, indexedBackend } from './mediaCache';
 import { ThumbnailDiagnostics } from '../platform/ThumbnailDiagnostics';
 
 export type ThumbnailProvider = ((entry: MediaEntry, signal?: AbortSignal) => Promise<string | null>) & { invalidate?(storage?: string): void };
-export interface Cached { key: string; storage: string; uri: string | null; until: number; error?: string; method?: string }
-export function thumbnailIdentity(entry: MediaEntry) { return JSON.stringify([entry.storageId, entry.path, entry.size, entry.modified]); }
+export interface Cached { key: string; storage: string; uri: string | null; until: number; error?: string; method?: string; source?: string; imageUri?: string }
+// Version the strategy so old negative/native outcomes cannot mask USB imports.
+export function thumbnailIdentity(entry: MediaEntry) { return JSON.stringify(['v0.3.8.1', entry.storageId, entry.path, entry.size, entry.modified]); }
 interface Job { entry: MediaEntry; key: string; epoch: number; signal: AbortSignal; controller: AbortController; resolve(uri: string | null): void }
 export function validThumbnailRecord(value: unknown): value is Cached { const item = value as Cached | null; return !!item && typeof item.key === 'string' && typeof item.storage === 'string' && Number.isFinite(item.until) && (item.uri === null || !!safeThumbnail(item.uri)); }
 export function safeThumbnail(value: unknown): string | null {
@@ -27,7 +28,14 @@ export class ThumbnailService {
   private active?: Job;
   private restoredKeys = new Set<string>();
   constructor(private provider?: ThumbnailProvider, _storage?: SettingsStorage, private now = Date.now, private persistent = new BoundedMediaCache(indexedBackend('thumbnails'), 256, 8 * 1024 * 1024, validThumbnailRecord), readonly diagnostics = new ThumbnailDiagnostics()) {}
-  rendering(entry: MediaEntry, success: boolean) { this.diagnostics.update(entry, { rendering: success ? 'Rendered on card' : 'Image rendering failed', ...(!success ? { lastError: 'ImageLoadError: card rejected the cached thumbnail' } : {}) }); }
+  rendering(entry: MediaEntry, success: boolean) {
+    this.diagnostics.update(entry, { rendering: success ? 'Rendered on card' : 'Image rendering failed', ...(!success ? { lastError: 'ImageLoadError: card rejected the cached thumbnail' } : {}) });
+    if (!success) {
+      const key = this.key(entry), previous = this.cache.get(key);
+      const failed: Cached = { ...previous, key, storage: entry.storageId, uri: null, until: this.now() + 300000, error: 'ImageLoadError: card rejected the thumbnail' };
+      this.cache.set(key, failed); void this.persistent.put(key, failed);
+    }
+  }
   async retry(entry: MediaEntry, signal: AbortSignal) { if (this.paused) { this.diagnostics.attempt(entry, 'retry', 'Deferred: video playback is active'); return null; } await this.forget(entry); this.provider?.invalidate?.(); this.diagnostics.update(entry, { attempts: [], lastError: '', uri: '', cache: 'Retry: bypassing cached outcome' }); return this.get(entry, signal); }
   setPaused(paused: boolean) { this.paused = paused; if (paused) this.active?.controller.abort(); else this.drain(); }
   async clear() { this.invalidate(); await this.persistent.clear(); }
@@ -41,10 +49,14 @@ export class ThumbnailService {
     this.cache.delete(key); this.restoredKeys.delete(key); await this.persistent.delete(key);
   }
   private key(entry: MediaEntry) { return thumbnailIdentity(entry); }
-  get(entry: MediaEntry, signal: AbortSignal): Promise<string | null> {
+  prioritize(entry: MediaEntry) {
+    const index = this.queue.findIndex(job => job.key === this.key(entry));
+    if (index > 0) this.queue.unshift(this.queue.splice(index, 1)[0]);
+  }
+  get(entry: MediaEntry, signal: AbortSignal, priority = false): Promise<string | null> {
     if (this.stopped || signal.aborted || !this.provider || entry.type !== 'video') { this.diagnostics.attempt(entry, 'unavailable', signal.aborted ? 'Cancelled' : 'No thumbnail provider is available'); return Promise.resolve(null); }
     const key = this.key(entry), cached = this.cache.get(key);
-    if (cached && cached.until > this.now()) { this.diagnostics.update(entry, { cache: cached.uri ? this.restoredKeys.has(key) ? 'Persistent hit (now in memory)' : 'Memory hit' : 'Negative cache hit', uri: cached.uri || '', method: cached.method || 'Cached', lastError: cached.error || '' }); return Promise.resolve(cached.uri); }
+    if (cached && cached.until > this.now()) { this.diagnostics.update(entry, { cache: cached.uri ? this.restoredKeys.has(key) ? 'Persistent hit (now in memory)' : 'Memory hit' : 'Negative cache hit', uri: cached.uri || '', method: cached.method || 'Cached', source: cached.source, imageUri: cached.imageUri, lastError: cached.error || '' }); return Promise.resolve(cached.uri); }
     this.diagnostics.update(entry, { cache: 'Queued', uri: '', rendering: 'Not checked' });
     return new Promise(resolve => {
       const job = { entry, key, epoch: this.epoch, signal, controller: new AbortController(), resolve };
@@ -54,7 +66,8 @@ export class ThumbnailService {
         if (index >= 0) { this.queue.splice(index, 1); resolve(null); }
       };
       if (this.queue.length >= 36) this.queue.shift()!.resolve(null);
-      this.queue.push(job); signal.addEventListener('abort', cancel, { once: true });
+      if (priority) this.queue.unshift(job); else this.queue.push(job);
+      signal.addEventListener('abort', cancel, { once: true });
       const finish = job.resolve;
       job.resolve = uri => { signal.removeEventListener('abort', cancel); finish(uri); };
       this.drain();
@@ -73,7 +86,7 @@ export class ThumbnailService {
       // settles. Cancelling a view never starts unbounded background queries.
       void Promise.resolve().then(async () => {
         const restored = await this.persistent.get(job.key);
-        if (restored && restored.until > this.now() && (restored.uri || restored.error)) { restoredRecord = restored; this.restoredKeys.add(job.key); this.diagnostics.update(job.entry, { cache: restored.uri ? 'Persistent hit' : 'Persistent negative hit', method: restored.method || 'Cached', lastError: restored.error || '' }); return restored.uri; }
+        if (restored && restored.until > this.now() && (restored.uri || restored.error)) { restoredRecord = restored; this.restoredKeys.add(job.key); this.diagnostics.update(job.entry, { cache: restored.uri ? 'Persistent hit' : 'Persistent negative hit', method: restored.method || 'Cached', source: restored.source, imageUri: restored.imageUri, lastError: restored.error || '' }); return restored.uri; }
         if (this.paused || job.controller.signal.aborted) return null;
         return this.provider!(job.entry, job.controller.signal);
       }).catch(error => { this.diagnostics.attempt(job.entry, 'provider', error); return null; }).then(value => {
@@ -83,7 +96,7 @@ export class ThumbnailService {
           this.cache.delete(job.key);
           const evidence = this.diagnostics.get(job.entry);
           const error = uri ? '' : evidence.lastError || 'ExtractionUnavailable: all supported thumbnail methods failed';
-          this.cache.set(job.key, restoredRecord || { key: job.key, storage: job.entry.storageId, uri, until: this.now() + (uri ? 86400000 : 300000), error, method: evidence.method });
+          this.cache.set(job.key, restoredRecord || { key: job.key, storage: job.entry.storageId, uri, until: this.now() + (uri ? 86400000 : 300000), error, method: evidence.method, source: evidence.source, imageUri: evidence.imageUri });
           this.diagnostics.update(job.entry, { uri: uri || '', lastError: error, cache: restoredRecord ? evidence.cache : uri ? 'Stored' : 'Failure cached for 5 minutes' });
           while (this.cache.size > 128) { const key = this.cache.keys().next().value!; this.cache.delete(key); this.restoredKeys.delete(key); }
           void this.persistent.put(job.key, this.cache.get(job.key)!);
@@ -99,6 +112,8 @@ export class ThumbnailService {
     this.provider?.invalidate?.(storage);
     if (!storage || this.active?.entry.storageId === storage) this.active?.controller.abort();
     for (const [key, item] of this.cache) if (!storage || item.storage === storage) this.cache.delete(key);
+    // Negative outcomes and embedded frames must not survive drive replacement.
+    void this.persistent.deleteMatching(item => !storage || item.storage === storage);
     const queued = this.queue; this.queue = [];
     for (const job of queued) if (!storage || job.entry.storageId === storage) job.resolve(null); else this.queue.push(job);
 

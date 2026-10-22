@@ -8,6 +8,7 @@ interface RemoteState {
   current: string;
   focus(id: string): void;
   back(): void;
+  measure?(work: () => void): void;
   direction?(direction: Direction, current: string): boolean | string;
   input?(key: NonNullable<RemoteKey>, current: string): boolean;
   longPress?: { eligible(id: string): boolean; open(id: string): void };
@@ -59,11 +60,12 @@ export function useRemote(state: RemoteState) {
       active.focus(id);
     };
     const release = (event: KeyboardEvent) => { if (remoteKey(event) === 'select') hold.release(); };
+    const dispatch = (event: KeyboardEvent) => { const measure = latest.current.measure; if (measure && remoteKey(event)) measure(() => handle(event)); else handle(event); };
     const cancel = () => hold.cancel();
-    document.addEventListener('keydown', handle);
+    document.addEventListener('keydown', dispatch);
     document.addEventListener('keyup', release);
     window.addEventListener('blur', cancel);
     document.addEventListener('visibilitychange', cancel);
-    return () => { hold.cancel(); document.removeEventListener('keydown', handle); document.removeEventListener('keyup', release); window.removeEventListener('blur', cancel); document.removeEventListener('visibilitychange', cancel); };
+    return () => { hold.cancel(); document.removeEventListener('keydown', dispatch); document.removeEventListener('keyup', release); window.removeEventListener('blur', cancel); document.removeEventListener('visibilitychange', cancel); };
   }, []);
 }
