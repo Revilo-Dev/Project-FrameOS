@@ -1,3 +1,4 @@
+import { settingsSubsection } from './settingsNavigation';
 import { bitcoinFixture } from './bitcoinFixture';
 import { test, expect, type Page } from '@playwright/test';
 import { nativeFixture } from './nativeFixture';
@@ -114,13 +115,13 @@ test('Calendar has an honest disconnected month view, D-pad day navigation and p
 });
 test('Widgets tab shares channel routing, preserves focus and leaves player seeking unchanged', async ({ page }) => {
   await nativeFixture(page, { channels: true, volumeKeys: true }); await page.goto('/');
-  await page.locator('#top-settings').click(); await page.locator('#settings-tab-weather').click();
-  await page.keyboard.press('PageUp'); await expect(page.locator('#settings-tab-widgets')).toHaveAttribute('aria-pressed', 'true');
-  await page.keyboard.press('ArrowDown'); await expect(page.locator('#widget-toggle-weather')).toBeFocused();
-  await page.keyboard.press('PageUp'); await expect(page.locator('#settings-tab-usb')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#top-settings').click(); await settingsSubsection(page, 'weather');
+  await page.locator('#settings-tab-widgets').click(); await expect(page.locator('#settings-tab-widgets')).toHaveAttribute('aria-pressed', 'true');
+  await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await expect(page.locator('#widget-toggle-weather')).toBeFocused();
+  await page.keyboard.press('PageUp'); await expect(page.locator('#settings-tab-media')).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.press('PageDown'); await expect(page.locator('#widget-toggle-weather')).toBeFocused();
   expect((await page.evaluate(() => window.__playerFixture.calls)).filter(call => call.startsWith('seek:'))).toEqual([]);
-  await page.keyboard.press('Escape'); await page.locator('#app-youtube').focus(); await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Escape'); await page.locator('#app-youtube').focus(); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
   await page.locator('#media-entry-0').click(); await page.locator('#media-entry-1').click();
   await expect(page.locator('#player-toggle')).toHaveAttribute('aria-label', 'Pause');
   await page.keyboard.press('PageUp'); await expect(page.locator('#player-seek')).toHaveAttribute('aria-valuenow', '30000');

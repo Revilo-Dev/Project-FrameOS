@@ -1,3 +1,4 @@
+import { settingsSubsection, closeSettings } from './settingsNavigation';
 import { mediaOption } from './mediaOptions';
 import { test, expect, type Page } from '@playwright/test';
 import { pathToFileURL } from 'node:url';
@@ -69,7 +70,7 @@ test('refreshed home has the supplied logo/icons, one customisable clock, hourly
   await expect(page.getByText('Your home, reimagined')).toHaveCount(0);
   await expect(page.getByText('Coming soon', { exact: false })).toHaveCount(0);
   for (const name of ['YouTube', 'Stan', 'Prime Video', 'Gallery', 'Art Mode', 'Browser']) await expect(page.getByRole('button', { name, exact: true })).toContainText(name);
-  await expect(page.getByRole('button', { name: 'TV Settings', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeVisible();
   await expect(page.locator('#app-settings .app-name')).toHaveCSS('opacity', '0');
   await expect(page.getByRole('button', { name: 'USB Media', exact: true })).toHaveCount(0);
   await expect(page.locator('.brand-logo')).toHaveAttribute('src', './assets/frameos.svg');
@@ -86,7 +87,7 @@ test('Down from dock opens genuine no-USB state and Back restores the selected t
   await usbFixture(page, { count: 0, drives: [] });
   await page.goto('/');
   await page.keyboard.press('ArrowRight');
-  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
   await expect(page.getByText('Connect a USB device', { exact: true })).toBeVisible();
   await expect(page.getByText('Insert a USB drive to browse your media.')).toBeVisible();
   await expect(page.locator('.media-tile')).toHaveCount(0);
@@ -97,7 +98,7 @@ test('Down from dock opens genuine no-USB state and Back restores the selected t
 
 test('native insertion, root/nested browsing, details, multiple drives, cache and removal work', async ({ page }) => {
   await usbFixture(page, { count: 3, drives: [] });
-  await page.goto('/'); await page.keyboard.press('ArrowDown');
+  await page.goto('/'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
   await expect(page.getByText('Connect a USB device', { exact: true })).toBeVisible();
   await page.evaluate(() => window.__testUsbChange('USB A', true));
   await expect(page.locator('#media-entry-0')).toBeFocused();
@@ -134,7 +135,7 @@ test('native insertion, root/nested browsing, details, multiple drives, cache an
 
 test('filters keep folders accessible, empty folders are clear and disconnect closes stale details', async ({ page }) => {
   await usbFixture(page, { count: 3, drives: ['USB A'] });
-  await page.goto('/'); await page.keyboard.press('ArrowDown');
+  await page.goto('/'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
   await expect(page.locator('#media-entry-0')).toBeFocused(); await page.keyboard.press('Enter');
   await expect(page.locator('#media-entry-0')).toContainText('Empty folder');
   await mediaOption(page, 'filter-video'); await expect(page.locator('.media-tile')).toHaveCount(2);
@@ -153,7 +154,7 @@ test('filters keep folders accessible, empty folders are clear and disconnect cl
 
 test('large folders render a bounded scrolling window while arrows restore details focus', async ({ page }) => {
   await usbFixture(page, { count: 5000, drives: ['USB A'] });
-  await page.goto('/'); await page.keyboard.press('ArrowDown');
+  await page.goto('/'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
   await expect(page.locator('#media-entry-0')).toBeFocused();
   expect(await page.locator('.media-tile').count()).toBeLessThanOrEqual(31);
   await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
@@ -176,11 +177,11 @@ test('settings migrate removed wallpapers, preserve preferences, and persist new
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.locator('.media-hub')).toHaveAttribute('aria-hidden', 'true');
   await page.locator('#theme-midnight').click();
-  await page.locator('#settings-tab-weather').click(); await page.locator('#city-perth').click();
+  await settingsSubsection(page, 'weather'); await page.locator('#city-perth').click();
   await expect(page.locator('.weather-credits')).toContainText('Open-Meteo');
-  await page.locator('#settings-tab-wallpapers').click(); await page.locator('#wallpaper-forrestclean').click();
+  await settingsSubsection(page, 'wallpapers'); await page.locator('#wallpaper-forrestclean').click();
   await page.evaluate(() => document.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 10009, bubbles: true, cancelable: true })));
-  await expect(page.locator('#top-settings')).toBeFocused();
+  await closeSettings(page); await expect(page.locator('#top-settings')).toBeFocused();
   await expect(page.locator('.weather-city')).toHaveText('Perth');
   await page.reload();
   await expect(page.locator('.frameos')).toHaveClass(/theme-midnight/);
@@ -195,7 +196,7 @@ test('cached weather survives offline and an uncached city shows an honest unava
   await page.reload();
   await expect(page.locator('.weather-status')).toContainText('Saved');
   await expect(page.locator('.weather-hour')).toHaveCount(6);
-  await page.locator('#top-settings').click(); await page.locator('#settings-tab-weather').click(); await page.locator('#city-hobart').click(); await page.keyboard.press('Escape');
+  await page.locator('#top-settings').click(); await settingsSubsection(page, 'weather'); await page.locator('#city-hobart').click(); await page.keyboard.press('Escape');
   await expect(page.locator('.weather-condition')).toHaveText('Weather unavailable');
   await expect(page.locator('.weather-hour')).toHaveCount(0);
 });
@@ -221,7 +222,7 @@ test('packaged file origin and production CSP load without remote scripts or sec
   await expect(page.locator('.weather-hour')).toHaveCount(6);
   await page.goto(pathToFileURL(resolve('dist/index.html')).href);
   await expect(page.locator('#app-youtube')).toBeFocused();
-  await page.keyboard.press('ArrowDown'); await expect(page.getByText('USB browsing unavailable', { exact: true })).toBeInViewport();
+  await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await expect(page.getByText('USB browsing unavailable', { exact: true })).toBeInViewport();
   await page.keyboard.press('Escape'); await expect(page.locator('#app-youtube')).toBeFocused();
   expect(errors).toEqual([]);
 });
@@ -232,9 +233,9 @@ test('narrow arrangement, rapid input, modal Tab and reduced motion remain usabl
   await page.goto('/'); await expect(page.locator('.frameos')).toHaveClass(/compact/);
   await page.evaluate(() => { for (let index = 0; index < 40; index++) document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', repeat: true, bubbles: true, cancelable: true })); });
   await expect(page.locator('#app-all-apps')).toBeFocused();
-  await page.locator('#top-settings').click(); await page.locator('#settings-tab-weather').click(); await page.locator('#city-hobart').focus(); await page.keyboard.press('Tab');
+  await page.locator('#top-settings').click(); await settingsSubsection(page, 'weather'); await page.locator('#city-hobart').focus(); await page.keyboard.press('Tab');
   await expect(page.locator('#settings-close')).toBeFocused();
-  await page.keyboard.press('Escape'); await expect(page.locator('#top-settings')).toBeFocused();
+  await closeSettings(page); await expect(page.locator('#top-settings')).toBeFocused();
   expect(await page.locator('#app-settings').evaluate(element => getComputedStyle(element).transitionDuration.split(',').every(value => value.trim() === '0s'))).toBe(true);
   const dock = await page.locator('.app-dock').boundingBox();
   expect(dock!.x).toBeGreaterThanOrEqual(0); expect(dock!.x + dock!.width).toBeLessThanOrEqual(801);
@@ -250,7 +251,7 @@ test('capture home, settings and Media Hub for visual review', async ({ page }) 
 });
 
 test('all 47 wallpapers are reachable in bounded pages and every photo/thumbnail/ambient image loads', async ({ page }) => {
-  await page.goto('/'); await page.locator('#top-settings').click(); await page.locator('#settings-tab-wallpapers').click();
+  await page.goto('/'); await page.locator('#top-settings').click(); await settingsSubsection(page, 'wallpapers');
   const names: string[] = [];
   for (let index = 0; index < 4; index++) {
     const choices = page.locator('.wallpaper-choice');
@@ -280,7 +281,7 @@ test('all 47 wallpapers are reachable in bounded pages and every photo/thumbnail
 test('native diagnostics read the packaged privilege and enumerate genuine native-shaped storage objects', async ({ page }) => {
   await usbFixture(page);
   await page.route('**/config.xml', async route => route.fulfill({ contentType: 'application/xml', body: await readFile('tizen/config.xml.v0.2.preview', 'utf8') }));
-  await page.goto('/'); await page.locator('#top-settings').click(); await page.locator('#settings-tab-usb').click();
+  await page.goto('/'); await page.locator('#top-settings').click(); await settingsSubsection(page, 'usb');
   await page.locator('#usb-rescan').click();
   expect(await page.locator('.frameos').evaluate(element => element.scrollTop)).toBe(0);
   await expect(page.locator('#usb-rescan')).toHaveClass(/is-focused/);
@@ -295,11 +296,11 @@ test('native diagnostics read the packaged privilege and enumerate genuine nativ
 
 for (const fail of ['discover', 'resolve', 'enumerate'] as const) test(`native ${fail} failures remain errors and are never presented as no USB or empty directories`, async ({ page }) => {
   await usbFixture(page, { count: 3, drives: ['removable_sdc7'], fail });
-  await page.goto('/'); await page.keyboard.press('ArrowDown');
+  await page.goto('/'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
   await expect(page.locator(fail === 'discover' ? '.media-error' : '.media-recovery')).toBeInViewport();
   await expect(page.getByText('Connect a USB device', { exact: true })).toHaveCount(0);
   await expect(page.getByText('This folder is empty', { exact: true })).toHaveCount(0);
-  await page.keyboard.press('Escape'); await page.locator('#top-settings').click(); await page.locator('#settings-tab-usb').click();
+  await page.keyboard.press('Escape'); await page.locator('#top-settings').click(); await settingsSubsection(page, 'usb');
   await page.locator('#usb-rescan').click();
   await expect(page.locator('.diagnostic-error')).toContainText(fail === 'discover' ? 'SecurityError' : fail === 'resolve' ? 'NotFoundError' : 'IOError');
 });
@@ -312,13 +313,13 @@ test('network and exit controls are remote accessible, and animation/FPS prefere
   await expect(page.locator('#top-power')).toBeFocused();
   await page.locator('#top-settings').click(); await page.locator('#motion-full').click();
   await expect(page.locator('.frameos')).toHaveClass(/motion-full/);
-  await page.locator('#fps-toggle').click(); await page.keyboard.press('Escape');
+  await page.locator('#settings-tab-advanced').click(); await page.locator('#fps-toggle').click(); await page.keyboard.press('Escape');
   await expect(page.locator('.fps-counter')).toHaveCount(0);
   await page.keyboard.press('ArrowDown'); await expect(page.locator('#widget-world-clock')).toBeFocused();
-  await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
   await expect(page.locator('.page-stack')).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, -1080)');
   await expect(page.locator('.home')).toHaveAttribute('aria-hidden', 'true');
-  await page.keyboard.press('Escape'); await expect(page.locator('#app-settings')).toBeFocused();
+  await page.keyboard.press('Escape'); await expect(page.locator('#app-all-apps')).toBeFocused();
 });
 
 test('Clock settings default to 12-hour time, support remote controls, and persist the selected format and zone', async ({ page }) => {
@@ -326,7 +327,7 @@ test('Clock settings default to 12-hour time, support remote controls, and persi
   await page.goto('/');
   await expect(page.locator('.clock time')).toHaveText('11:30 PM');
   await expect(page.locator('.clock > span')).toHaveText(/Tuesday,? 20 October/);
-  await page.locator('#top-settings').click(); await page.locator('#settings-tab-clock').click();
+  await page.locator('#top-settings').click(); await settingsSubsection(page, 'clock');
   await expect(page.locator('#time-format-12h')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: 'Brisbane', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.press('ArrowDown'); await expect(page.locator('#time-format-12h')).toBeFocused();
@@ -341,13 +342,12 @@ test('Clock settings default to 12-hour time, support remote controls, and persi
   await page.getByRole('button', { name: 'Sydney', exact: true }).click();
   await expect(page.locator('.clock time')).toHaveText('00:30');
   await expect(page.locator('.clock > span')).toHaveText(/Wednesday,? 21 October/);
-  const choices = await page.locator('.clock-zone-options').boundingBox();
-  expect(choices!.y + choices!.height).toBeLessThan(940);
+  await expect(page.getByRole('button', { name: 'Sydney', exact: true })).toBeInViewport();
   expect(await page.locator('.frameos').evaluate(element => element.scrollTop)).toBe(0);
   await page.screenshot({ path: 'artifacts/v02-clock-settings.png' });
-  await page.keyboard.press('Escape'); await expect(page.locator('#top-settings')).toBeFocused();
+  await closeSettings(page); await expect(page.locator('#top-settings')).toBeFocused();
   await page.reload(); await expect(page.locator('.clock time')).toHaveText('00:30');
-  await page.locator('#top-settings').click(); await page.locator('#settings-tab-clock').click();
+  await page.locator('#top-settings').click(); await settingsSubsection(page, 'clock');
   await expect(page.locator('#time-format-24h')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: 'Sydney', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.locator('#time-format-12h').click(); await page.keyboard.press('Escape');

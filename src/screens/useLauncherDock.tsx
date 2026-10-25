@@ -5,16 +5,16 @@ import type { LauncherItem } from '../types/launcher';
 import type { TvApplications } from '../platform/launchTvApp';
 import { launchError } from '../platform/LaunchDiagnostics';
 import type { InstalledApp } from '../platform/installedApps';
-import { sourceLabel, SOURCE_FALLBACK, type SourceChoice, type TvSources } from '../platform/tvSources';
-import { addDockItem, appBrowserItems, configuredDock, defaultDock, moveDockItem, nativeIdentity, pinnedItem, protectedDockIds, removeDockItem, type LauncherPreferences } from '../services/launcherPreferences';
+import { sourceLabel, type SourceChoice, type TvSources } from '../platform/tvSources';
+import { addDockItem, appBrowserItems, configuredDock, defaultDock, moveDockItem, nativeIdentity, pinnedItem, protectedDockIds, removeDockItem, sourceShortcut, type LauncherPreferences } from '../services/launcherPreferences';
 import type { Direction, FocusRows, RemoteKey } from '../navigation/remote';
 
 interface Props {
   preferences: LauncherPreferences; change(next: LauncherPreferences): void;
   apps: TvApplications; sources: TvSources; focused: string; focus(id: string): void;
-  open(item: LauncherItem, origin: string): void; enabled: boolean;
+  open(item: LauncherItem, origin: string): void; enabled: boolean; holdEditing: boolean; disableHold(): void;
 }
-type View = 'apps' | 'context' | 'info' | 'sources' | 'reset' | null;
+type View = 'apps' | 'context' | 'info' | 'sources' | 'source-player' | 'reset' | null;
 interface Menu { item: LauncherItem; origin: string; browser: boolean }
 const row = (...ids: string[]) => ids.map((id, i) => ({ id, x: 150 + i * 320 }));
 export function useLauncherDock(props: Props) {
@@ -29,6 +29,9 @@ export function useLauncherDock(props: Props) {
   const dock = useMemo(() => configuredDock(moving?.draft || props.preferences), [moving, props.preferences]);
   const entries = useMemo(() => appBrowserItems(apps), [apps]);
   const grid = useRef<HTMLDivElement>(null);
+  const playbackOrigin = useRef('app-sources'), playbackReturn = useRef<'apps' | 'sources' | null>(null);
+  const [viewingLabel, setViewingLabel] = useState('');
+  const hdmi = sourceList.filter(item => item.type === 'HDMI');
   const loadApps = async (refresh = false) => {
     if (loading || loaded && !refresh) return;
     setLoading(true); setStatus('Reading installed applications...');
@@ -36,11 +39,11 @@ export function useLauncherDock(props: Props) {
     catch (error) { setStatus(`${launchError(error)} Saved dock shortcuts are kept. Use Refresh to retry.`); }
     finally { setLoading(false); }
   };
-  const showApps = (from: string) => { origin.current = from; setMenu(undefined); setView('apps'); setMoving(undefined); props.focus('all-apps-refresh'); void loadApps(); };
+  const showApps = (from: string) => { origin.current = from; setMenu(undefined); setView('apps'); setMoving(undefined); props.focus('all-apps-refresh'); void loadApps(); void readSources(); };
   const readSources = async () => {
     const generation = ++sourceGeneration.current; setSourceBusy(true); setSourceStatus('Reading television inputs...');
-    try { const result = await props.sources.read(); if (generation !== sourceGeneration.current) return; setSourceList(result.sources); setCurrentSource(result.current); setSourceStatus(result.note || (result.sources.length ? 'Inputs reported by this television.' : 'The TV returned no inputs.')); }
-    catch (error) { if (generation === sourceGeneration.current) setSourceStatus(`${launchError(error)} ${SOURCE_FALLBACK}`); }
+    try { const result = await props.sources.read(); if (generation !== sourceGeneration.current) return; setSourceList(result.sources); setCurrentSource(result.current); setSourceStatus(result.sources.length ? '' : 'No inputs were reported.'); }
+    catch { if (generation === sourceGeneration.current) setSourceStatus('Inputs are unavailable. Open TV > Source.'); }
     finally { if (generation === sourceGeneration.current) setSourceBusy(false); }
   };
   const showSources = (from: string) => { origin.current = from; setView('sources'); setMenu(undefined); props.focus('sources-refresh'); void readSources(); };
@@ -50,17 +53,21 @@ export function useLauncherDock(props: Props) {
     setSourceBusy(false);
     props.open({ id: 'tv', name: 'TV', icon: 'tv', action: { type: 'samsung-home' }, availability: 'available' }, 'sources-home');
   };
-  const selectSource = async (item: SourceChoice) => {
+  const showSource = async (sourceType: string, number: number, from: string) => {
     if (sourceBusy) return;
     const generation = ++sourceGeneration.current;
-    sourcePending.current = true; setSourceBusy(true); setSourceStatus(`Requesting ${sourceLabel(item)}...`);
+    playbackOrigin.current = from;
+    playbackReturn.current = from.startsWith('all-source-') ? 'apps' : from.startsWith('source-') ? 'sources' : null;
+    setViewingLabel(sourceLabel({ type: sourceType, number })); setView('source-player');
+    sourcePending.current = true; setSourceBusy(true); setSourceStatus('Opening input...'); props.focus('source-view-back');
     try {
-      const message = await props.sources.select(item);
+      const actual = await props.sources.resolve(sourceType, number);
       if (generation !== sourceGeneration.current) return;
-      setSourceStatus(message); setSourceViewing(true);
-      // Only a fresh getSource result can change the current-input highlight.
-      try { const reported = await props.sources.read(); if (generation === sourceGeneration.current) { setCurrentSource(reported.current); setSourceList(reported.sources); } } catch { setCurrentSource(undefined); }
-    } catch (error) { if (generation === sourceGeneration.current) setSourceStatus(`${launchError(error)} ${SOURCE_FALLBACK}`); }
+      await props.sources.select(actual);
+      if (generation !== sourceGeneration.current) return;
+      setSourceViewing(true); setSourceStatus('Viewing requested. If no picture appears, use TV > Source.');
+      try { const reported = await props.sources.read(); if (generation === sourceGeneration.current) { setCurrentSource(reported.current); setSourceList(reported.sources); } } catch { if (generation === sourceGeneration.current) setCurrentSource(undefined); }
+    } catch { if (generation === sourceGeneration.current) setSourceStatus('This input could not be displayed. Use TV > Source.'); }
     finally { if (generation === sourceGeneration.current) { sourcePending.current = false; setSourceBusy(false); } }
   };
   const context = (item: LauncherItem, from: string, browser = false) => { setMenu({ item, origin: from, browser }); setView('context'); props.focus('dock-option-open'); };
@@ -74,9 +81,9 @@ export function useLauncherDock(props: Props) {
     if (view === 'info') { setView('context'); props.focus('dock-option-info'); return true; }
     if (view === 'context' && menu) { setView(menu.browser ? 'apps' : null); props.focus(menu.origin); return true; }
     if (view === 'reset') { setView(origin.current === 'all-apps-restore' ? 'apps' : null); props.focus(origin.current); return true; }
-    if (view === 'sources' && (sourceViewing || sourcePending.current || props.sources.active)) {
+    if (view === 'source-player') {
       sourceGeneration.current++; sourcePending.current = false; setSourceBusy(true);
-      void props.sources.hide().then(() => { setSourceViewing(false); setSourceBusy(false); setSourceStatus('TVWindow hidden. Select another source or press Back to close.'); props.focus('sources-refresh'); }, error => { setSourceBusy(false); setSourceStatus(`${launchError(error)} ${SOURCE_FALLBACK}`); });
+      void props.sources.hide().then(() => { setSourceViewing(false); setSourceBusy(false); setView(playbackReturn.current); props.focus(playbackOrigin.current); }, () => { setSourceBusy(false); setSourceStatus('Press TV to return to Samsung Home.'); });
       return true;
     }
     if (view === 'sources' && origin.current.startsWith('all-app-')) { sourceGeneration.current++; setSourceBusy(false); setView('apps'); props.focus(origin.current); return true; }
@@ -104,18 +111,18 @@ export function useLauncherDock(props: Props) {
       props.focus(menu.browser ? menu.origin : `app-${next.order[Math.min(index, next.order.length - 1)]}`);
     } }] : []),
     { id: 'info', label: 'App information', act: () => { setView('info'); props.focus('dock-info-back'); void props.apps.discover().then(setInfoApps, () => {}); } },
-    { id: 'settings', label: 'FrameOS Settings gear', act: () => { dismiss(); props.focus('top-settings'); } },
     { id: 'cancel', label: 'Back', act: close },
   ] : [];
   let rows: FocusRows | undefined;
-  if (view === 'apps') rows = [row('all-apps-close', 'all-apps-refresh', 'all-apps-restore'), ...Array.from({ length: Math.ceil(entries.length / 5) }, (_, i) => row(...entries.slice(i * 5, i * 5 + 5).map(item => `all-app-${item.id}`)))];
+  if (view === 'apps') rows = [row('all-apps-close', 'all-apps-refresh', 'all-apps-restore'), ...Array.from({ length: Math.ceil(entries.length / 5) }, (_, i) => row(...entries.slice(i * 5, i * 5 + 5).map(item => `all-app-${item.id}`))), ...Array.from({ length: Math.ceil(hdmi.length / 3) }, (_, i) => [row(...hdmi.slice(i*3,i*3+3).map(item => `all-source-${item.id}-open`)), row(...hdmi.slice(i*3,i*3+3).map(item => `all-source-${item.id}-pin`))]).flat()];
   if (view === 'context') rows = options.map(option => row(`dock-option-${option.id}`));
   if (view === 'info') rows = [row('dock-info-back')];
-  if (view === 'sources') rows = [row('sources-close', 'sources-refresh', 'sources-home'), ...sourceList.map(item => row(`source-${item.id}`))];
+  if (view === 'source-player') rows = [row('source-view-back', 'source-view-home')];
+  if (view === 'sources') rows = [row('sources-close', 'sources-refresh', 'sources-home'), ...Array.from({ length: Math.ceil(sourceList.length / 3) }, (_, i) => row(...sourceList.slice(i*3,i*3+3).map(item => `source-${item.id}`)))];
   if (view === 'reset') rows = [row('dock-reset-cancel', 'dock-reset-confirm')];
   useLayoutEffect(() => {
     if (view === 'apps' && props.focused.startsWith('all-app-') && !entries.some(item => `all-app-${item.id}` === props.focused)) props.focus('all-apps-refresh');
-    if (view === 'apps' && props.focused.startsWith('all-app-')) document.getElementById(props.focused)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    if (view === 'apps' && (props.focused.startsWith('all-app-') || props.focused.startsWith('all-source-'))) document.getElementById(props.focused)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     if (view === 'sources' && props.focused.startsWith('source-') && !sourceList.some(item => `source-${item.id}` === props.focused)) props.focus('sources-refresh');
     if (view === 'sources' && props.focused.startsWith('source-')) document.getElementById(props.focused)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [props.focused, view, entries, sourceList]);
@@ -125,13 +132,11 @@ export function useLauncherDock(props: Props) {
     return () => { document.removeEventListener('visibilitychange', hidden); sourceGeneration.current++; void props.sources.hide().catch(() => {}); };
   }, [props.sources]);
   const isDock = (id: string) => props.enabled && !view && !moving && id.startsWith('app-');
-  const direction = (key: Direction, id: string) => {
+  const direction = (key: Direction, _id: string) => {
     if (moving) {
       if (key === 'left' || key === 'right') setMoving(value => value ? { ...value, draft: moveDockItem(value.draft, value.id, key === 'left' ? -1 : 1) } : value);
       return true;
     }
-    if (view === 'context' && id === 'dock-option-open' && key === 'up') { dismiss(); props.focus('top-settings'); return true; }
-    if (isDock(id) && key === 'up') { const item = dock.find(item => `app-${item.id}` === id); if (item) context(item, id); return true; }
     return false;
   };
   const input = (key: NonNullable<RemoteKey>, id: string) => {
@@ -145,15 +150,19 @@ export function useLauncherDock(props: Props) {
   const element = <>
     {moving && <div className="dock-move-hint" role="status">Move {dock.find(item => item.id === moving.id)?.name}: Left / Right · Select to save · Back to cancel</div>}
     {view === 'apps' && <div className="notice-scrim launcher-scrim"><section className="all-apps-panel" role="dialog" aria-modal="true" aria-labelledby="all-apps-title">
-      <header><div><h2 id="all-apps-title">All Apps</h2><p>Select an app for options. Pinned apps show a check.</p></div><div className="launcher-actions">{button('all-apps-close', 'Back', close)}{button('all-apps-refresh', loading ? 'Refreshing...' : 'Refresh', () => { void loadApps(true); })}{button('all-apps-restore', 'Restore Default Dock', () => reset('all-apps-restore'))}</div></header>
-      <p role="status">{status}</p><div className="all-apps-grid" ref={grid}>{entries.map(item => <FocusButton key={item.id} id={`all-app-${item.id}`} focused={props.focused} onFocused={props.focus} className="all-app-card" onClick={() => context(item, `all-app-${item.id}`, true)}><span className={`all-app-art tile-${item.id}`}><LauncherIcon item={item} /></span><span>{item.name}</span>{pinnedItem(props.preferences, item, apps) && <small className="pinned-label">✓ Pinned</small>}</FocusButton>)}</div>
+      <header><div><h2 id="all-apps-title">All Apps</h2><p>Select an app to open its actions.</p></div><div className="launcher-actions">{button('all-apps-close', 'Back', close)}{button('all-apps-refresh', loading ? 'Refreshing...' : 'Refresh', () => { void loadApps(true); void readSources(); })}{button('all-apps-restore', 'Restore Default Dock', () => reset('all-apps-restore'))}</div></header>
+      <p role="status">{status}</p><div className="all-apps-scroll" ref={grid}><div className="all-apps-grid">{entries.map(item => <FocusButton key={item.id} id={`all-app-${item.id}`} focused={props.focused} onFocused={props.focus} className="all-app-card" onClick={() => context(item, `all-app-${item.id}`, true)}><span className={`all-app-art tile-${item.id}`}><LauncherIcon item={item} /></span><span>{item.name}</span>{pinnedItem(props.preferences, item, apps) && <small className="pinned-label">✓ Pinned</small>}</FocusButton>)}</div><h3 className="sources-section-title">Sources</h3><div className="all-apps-sources">{hdmi.map(item => {
+      const shortcut = sourceShortcut(item), pinned = !!pinnedItem(props.preferences, shortcut);
+      return <div className="source-card" key={item.id}><FocusButton id={`all-source-${item.id}-open`} focused={props.focused} onFocused={props.focus} className="source-open" onClick={() => { void showSource(item.type, item.number, `all-source-${item.id}-open`); }}><LauncherIcon item={shortcut} /><strong>{sourceLabel(item)}</strong><span>{item.connected ? 'Connected' : 'Disconnected'}</span></FocusButton><FocusButton id={`all-source-${item.id}-pin`} focused={props.focused} onFocused={props.focus} className="text-button source-pin" aria-pressed={pinned} onClick={() => { if (!pinned) props.change(addDockItem(props.preferences, shortcut)); }}>{pinned ? 'Pinned' : 'Add to Dock'}</FocusButton></div>;
+    })}</div>{!hdmi.length && <p>{sourceBusy ? 'Reading inputs...' : 'No HDMI inputs reported. Open TV > Source.'}</p>}</div>
     </section></div>}
-    {view === 'context' && menu && <div className="notice-scrim launcher-scrim"><section className="media-context dock-options" role="dialog" aria-modal="true" aria-labelledby="dock-options-title"><h2 id="dock-options-title">{menu.item.name}</h2><p>Options · Up again for the FrameOS Settings gear</p>{options.map(option => button(`dock-option-${option.id}`, option.label, option.act, 'context-action'))}</section></div>}
+    {view === 'context' && menu && <div className="notice-scrim launcher-scrim"><section className="media-context dock-options" role="dialog" aria-modal="true" aria-labelledby="dock-options-title"><h2 id="dock-options-title">{menu.item.name}</h2><p>Dock editing</p>{options.map(option => button(`dock-option-${option.id}`, option.label, option.act, 'context-action'))}</section></div>}
     {view === 'info' && menu && <div className="notice-scrim launcher-scrim"><section className="notice-panel" role="dialog" aria-modal="true" aria-labelledby="dock-info-title"><h2 id="dock-info-title">{menu.item.name}</h2><p>{menu.item.action.type === 'installed-app' ? 'Installed Tizen application' : menu.item.kind || menu.item.action.type}</p>{selectedInfo && <p>Application ID: {selectedInfo.id}<br />{selectedInfo.version ? `Version: ${selectedInfo.version}` : 'Version not reported'}</p>}{!selectedInfo && <p>{menu.item.metadata?.description || 'No additional installed-app information is available.'}</p>}{button('dock-info-back', 'Back to Options', close)}</section></div>}
-    {view === 'sources' && <div className="notice-scrim launcher-scrim"><section className="all-apps-panel sources-panel" role="dialog" aria-modal="true" aria-labelledby="sources-title"><h2 id="sources-title">Sources</h2><p>Full-screen playback needs physical verification. Press Back to hide the TVWindow and return.</p><div className="launcher-actions">{button('sources-close', 'Back', close)}{button('sources-refresh', 'Refresh inputs', () => { if (!sourceBusy) void readSources(); })}{button('sources-home', 'Open Samsung Home', () => { void sourceHome(); })}</div><p role="status">{sourceStatus}</p><p>{SOURCE_FALLBACK}</p><div className="source-list">{sourceList.map(item => <FocusButton key={item.id} id={`source-${item.id}`} focused={props.focused} onFocused={props.focus} className="context-action" aria-current={currentSource === item.id ? 'true' : undefined} aria-disabled={sourceBusy} onClick={() => { void selectSource(item); }}>{sourceLabel(item)}{currentSource === item.id ? ' · Current (TV reported)' : ''}<small>{item.connected === true ? 'Connected' : item.connected === false ? 'Disconnected' : 'Connection unknown'}{typeof item.signal === 'boolean' ? item.signal ? ' · Signal present' : ' · No signal' : ''}</small></FocusButton>)}</div></section></div>}
+    {view === 'sources' && <div className="notice-scrim launcher-scrim"><section className="all-apps-panel sources-panel" role="dialog" aria-modal="true" aria-labelledby="sources-title"><header><h2 id="sources-title">Sources</h2><div className="launcher-actions">{button('sources-close', 'Back', close)}{button('sources-refresh', 'Refresh', () => { if (!sourceBusy) void readSources(); })}{button('sources-home', 'TV', () => { void sourceHome(); })}</div></header><p role="status">{sourceStatus}</p><div className="source-picker-grid">{sourceList.map(item => <FocusButton key={item.id} id={`source-${item.id}`} focused={props.focused} onFocused={props.focus} className="source-card source-open" aria-current={currentSource === item.id ? 'true' : undefined} aria-disabled={sourceBusy} onClick={() => { void showSource(item.type, item.number, `source-${item.id}`); }}><LauncherIcon item={sourceShortcut(item)} /><strong>{sourceLabel(item)}</strong><small>{item.connected ? 'Connected' : 'Disconnected'}{currentSource === item.id ? ' - Current' : ''}</small></FocusButton>)}</div></section></div>}
+    {view === 'source-player' && <section className={`source-viewer${sourceViewing ? ' is-showing' : ''}`} role="dialog" aria-modal="true" aria-label={viewingLabel}><div className="source-viewer-controls"><h2>{viewingLabel}</h2><p role="status">{sourceStatus}</p>{button('source-view-back', 'Back to FrameOS', close)}{button('source-view-home', 'TV', () => { void sourceHome(); })}</div></section>}
     {view === 'reset' && <div className="notice-scrim launcher-scrim"><section className="notice-panel" role="dialog" aria-modal="true" aria-labelledby="dock-reset-title"><h2 id="dock-reset-title">Restore Default Dock?</h2><p>This replaces dock order and shortcuts. Other FrameOS preferences stay saved.</p><div className="launcher-actions">{button('dock-reset-cancel', 'Cancel', () => { setView(origin.current === 'all-apps-restore' ? 'apps' : null); props.focus(origin.current); })}{button('dock-reset-confirm', 'Restore Default Dock', () => { props.change(defaultDock()); setView(null); props.focus('app-youtube'); })}</div></section></div>}
   </>;
-  return { active: !!view, moving: moving?.id, dock, rows, element, close, dismiss, showApps, showSources, reset, direction, input,
-    longPress: { eligible: isDock, thresholdMs: 600, requireRepeat: true, open: (id: string) => startMove(id.slice(4)), context: (id: string) => { const item = dock.find(item => `app-${item.id}` === id); if (item) context(item, id); } },
+  return { active: !!view, sourceViewing, showSource, moving: moving?.id, dock, rows, element, close, dismiss, showApps, showSources, reset, direction, input,
+    longPress: { eligible: (id: string) => props.holdEditing && isDock(id), thresholdMs: 700, releaseOnly: true, unsupported: props.disableHold, open: (id: string) => { const item = dock.find(item => `app-${item.id}` === id); if (item) context(item, id); }, context: () => {} },
   };
 }

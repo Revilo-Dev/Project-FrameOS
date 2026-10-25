@@ -9,7 +9,7 @@ it('round trips only allowlisted preferences and keeps Art/Settings dock control
   storage.setItem(LAUNCHER_KEY, JSON.stringify({ version: 1, pins: { youtube: { appId: 'Abcdef1234.Player', name: 'Player' }, art: { appId: 'BadApp', name: 'Bad' }, stan: { appId: 'com.samsung.tv.csfs', name: 'Home' } } }));
   const bundle = readPreferenceBundle(storage), text = createPreferenceBackup(bundle);
   assert.doesNotMatch(text, /secret|account.token|BadApp/); assert.deepEqual(parsePreferenceBackup(text), bundle);
-  const dock = configuredDock(loadLauncherPreferences(storage)); assert.equal(dock.find(item => item.id === 'youtube')?.name, 'Player'); assert.equal(dock.find(item => item.id === 'art')?.action.type, 'art-mode'); assert.equal(dock.find(item => item.id === 'settings')?.action.type, 'system-settings');
+  const dock = configuredDock(loadLauncherPreferences(storage)); assert.equal(dock.find(item => item.id === 'youtube')?.name, 'Player'); assert.equal(dock.find(item => item.id === 'art')?.action.type, 'art-mode'); assert.equal(dock.find(item => item.id === 'settings')?.action.type, 'settings');
 });
 it('migrates v1 backups with no launcher and existing legacy wallpaper/widget fields', () => {
   const preferences = readPreferenceBundle(memory());

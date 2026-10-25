@@ -7,7 +7,7 @@ export const launcherItems: LauncherItem[] = [
   { id: 'prime', name: 'Prime Video', icon: 'prime', action: { type: 'launch-app', app: 'prime' }, availability: 'available', metadata: { category: 'WATCH', description: 'Entertainment on your terms' } },
   { id: 'gallery', name: 'Gallery', icon: 'gallery', action: { type: 'gallery' }, availability: 'available', metadata: { category: 'YOUR SPACE', description: 'Make room for your memories' } },
   { id: 'browser', name: 'Browser', icon: 'browser', action: { type: 'browser' }, availability: 'available', metadata: { category: 'EXPLORE', description: 'A window to the web' } },
-  { id: 'settings', name: 'TV Settings', icon: 'settings', action: { type: 'system-settings' }, availability: 'available' },
+  { id: 'settings', name: 'Settings', icon: 'settings', action: { type: 'settings' }, availability: 'available' },
   { id: 'sources', name: 'Sources', icon: 'sources', action: { type: 'sources' }, availability: 'available' },
   { id: 'tv', name: 'TV', icon: 'tv', action: { type: 'samsung-home' }, availability: 'available' },
   { id: 'all-apps', name: 'All Apps', icon: 'apps', action: { type: 'all-apps' }, availability: 'available' },

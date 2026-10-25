@@ -8,7 +8,7 @@ export interface ApplicationApi {
   getAppsInfo?(success: (apps: InstalledApp[]) => void, failure: (error: unknown) => void): void;
   getCurrentApplication?(): { appInfo: { id: string } };
   launch?(id: string, success: () => void, failure: (error: unknown) => void): void;
-  launchAppControl?(control: unknown, id: string, success: () => void, failure: (error: unknown) => void): void;
+  launchAppControl?(control: unknown, id: string | null, success: () => void, failure: (error: unknown) => void): void;
 }
 export function applicationApi(runtime: unknown): ApplicationApi | undefined {
   try { return (runtime as { tizen?: { application?: ApplicationApi } })?.tizen?.application; } catch { return undefined; }

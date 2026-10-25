@@ -11,7 +11,7 @@ export type NativeAction =
   | { type: 'installed-app'; appId: string; name: string }
   | { type: 'avplay'; source: string };
 
-export type LauncherAction = NativeAction | { type: 'settings' } | { type: 'all-apps' } | { type: 'sources' };
+export type LauncherAction = NativeAction | { type: 'settings' } | { type: 'all-apps' } | { type: 'sources' } | { type: 'source'; sourceType: string; number: number };
 
 export interface LauncherItem {
   id: string;

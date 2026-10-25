@@ -5,25 +5,34 @@ import { validAppId, FRAMEOS_APP_ID, SAMSUNG_HOME_ID, safeIconPath, type Install
 import { tvAppCandidates, type TvApp } from '../platform/launchTvApp';
 
 export const LEGACY_LAUNCHER_KEY = 'frameos.launcher.v1';
-export const LAUNCHER_KEY = 'frameos.launcher.v2';
+export const V2_LAUNCHER_KEY = 'frameos.launcher.v2';
+export const LAUNCHER_KEY = 'frameos.launcher.v3';
 export const dockSlots = ['youtube', 'stan', 'prime', 'gallery', 'browser'] as const;
 export type DockSlot = typeof dockSlots[number];
 export interface DockPin { appId: string; name: string; iconPath?: string }
-export interface LauncherPreferences { version: 2; order: string[]; pins: Record<string, DockPin>; lastFocused: string }
+export interface SourcePin { type: string; number: number }
+export interface LauncherPreferences { version: 3; order: string[]; pins: Record<string, DockPin>; sources: Record<string, SourcePin>; lastFocused: string }
 export const protectedDockIds = ['art', 'tv', 'all-apps'];
 const builtins = [...browserDestinations, launcherItems.find(item => item.id === 'all-apps')!];
 const reserved = [FRAMEOS_APP_ID, SAMSUNG_HOME_ID, 'org.tizen.art-app', 'com.samsung.tv.coba.art', 'com.samsung.tv.coba.setting'];
-export function defaultDock(): LauncherPreferences { return { version: 2, order: launcherItems.map(item => item.id), pins: {}, lastFocused: 'youtube' }; }
+export function defaultDock(): LauncherPreferences { return { version: 3, order: launcherItems.map(item => item.id), pins: {}, sources: {}, lastFocused: 'youtube' }; }
+export function sourceShortcut(source: SourcePin): LauncherItem {
+  return { id: `source:${source.type}:${source.number}`, name: source.type === 'TV' ? 'TV input' : `${source.type.replace(/_/g, ' ')} ${source.number}`, icon: 'sources', kind: 'internal', action: { type: 'source', sourceType: source.type, number: source.number }, availability: 'available' };
+}
 export function normaliseDock(value: unknown): LauncherPreferences {
   const source = value as Partial<LauncherPreferences> | null;
   const result = defaultDock();
-  if (!source || ![1, 2].includes(source.version as number)) return result;
+  if (!source || ![1, 2, 3].includes(source.version as number)) return result;
   const legacy = source.version as number === 1;
   const order = legacy ? result.order : Array.isArray(source.order) ? source.order : result.order;
   result.order = [];
   const seenApps = new Set<string>();
   for (const id of order) {
     if (typeof id !== 'string' || result.order.includes(id)) continue;
+    const input = source.sources?.[id];
+    if (input && typeof input.type === 'string' && /^[A-Z0-9_]{1,40}$/.test(input.type) && Number.isInteger(input.number) && input.number >= 0 && id === `source:${input.type}:${input.number}`) {
+      result.sources[id] = { type: input.type, number: input.number }; result.order.push(id); continue;
+    }
     const pin = source.pins?.[id];
     if (pin && !protectedDockIds.includes(id) && (dockSlots.includes(id as DockSlot) || id === `native:${pin.appId}`) && validAppId(pin.appId) && !reserved.includes(pin.appId) && typeof pin.name === 'string' && pin.name.trim()) {
       if (seenApps.has(pin.appId)) continue;
@@ -45,7 +54,7 @@ export function normaliseDock(value: unknown): LauncherPreferences {
   return result;
 }
 export function loadLauncherPreferences(storage: SettingsStorage): LauncherPreferences {
-  try { return normaliseDock(JSON.parse(storage.getItem(LAUNCHER_KEY) ?? storage.getItem(LEGACY_LAUNCHER_KEY) ?? 'null')); }
+  try { return normaliseDock(JSON.parse(storage.getItem(LAUNCHER_KEY) ?? storage.getItem(V2_LAUNCHER_KEY) ?? storage.getItem(LEGACY_LAUNCHER_KEY) ?? 'null')); }
   catch { return defaultDock(); }
 }
 export function saveLauncherPreferences(storage: SettingsStorage, value: LauncherPreferences) {
@@ -53,6 +62,7 @@ export function saveLauncherPreferences(storage: SettingsStorage, value: Launche
 }
 export function configuredDock(preferences: LauncherPreferences): LauncherItem[] {
   return preferences.order.map(id => {
+    if (preferences.sources[id]) return sourceShortcut(preferences.sources[id]);
     const pin = preferences.pins[id];
     if (pin) return { id, name: pin.name, icon: 'play', iconPath: pin.iconPath, kind: 'pinned', action: { type: 'installed-app', appId: pin.appId, name: pin.name }, availability: 'available' } as LauncherItem;
     const item = builtins.find(item => item.id === id)!;
@@ -78,6 +88,10 @@ export function addDockItem(preferences: LauncherPreferences, item: LauncherItem
   if (pinnedItem(preferences, item, apps)) return preferences;
   let id = item.id;
   const pins = { ...preferences.pins };
+  if (item.action.type === 'source') {
+    const source = { type: item.action.sourceType, number: item.action.number };
+    return normaliseDock({ ...preferences, order: [...preferences.order, sourceShortcut(source).id], sources: { ...preferences.sources, [sourceShortcut(source).id]: source } });
+  }
   if (item.action.type === 'installed-app') {
     id = `native:${item.action.appId}`;
     pins[id] = { appId: item.action.appId, name: item.name, iconPath: item.iconPath };
@@ -90,8 +104,8 @@ export function addDockItem(preferences: LauncherPreferences, item: LauncherItem
 }
 export function removeDockItem(preferences: LauncherPreferences, id: string): LauncherPreferences {
   if (protectedDockIds.includes(id)) return preferences;
-  const pins = { ...preferences.pins }; delete pins[id];
-  return normaliseDock({ ...preferences, order: preferences.order.filter(item => item !== id), pins });
+  const pins = { ...preferences.pins }, sources = { ...preferences.sources }; delete pins[id]; delete sources[id];
+  return normaliseDock({ ...preferences, order: preferences.order.filter(item => item !== id), pins, sources });
 }
 export function moveDockItem(preferences: LauncherPreferences, id: string, delta: number): LauncherPreferences {
   if (id === 'art') return preferences;

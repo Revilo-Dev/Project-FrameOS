@@ -1,3 +1,4 @@
+import { settingsSubsection, closeSettings } from './settingsNavigation';
 import { test, expect } from '@playwright/test';
 import { nativeFixture, openSeries } from './nativeFixture';
 import { mediaOption } from './mediaOptions';
@@ -14,7 +15,7 @@ test('dock expands only the focused icon, reveals every full title and never ove
   await expect(page.locator('#app-youtube')).toHaveCSS('width', '290px');
   await expect(page.locator('#app-stan')).toHaveCSS('width', '104px');
   await expect(page.locator('#app-stan .app-name')).toHaveCSS('opacity', '0');
-  await expect(page.locator('#app-youtube')).toHaveCSS('border-top-color', 'rgb(255, 255, 255)');
+  await expect(page.locator('#app-youtube .dock-focus-ring')).toHaveCSS('border-top-color', 'rgb(255, 255, 255)');
   await page.keyboard.press('ArrowLeft');
   for (const id of ['art', 'youtube', 'stan', 'prime', 'gallery', 'browser', 'settings']) {
     const tile = page.locator(`#app-${id}`);
@@ -38,13 +39,13 @@ test('dock expands only the focused icon, reveals every full title and never ove
   expect(stable).toEqual([]);
   await expect(page.locator('#app-all-apps')).toBeFocused();
   await page.locator('#top-settings').click(); await expect(page.getByRole('dialog')).toHaveAttribute('aria-labelledby', 'settings-title');
-  await page.keyboard.press('Escape'); await expect(page.locator('#top-settings')).toBeFocused();
+  await closeSettings(page); await expect(page.locator('#top-settings')).toBeFocused();
   await expect(page.locator('#app-settings')).toHaveCSS('width', '104px');
   await page.screenshot({ path: 'artifacts/v035-home.png' });
 });
 
 test('every local clock font has different rendered numerals, previews immediately and persists with stable alignment', async ({ page }) => {
-  await page.goto('/'); await page.locator('#top-settings').click(); await page.locator('#settings-tab-clock').click();
+  await page.goto('/'); await page.locator('#top-settings').click(); await settingsSubsection(page, 'clock');
   const alignment = await page.locator('.clock time').boundingBox();
   const fingerprints: number[] = [];
   for (const id of ['modern', 'rounded', 'minimal', 'bold', 'digital', 'classic']) {
@@ -82,16 +83,15 @@ test('Settings floats above wallpaper; channel keys wrap tabs, restore focus, an
   expect(bounds!.y).toBeGreaterThan(0); expect(bounds!.y + bounds!.height).toBeLessThan(1080);
   await expect(page.locator('.settings-wallpaper')).toHaveCSS('background-image', /-soft\.jpg/);
   await page.evaluate(() => document.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 9101, bubbles: true, cancelable: true })));
-  await expect(page.locator('#settings-tab-clock')).toHaveAttribute('aria-pressed', 'true');
-  await page.locator('#clock-font-rounded').click();
-  await page.keyboard.press('PageUp'); await expect(page.locator('#settings-tab-wallpapers')).toHaveAttribute('aria-pressed', 'true');
-  await page.keyboard.press('PageDown'); await expect(page.locator('#clock-font-rounded')).toBeFocused();
-  await page.keyboard.press('PageDown'); await page.keyboard.press('PageDown');
-  await expect(page.locator('#settings-tab-media')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#settings-tab-home-dock')).toHaveAttribute('aria-pressed', 'true');
+  await page.keyboard.press('PageUp'); await expect(page.locator('#settings-tab-widgets')).toHaveAttribute('aria-pressed', 'true');
+  await page.keyboard.press('PageDown'); await expect(page.locator('#settings-tab-home-dock')).toHaveAttribute('aria-pressed', 'true');
+  await settingsSubsection(page, 'clock'); await page.locator('#clock-font-rounded').click();
+  await page.keyboard.press('PageDown'); await expect(page.locator('#settings-tab-advanced')).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.press('PageUp'); await expect(page.locator('#settings-tab-appearance')).toHaveAttribute('aria-pressed', 'true');
   expect((await page.evaluate(() => window.__playerFixture.calls)).filter(call => call.startsWith('seek:'))).toEqual([]);
-  await page.keyboard.press('Escape'); await expect(page.locator('#top-settings')).toBeFocused();
-  await page.locator('#app-settings').focus(); await page.keyboard.press('ArrowDown'); await expect(page.locator('#media-entry-0')).toBeFocused(); await page.keyboard.press('Enter');
+  await closeSettings(page); await expect(page.locator('#top-settings')).toBeFocused();
+  await page.locator('#app-settings').focus(); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await expect(page.locator('#media-entry-0')).toBeFocused(); await page.keyboard.press('Enter');
   await page.locator('#media-entry-1').click(); await expect(page.locator('#player-toggle')).toHaveAttribute('aria-label', 'Pause');
   await page.evaluate(() => document.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 9101, bubbles: true, cancelable: true })));
   await expect(page.locator('#player-seek')).toHaveAttribute('aria-valuenow', '30000');
@@ -100,14 +100,14 @@ test('Settings floats above wallpaper; channel keys wrap tabs, restore focus, an
 
 test('Settings D-pad fallback, text editing and reopened tab focus remain predictable', async ({ page }) => {
   await nativeFixture(page); await page.goto('/'); await page.locator('#top-settings').click();
-  await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter');
-  await expect(page.locator('#settings-tab-clock')).toHaveAttribute('aria-pressed', 'true');
+  await settingsSubsection(page, 'clock');
+  await expect(page.locator('#settings-tab-appearance')).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.press('ArrowDown'); await expect(page.locator('#time-format-12h')).toBeFocused();
   await page.keyboard.press('ArrowDown'); await expect(page.locator('#clock-font-modern')).toBeFocused();
   await page.evaluate(() => { const input = document.createElement('input'); input.id = 'editing-test'; document.querySelector('.settings-panel')!.appendChild(input); input.focus(); });
-  await page.keyboard.press('PageUp'); await expect(page.locator('#settings-tab-clock')).toHaveAttribute('aria-pressed', 'true');
-  await page.locator('#clock-font-minimal').click(); await page.keyboard.press('Escape'); await expect(page.locator('#top-settings')).toBeFocused();
-  await page.locator('#top-settings').click(); await expect(page.locator('#clock-font-minimal')).toBeFocused();
+  await page.keyboard.press('PageUp'); await expect(page.locator('#settings-tab-appearance')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#clock-font-minimal').click(); await closeSettings(page); await expect(page.locator('#top-settings')).toBeFocused();
+  await page.locator('#top-settings').click(); await settingsSubsection(page, 'clock'); await expect(page.locator('#clock-font-minimal')).toHaveAttribute('aria-pressed', 'true');
   await page.screenshot({ path: 'artifacts/v035-settings.png' });
 });
 
@@ -133,7 +133,7 @@ test('Media Options contains filters, sorting, hidden files and Refresh without 
 
 test('Media Up skips display-only breadcrumbs before returning Home; Back retains folder hierarchy', async ({ page }) => {
   await nativeFixture(page); await page.goto('/'); await expect(page.locator('#app-youtube')).toBeFocused();
-  await page.keyboard.press('ArrowRight'); await expect(page.locator('#app-stan')).toBeFocused(); await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowRight'); await expect(page.locator('#app-stan')).toBeFocused(); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
   await expect(page.locator('#media-entry-0')).toBeFocused(); await page.keyboard.press('Enter');
   await expect(page.locator('#media-entry-0')).toContainText('Extras');
   await page.keyboard.press('Escape'); await expect(page.locator('#media-entry-0')).toContainText('Series');
@@ -142,13 +142,13 @@ test('Media Up skips display-only breadcrumbs before returning Home; Back retain
   await expect(page.locator('.page-stack')).toHaveClass(/page-stack-media/);
   await page.keyboard.press('ArrowUp'); await expect(page.locator('#app-stan')).toBeFocused();
   await expect(page.locator('.page-stack')).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, 0)');
-  await page.keyboard.press('ArrowDown'); await expect(page.locator('#media-entry-0')).toBeFocused();
+  await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await expect(page.locator('#media-entry-0')).toBeFocused();
   await page.keyboard.press('Escape'); await expect(page.locator('#app-stan')).toBeFocused();
 });
 
 test('folder titles clamp to two lines, retain full names and focus without card expansion', async ({ page }) => {
   const name = 'A very long folder name with family holiday collections and television series '.repeat(3) + '終';
-  await nativeFixture(page, { folderName: name }); await page.goto('/'); await page.keyboard.press('ArrowDown');
+  await nativeFixture(page, { folderName: name }); await page.goto('/'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
   const folder = page.locator('#media-entry-0'); await expect(folder).toBeFocused();
   await expect(page.locator('.page-stack')).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, -1080)');
   await expect(folder).toHaveAttribute('title', name); await expect(folder.locator('.media-filename')).toHaveText(name);

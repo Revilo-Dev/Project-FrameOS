@@ -1,6 +1,6 @@
 import { it } from 'node:test';
 import assert from 'node:assert/strict';
-import { addDockItem, appBrowserItems, configuredDock, defaultDock, LAUNCHER_KEY, LEGACY_LAUNCHER_KEY, loadLauncherPreferences, moveDockItem, normaliseDock, removeDockItem, saveLauncherPreferences } from './launcherPreferences';
+import { addDockItem, appBrowserItems, configuredDock, defaultDock, LAUNCHER_KEY, LEGACY_LAUNCHER_KEY, V2_LAUNCHER_KEY, loadLauncherPreferences, moveDockItem, normaliseDock, removeDockItem, saveLauncherPreferences, sourceShortcut } from './launcherPreferences';
 import { selectableApps } from '../platform/installedApps';
 import { createPreferenceBackup, parsePreferenceBackup, readPreferenceBundle, restorePreferenceBackup } from './preferenceBackup';
 function memory() { const data = new Map<string, string>(); return { data, getItem: (key: string) => data.get(key) ?? null, setItem: (key: string, value: string) => { data.set(key, value); }, removeItem: (key: string) => { data.delete(key); } }; }
@@ -9,7 +9,7 @@ it('migrates every old custom slot, deduplicates repeated IDs and retains the or
   const storage = memory(), old = JSON.stringify({ version: 1, pins: { youtube: { appId: native.id, name: native.name }, stan: { appId: native.id, name: native.name }, browser: { appId: 'OtherApp12.Browser', name: 'Custom Browser' } } });
   storage.setItem(LEGACY_LAUNCHER_KEY, old);
   const migrated = loadLauncherPreferences(storage);
-  assert.equal(migrated.version, 2); assert.equal(Object.values(migrated.pins).length, 2);
+  assert.equal(migrated.version, 3); assert.equal(Object.values(migrated.pins).length, 2);
   assert.equal(configuredDock(migrated).filter(item => item.action.type === 'installed-app').length, 2);
   assert.ok(saveLauncherPreferences(storage, migrated)); assert.equal(storage.getItem(LEGACY_LAUNCHER_KEY), old);
   assert.deepEqual(loadLauncherPreferences(storage), migrated);
@@ -50,10 +50,20 @@ it('keeps visible consumer apps and excludes hidden Samsung services and reserve
 it('round trips v3 backups and restores v1 pins without touching unrelated preferences or legacy storage', () => {
   const storage = memory(); storage.setItem('frameos.custom.unrelated', 'keep'); storage.setItem(LEGACY_LAUNCHER_KEY, '{"version":1,"pins":{}}');
   const before = readPreferenceBundle(storage), next = { ...before, launcher: moveDockItem(before.launcher, 'browser', -4) };
-  const text = createPreferenceBackup(next); assert.equal(JSON.parse(text).version, 3);
+  const text = createPreferenceBackup(next); assert.equal(JSON.parse(text).version, 4);
   assert.deepEqual(parsePreferenceBackup(text), next); restorePreferenceBackup(storage, text);
   assert.equal(storage.getItem('frameos.custom.unrelated'), 'keep'); assert.equal(storage.getItem(LEGACY_LAUNCHER_KEY), '{"version":1,"pins":{}}');
   assert.deepEqual(loadLauncherPreferences(storage), next.launcher); assert.ok(storage.getItem(LAUNCHER_KEY));
+});
+it('source pins use distinct stable actions, deduplicate and migrate v2 without losing native pins or bytes', () => {
+  const storage = memory(), old = JSON.stringify({ version: 2, order: ['art', 'youtube', 'tv', 'all-apps'], pins: { youtube: { appId: native.id, name: native.name } }, lastFocused: 'youtube' });
+  storage.setItem(V2_LAUNCHER_KEY, old); let prefs = loadLauncherPreferences(storage);
+  const hdmi = sourceShortcut({ type: 'HDMI', number: 2 }); prefs = addDockItem(prefs, hdmi); prefs = addDockItem(prefs, hdmi);
+  assert.equal(prefs.order.filter(id => id === 'source:HDMI:2').length, 1);
+  assert.deepEqual(configuredDock(prefs).at(-1)?.action, { type: 'source', sourceType: 'HDMI', number: 2 });
+  assert.equal(prefs.pins.youtube.appId, native.id); assert.equal(prefs.pins['source:HDMI:2'], undefined);
+  saveLauncherPreferences(storage, prefs); assert.deepEqual(loadLauncherPreferences(storage), prefs); assert.equal(storage.getItem(V2_LAUNCHER_KEY), old);
+  assert.ok(!removeDockItem(prefs, hdmi.id).sources[hdmi.id]);
 });
 it('rolls back the new dock and every earlier section when the final launcher import fails readback', () => {
   const storage = memory(); saveLauncherPreferences(storage, defaultDock());

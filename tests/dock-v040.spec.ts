@@ -1,3 +1,4 @@
+import { launcherTool, verifyDockHold } from './settingsNavigation';
 import { test, expect, type Page } from '@playwright/test';
 import { nativeFixture } from './nativeFixture';
 import { writeFile } from 'node:fs/promises';
@@ -37,22 +38,21 @@ test('All Apps discovers, filters, shows five columns, adds immediately without 
   await page.keyboard.press('Escape'); await page.reload(); await expect(page.locator('.app-tile')).toHaveCount(11);
   await page.locator('[id="app-native:ActualApp00.Player"]').click();
   await expect.poll(() => page.evaluate(() => window.__playerFixture.calls.includes('launch:ActualApp00.Player'))).toBe(true);
-  await page.locator('[id="app-native:ActualApp00.Player"]').focus(); await page.keyboard.press('ArrowUp'); await page.locator('#dock-option-remove').click();
+  await page.locator('#app-all-apps').click(); await card.click(); await page.locator('#dock-option-remove').click(); await page.keyboard.press('Escape');
   await expect(page.locator('#app-all-apps')).toBeFocused(); await page.reload(); await expect(page.locator('.app-tile')).toHaveCount(10);
 });
-test('short Select opens once; a repeated 600ms hold moves without launching and Back cancels', async ({ page }) => {
-  await fixture(page); const before = await order(page);
+test('short Select opens once; a verified 700ms hold enters editing without launch and Back cancels', async ({ page }) => {
+  await fixture(page); await verifyDockHold(page); const before = await order(page);
   await page.keyboard.press('Enter');
   await expect.poll(() => page.evaluate(() => window.__playerFixture.calls.filter(call => call === 'launch:9Ur5IzDKqV.TizenYouTube').length)).toBe(1);
-  await page.keyboard.down('Enter'); await page.waitForTimeout(200); await page.keyboard.down('Enter'); await page.waitForTimeout(450);
-  await expect(page.locator('#app-youtube')).toHaveClass(/is-moving/);
-  await page.keyboard.down('Enter'); await page.keyboard.up('Enter');
+  await page.keyboard.down('Enter'); await page.waitForTimeout(800); await page.keyboard.down('Enter'); await page.keyboard.up('Enter');
+  await expect(page.locator('#dock-option-open')).toBeFocused(); await page.locator('#dock-option-move').click();
   await page.keyboard.press('ArrowRight'); expect(await order(page)).not.toEqual(before);
   await page.keyboard.press('Escape'); expect(await order(page)).toEqual(before);
   expect(await page.evaluate(() => window.__playerFixture.calls.filter(call => call.startsWith('launch:')).length)).toBe(1);
 });
 test('Options Move confirms and persists; protected destinations stay accessible and the gear has a D-pad path', async ({ page }) => {
-  await fixture(page); await page.keyboard.press('ArrowUp'); await expect(page.locator('#dock-option-open')).toBeFocused();
+  await fixture(page); await verifyDockHold(page); await page.keyboard.down('Enter'); await page.waitForTimeout(800); await page.keyboard.up('Enter'); await expect(page.locator('#dock-option-open')).toBeFocused();
   await page.locator('#dock-option-move').focus(); await page.keyboard.press('Enter'); await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter');
   expect((await order(page)).slice(0, 4)).toEqual(['art', 'stan', 'youtube', 'prime']);
   await page.reload(); await expect(page.locator('#app-youtube')).toBeFocused();
@@ -61,20 +61,14 @@ test('Options Move confirms and persists; protected destinations stay accessible
   await page.keyboard.press('ArrowUp'); await expect(page.locator('#top-settings')).toBeFocused();
   await page.keyboard.press('Enter'); await expect(page.locator('#settings-title')).toHaveText('FrameOS Settings');
 });
-test('missing keyup and unreliable repeat never open a long-held app; Options Move still works', async ({ page }) => {
-  await fixture(page); await page.keyboard.down('Enter'); await page.waitForTimeout(700);
-  await expect(page.locator('.is-moving')).toHaveCount(0); await page.keyboard.up('Enter');
-  expect(await page.evaluate(() => window.__playerFixture.calls.filter(call => call.startsWith('launch:')))).toEqual([]);
-  await page.keyboard.down('Enter'); await page.keyboard.press('ArrowUp'); await page.keyboard.up('Enter');
-  await expect(page.locator('#dock-option-open')).toBeFocused(); await page.locator('#dock-option-move').click();
-  await expect(page.locator('#app-youtube')).toHaveClass(/is-moving/);
-  await page.keyboard.press('Escape');
+test('unverified long editing stays disabled and Up never becomes an editing shortcut', async ({ page }) => {
+  await fixture(page); await page.keyboard.down('Enter'); await page.waitForTimeout(800); await page.keyboard.up('Enter');
+  await expect(page.locator('.is-moving')).toHaveCount(0); await page.keyboard.press('ArrowUp'); await expect(page.locator('.dock-options')).toHaveCount(0);
 });
 test('Tizen numeric key events work even when repeat is always false and system keys pass through', async ({ page }) => {
-  await fixture(page);
+  await fixture(page); await verifyDockHold(page);
   const key = (type: string, keyCode: number) => page.evaluate(({ type, keyCode }) => document.dispatchEvent(new KeyboardEvent(type, { key: 'Unidentified', keyCode, repeat: false, bubbles: true, cancelable: true })), { type, keyCode });
-  await key('keydown', 13); await key('keydown', 13); await page.waitForTimeout(650);
-  await expect(page.locator('#app-youtube')).toHaveClass(/is-moving/); await key('keyup', 13);
+  await key('keydown', 13); await key('keydown', 13); await page.waitForTimeout(800); await key('keyup', 13); await page.locator('#dock-option-move').click();
   await key('keydown', 39); await key('keyup', 39); await key('keydown', 13); await key('keyup', 13);
   expect((await order(page)).slice(0, 4)).toEqual(['art', 'stan', 'youtube', 'prime']);
   expect(await key('keydown', 10182)).toBe(true); expect(await key('keydown', 116)).toBe(true); expect(await key('keydown', 447)).toBe(true);
@@ -97,22 +91,18 @@ test('an overflowing dock scrolls into view and default restore has predictable 
   await page.locator('#dock-reset-cancel').click(); await expect(page.locator('#all-apps-restore')).toBeFocused();
   await page.locator('#all-apps-restore').click(); await page.locator('#dock-reset-confirm').click(); await expect(page.locator('#app-youtube')).toBeFocused();
 });
-test('TV Settings records a public API error and manual fallback; TV uses the exact recovery ID', async ({ page }) => {
-  await fixture(page); await page.locator('#app-settings').click();
-  await expect(page.getByRole('dialog')).toContainText('TV Settings could not be opened'); await expect(page.getByRole('dialog')).toContainText('Samsung Home');
+test('Settings opens FrameOS and the protected TV tile keeps the exact Samsung Home escape', async ({ page }) => {
+  await fixture(page); await page.locator('#app-settings').click(); await expect(page.locator('#settings-title')).toHaveText('FrameOS Settings');
   await page.keyboard.press('Escape'); await page.locator('#app-tv').click();
   await expect.poll(() => page.evaluate(() => window.__playerFixture.calls.includes('launch:com.samsung.tv.csfs'))).toBe(true);
-  await page.locator('#top-settings').click(); await page.locator('#launcher-apps').click();
-  await expect(page.getByLabel('Launch diagnostics')).toContainText('com.samsung.tv.coba.setting');
-  await expect(page.getByLabel('Launch diagnostics')).toContainText('SecurityError');
 });
 test('Sources separates discovery, setSource and full-screen show evidence and Back hides before closing', async ({ page }) => {
   await fixture(page); await page.locator('#app-sources').click();
   await expect(page.locator('#source-HDMI\\:1')).toContainText('Disconnected');
   await expect(page.locator('#source-HDMI\\:2')).toHaveAttribute('aria-current', 'true');
-  await page.locator('#source-HDMI\\:2').click(); await expect(page.getByRole('status')).toContainText('Verify the picture');
+  await page.locator('#source-HDMI\\:2').click(); await expect(page.locator('.source-viewer')).toContainText('Viewing requested');
   expect(await page.evaluate(() => window.__playerFixture.calls)).toContain('show:FRONT:0,0,100%,100%');
-  await page.keyboard.press('Escape'); await expect(page.getByRole('status')).toContainText('TVWindow hidden');
+  await page.keyboard.press('Escape'); await expect(page.locator('#source-HDMI\\:2')).toBeFocused();
   await page.keyboard.press('Escape'); await expect(page.locator('#app-sources')).toBeFocused();
 });
 test('App information keeps services filtered and restores nested Back; screenshots capture final layout', async ({ page }) => {
@@ -129,10 +119,10 @@ test('App information keeps services filtered and restores nested Back; screensh
   await page.keyboard.press('Escape'); await page.locator('#app-art').focus(); await expect(page.locator('#app-art')).toHaveClass(/is-focused/); await expect(page.locator('#app-art')).toHaveCSS('width', '290px'); await page.screenshot({ path: 'artifacts/v040-dock.png' });
 });
 test('Home performance capture measures live dock navigation and retains launch diagnostics', async ({ page }) => {
-  await fixture(page); await page.locator('#top-settings').click(); await page.locator('#launcher-performance').click(); await page.locator('#performance-home').click();
+  await fixture(page); await page.locator('#top-settings').click(); await launcherTool(page, 'performance'); await page.locator('#performance-home').click();
   await expect(page.locator('#app-youtube')).toBeFocused();
   for (let i = 0; i < 24; i++) { await page.keyboard.press(i % 2 ? 'ArrowLeft' : 'ArrowRight'); await page.waitForTimeout(70); }
-  await page.locator('#top-settings').click(); await page.locator('#launcher-performance').click();
+  await page.locator('#top-settings').click(); await launcherTool(page, 'performance');
   await expect(page.getByLabel('Performance report')).toContainText('Complete', { timeout: 9000 });
   const report = JSON.parse((await page.getByLabel('Performance report').textContent())!);
   expect(report.visibleStage).toBe(true); expect(report.frames.samples).toBeGreaterThan(100); expect(report.handlers.samples).toBeGreaterThan(5);

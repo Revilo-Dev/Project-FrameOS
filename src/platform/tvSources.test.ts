@@ -44,3 +44,12 @@ it('bounds missing native callbacks and provides a manual fallback without fabri
   const service = new TvSources({ tizen: { systeminfo: { getPropertyValue() {} } } }, 10);
   await assert.rejects(service.read(), /TimeoutError/);
 });
+it('hides a late show callback again after Back so a cancelled input cannot cover FrameOS', async () => {
+  const { service, runtime, calls } = fixture(); let shown!: (rectangle: string[]) => void;
+  runtime.tizen.tvwindow.show = (ok, _fail, rect, type, z) => { calls.push(['show', rect, type, z]); shown = ok; };
+  const pending = service.select((await service.read()).sources[1]);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(typeof shown, 'function'); await service.hide(); shown(['0', '0', '100%', '100%']);
+  assert.match(await pending, /cancelled/); assert.equal(service.active, false);
+  assert.ok(calls.filter(call => call[0] === 'hide').length >= 2);
+});

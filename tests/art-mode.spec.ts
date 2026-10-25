@@ -60,12 +60,11 @@ test('holding Select on entry and wake cannot cause duplicate transitions or act
   await page.goto('/'); await page.locator('#app-art').focus();
   await page.keyboard.down('Enter');
   for (let i = 0; i < 4; i++) await page.keyboard.down('Enter');
-  await expect(page.locator('.frameos')).not.toHaveClass(/art-mode/); await page.keyboard.up('Enter');
-  await expect(page.locator('.frameos')).toHaveClass(/art-mode/);
+  await expect(page.locator('.frameos')).toHaveClass(/art-mode/); await page.keyboard.up('Enter');
   await page.keyboard.down('Enter');
   for (let i = 0; i < 4; i++) await page.keyboard.down('Enter');
   await expect(page.locator('.frameos')).not.toHaveClass(/art-mode/);
   await page.keyboard.up('Enter'); await expect(page.locator('#app-art')).toBeFocused();
   await page.keyboard.press('ArrowRight'); await expect(page.locator('#app-youtube')).toBeFocused();
-  await page.keyboard.press('ArrowDown'); await expect(page.locator('.media-hub')).not.toHaveAttribute('aria-hidden', 'true');
+  await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await expect(page.locator('.media-hub')).not.toHaveAttribute('aria-hidden', 'true');
 });

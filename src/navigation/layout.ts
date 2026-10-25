@@ -6,10 +6,11 @@ import { WEATHER_LOCATIONS } from '../services/weather';
 import { CLOCK_FONTS } from '../services/clockFonts';
 import { WIDGETS, WORLD_CITIES, type WidgetId } from '../services/widgets';
 
-export type SettingsTab = 'appearance' | 'clock' | 'wallpapers' | 'weather' | 'widgets' | 'media' | 'usb';
-export const settingsTabs: { id: SettingsTab; name: string }[] = [{ id: 'appearance', name: 'Appearance' }, { id: 'clock', name: 'Clock' }, { id: 'wallpapers', name: 'Wallpapers' }, { id: 'weather', name: 'Weather' }, { id: 'widgets', name: 'Widgets' }, { id: 'usb', name: 'USB diagnostics' }, { id: 'media', name: 'Media' }];
+export type SettingsTab = 'appearance' | 'home-dock' | 'widgets' | 'media' | 'tv-sources' | 'advanced' | 'clock' | 'wallpapers' | 'weather' | 'usb';
+export const settingsTabs: { id: SettingsTab; name: string }[] = [{ id: 'appearance', name: 'Appearance' }, { id: 'home-dock', name: 'Home & Dock' }, { id: 'widgets', name: 'Widgets' }, { id: 'media', name: 'Media' }, { id: 'tv-sources', name: 'TV & Sources' }, { id: 'advanced', name: 'Advanced' }];
+export function settingsSection(tab: SettingsTab): SettingsTab { return tab === 'clock' || tab === 'wallpapers' ? 'appearance' : tab === 'weather' ? 'widgets' : tab === 'usb' ? 'media' : tab; }
 export function adjacentSettingsTab(tab: SettingsTab, offset: number): SettingsTab {
-  return settingsTabs[(settingsTabs.findIndex(item => item.id === tab) + offset + settingsTabs.length) % settingsTabs.length].id;
+  return settingsTabs[(settingsTabs.findIndex(item => item.id === settingsSection(tab)) + offset + settingsTabs.length) % settingsTabs.length].id;
 }
 export const homeRows: FocusRows = [
   ['settings', 'network', 'power'].map((id, i) => ({ id: `top-${id}`, x: 1610 + i * 80 })),
@@ -22,17 +23,17 @@ export const playerRows: FocusRows = [
 ];
 export function homeLayout(_compact: boolean, widgets: WidgetId[] = [], dock = launcherItems): FocusRows {
   const dashboard = widgets.length ? [widgets.map((id, i) => ({ id: `widget-${id}`, x: 960 + (i - (widgets.length - 1) / 2) * 560 }))] : [];
-  const apps = dock.map((item, i) => ({ id: `app-${item.id}`, x: 200 + i * 224 }));
+  const apps = dock.map((item, i) => ({ id: `app-${item.id}`, x: 960 + (i - (dock.length - 1) / 2) * 124 }));
   return [homeRows[0], ...dashboard, apps, homeRows[2]];
 }
 export function settingsLayout(tab: SettingsTab, page: number, enabledWidgets: WidgetId[] = [], hasThumbnailVideos = false, appearanceRows?: FocusRows): FocusRows {
-  const rows: FocusRows = [[{ id: 'settings-close', x: 1800 }], settingsTabs.map((item, i) => ({ id: `settings-tab-${item.id}`, x: 140 + i * 180 }))];
-  if (tab === 'appearance' && appearanceRows) return [...rows, ...appearanceRows];
+  const rows: FocusRows = [[{ id: 'settings-close', x: 1800 }], settingsTabs.map((item, i) => ({ id: `settings-tab-${item.id}`, x: 140 + i * 200 })), ...(settingsSection(tab) !== tab ? [[{ id: 'settings-section-back', x: 200 }]] : [])];
+  if (appearanceRows) return [...rows, ...appearanceRows];
   if (tab === 'appearance') return [...rows,
-    ['slate', 'midnight', 'warm'].map((id, i) => ({ id: `theme-${id}`, x: 240 + i * 280 })),
-    ['full', 'subtle', 'off'].map((id, i) => ({ id: `motion-${id}`, x: 240 + i * 280 })),
-    [{ id: 'fps-toggle', x: 400 }],
-    ...['home', 'apps', 'performance', 'backup'].map(id => [{ id: `launcher-${id}`, x: 600 }]),
+    ...[['slate', 'midnight', 'warm'], ['onyx', 'light', 'aqua']].map(ids => ids.map((id, i) => ({ id: 'theme-' + id, x: 240 + i * 400 }))),
+    ['full', 'subtle', 'off'].map((id, i) => ({ id: 'motion-' + id, x: 240 + i * 400 })),
+    [{ id: 'focus-outline', x: 300 }, { id: 'focus-strong', x: 800 }],
+    [{ id: 'settings-tab-wallpapers', x: 300 }, { id: 'settings-tab-clock', x: 800 }],
   ];
   if (tab === 'wallpapers') {
     const choices = wallpaperPageItems(page).map((wallpaper, i) => ({ id: `wallpaper-${wallpaper.id}`, x: 160 + (i % 4) * 240 }));
@@ -45,8 +46,8 @@ export function settingsLayout(tab: SettingsTab, page: number, enabledWidgets: W
     const fonts = CLOCK_FONTS.map((font, i) => ({ id: `clock-font-${font.id}`, x: 240 + i % 3 * 280 }));
     return [...rows, [{ id: 'time-format-12h', x: 280 }, { id: 'time-format-24h', x: 700 }], ...Array.from({ length: 2 }, (_, i) => fonts.slice(i * 3, (i + 1) * 3)), ...Array.from({ length: Math.ceil(zones.length / 3) }, (_, i) => zones.slice(i * 3, (i + 1) * 3))];
   }
-  if (tab === 'media') return [...rows, [{ id: 'autoplay-toggle', x: 800 }], [{ id: 'media-cache-clear', x: 800 }]];
-  if (tab === 'widgets') return [...rows, ...WIDGETS.map(widget => {
+  if (tab === 'media') return [...rows, [3,4,5,6,7].map((n,i) => ({ id: 'settings-grid-' + n, x: 200 + i * 220 })), [{ id: 'settings-tab-usb', x: 500 }], [{ id: 'autoplay-toggle', x: 800 }], [{ id: 'media-cache-clear', x: 800 }]];
+  if (tab === 'widgets') return [...rows, [{ id: 'settings-tab-weather', x: 500 }], ...WIDGETS.map(widget => {
     const index = enabledWidgets.indexOf(widget.id);
     return [{ id: `widget-toggle-${widget.id}`, x: 600 }, ...(index > 0 ? [{ id: `widget-earlier-${widget.id}`, x: 1250 }] : []), ...(index >= 0 && index < enabledWidgets.length - 1 ? [{ id: `widget-later-${widget.id}`, x: 1450 }] : [])];
   }), [{ id: 'calendar-privacy', x: 600 }], ...Array.from({ length: 3 }, (_, row) => WORLD_CITIES.slice(row * 3, row * 3 + 3).map((city, i) => ({ id: `world-city-${city.id}`, x: 500 + i * 360 })))];

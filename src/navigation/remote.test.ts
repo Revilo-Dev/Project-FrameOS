@@ -11,9 +11,9 @@ describe('remote navigation', () => {
     assert.equal(nextFocus(playerRows, 'player-seek', 'up'), 'player-toggle');
   });
   it('cycles the existing Settings tabs with wrapping and makes clock fonts D-pad reachable', () => {
-    assert.equal(adjacentSettingsTab('appearance', -1), 'media');
-    assert.equal(adjacentSettingsTab('media', 1), 'appearance');
-    assert.equal(adjacentSettingsTab('clock', 1), 'wallpapers');
+    assert.equal(adjacentSettingsTab('appearance', -1), 'advanced');
+    assert.equal(adjacentSettingsTab('advanced', 1), 'appearance');
+    assert.equal(adjacentSettingsTab('clock', 1), 'home-dock');
     const rows = settingsLayout('clock', 0);
     assert.equal(nextFocus(rows, 'time-format-12h', 'down'), 'clock-font-modern');
     assert.equal(nextFocus(rows, 'clock-font-bold', 'up'), 'clock-font-modern');
@@ -37,8 +37,8 @@ describe('remote navigation', () => {
   it('moves vertically to the nearest column and provides a route out of each row', () => {
     const settingsRows = settingsLayout('appearance', 0);
     assert.equal(nextFocus(homeRows, 'app-settings', 'up'), 'top-network');
-    assert.equal(nextFocus(settingsRows, 'motion-off', 'up'), 'theme-warm');
-    assert.equal(nextFocus(settingsRows, 'theme-warm', 'up'), 'settings-tab-widgets');
+    assert.equal(nextFocus(settingsRows, 'motion-off', 'up'), 'theme-aqua');
+    assert.equal(nextFocus(settingsRows, 'theme-warm', 'up'), 'settings-tab-tv-sources');
   });
   it('contains Tab navigation in the active panel with reverse traversal', () => {
     const settingsRows = settingsLayout('weather', 0);

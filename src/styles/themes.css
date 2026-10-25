@@ -1,0 +1,52 @@
+/* Semantic surfaces are shared by every launcher screen. Static Chromium 69 CSS. */
+.frameos { --control: rgba(44,61,81,.72); --control-hover: #394c63; --widget-surface: rgba(24,37,53,.86); --selected-surface: #344c65; --selected-ink: #fff; --dock-surface: rgba(10,20,34,.18); --field-surface: rgba(6,17,30,.6); --player-surface: rgba(10,19,29,.9); --player-ink: #eef5fc; --focus-width: 3px; }
+.frameos.focus-strong { --focus-width: 5px; }
+.theme-onyx { --surface: #090a0d; --panel: #111216; --surface-raised: #25272d; --text: #f2f1ef; --muted: #b3b4bb; --subtle: #94959e; --accent: #d4dcf3; --accent-ink: #222936; --line: #373940; --panel-glass: rgba(17,18,22,.98); --card-glass: #22242a; --control: #292b33; --control-hover: #353842; --widget-surface: rgba(24,25,30,.96); --selected-surface: #383e4c; --selected-ink: #fff; --dock-surface: rgba(9,10,13,.8); --field-surface: #121318; --scrim: rgba(0,0,0,.64); --focus-ring: #f5f2ed; --shadow-focus: 0 0 0 2px rgba(255,255,255,.12); --shadow-panel: 0 20px 65px rgba(0,0,0,.4); --player-surface: rgba(16,17,21,.94); --player-ink: #f2f1ef; }
+.theme-light { --surface: #f4f2ed; --panel: #fcfbf8; --surface-raised: #e3e2dd; --text: #20262e; --muted: #505b67; --subtle: #66717a; --accent: #285d98; --accent-ink: #fff; --line: #c4c8cc; --panel-glass: rgba(250,249,246,.98); --card-glass: #ecebe6; --control: #e6e6e1; --control-hover: #d8dfe6; --widget-surface: rgba(249,248,243,.96); --selected-surface: #d7e4ef; --selected-ink: #193955; --dock-surface: rgba(248,247,243,.82); --field-surface: #fff; --scrim: rgba(35,43,53,.28); --focus-ring: #24517e; --shadow-focus: 0 0 0 3px rgba(36,81,126,.16); --shadow-panel: 0 18px 70px rgba(39,48,59,.2); --player-surface: rgba(248,247,243,.96); --player-ink: #20262e; }
+.theme-aqua { --surface: #e5f1f1; --panel: #f4faf9; --surface-raised: #cde5e5; --text: #18363d; --muted: #45636b; --subtle: #526f75; --accent: #087780; --accent-ink: #fff; --line: #aacbce; --panel-glass: rgba(237,248,248,.98); --card-glass: #deeeee; --control: #d6e9e9; --control-hover: #bedfdf; --widget-surface: rgba(235,248,248,.96); --selected-surface: #bce0df; --selected-ink: #123e46; --dock-surface: rgba(225,244,243,.86); --field-surface: #f5fcfc; --scrim: rgba(20,62,69,.3); --focus-ring: #075e69; --shadow-focus: 0 0 0 3px rgba(7,94,105,.17); --shadow-panel: 0 20px 65px rgba(29,72,78,.2); --player-surface: rgba(230,245,245,.96); --player-ink: #18363d; }
+.theme-light:not(.art-mode) .wallpaper-shade { background: rgba(248,246,241,.76); }
+.theme-aqua:not(.art-mode) .wallpaper-shade { background: linear-gradient(135deg, rgba(222,244,243,.82), rgba(224,236,248,.72)); }
+.theme-onyx:not(.art-mode) .wallpaper-shade { background: rgba(0,0,0,.38); }
+.theme-light .brand-logo, .theme-light .topbar-controls img, .theme-aqua .brand-logo, .theme-aqua .topbar-controls img { filter: brightness(0); }
+.theme-light .clock, .theme-light .clock > span, .theme-aqua .clock, .theme-aqua .clock > span { color: var(--text); }
+.theme-light.art-mode .clock, .theme-aqua.art-mode .clock { color: #f3f6fa; }
+.dock-section { background: transparent; border-radius: 0; }
+.dashboard-card { background: var(--widget-surface); border-color: var(--line); color: var(--text); }
+.settings-panel, .notice-panel, .media-context, .all-apps-panel, .widget-panel, .media-options { background-color: var(--panel-glass); color: var(--text); }
+.option, .text-button, .settings-tab, .context-action, .round-button, .clock-font-option, .clock-zone-option, .all-app-card { color: var(--text); background-color: var(--control); }
+.option.is-selected, .settings-tab.is-selected, .clock-font-option.is-selected, .clock-zone-option.is-selected, .calendar-day.selected { background-color: var(--selected-surface); color: var(--selected-ink); border-color: var(--accent); }
+.option.is-focused, .text-button.is-focused, .round-button.is-focused, .settings-tab.is-focused, .context-action.is-focused, .clock-font-option.is-focused, .clock-zone-option.is-focused, .all-app-card.is-focused { border-color: var(--focus-ring); box-shadow: var(--shadow-focus); }
+.setting-note, .panel-footer, .setting-label > span, .all-apps-panel p, .dock-options p, .source-list small, .save-status, .weather-credits, .media-position, .calendar-weekdays, .widget-date { color: var(--muted); }
+.launcher-report, .launcher-backup, .organiser-form input { color: var(--text); background: var(--field-surface); border-color: var(--line); }
+.all-app-art, .app-tile, .app-tile .app-name, .app-tile.is-focused .app-name { color: #fff; }
+.all-app-art.tile-art, .app-tile.tile-art, .app-tile.tile-art .app-name { color: #333243; }
+.media-prompt, .weather-condition { color: var(--muted); }
+.theme-light .fps-counter, .theme-aqua .fps-counter { color: var(--muted); }
+.theme-light .weather-icon, .theme-aqua .weather-icon { color: var(--accent); }
+.theme-light .calendar-event-list time, .theme-aqua .calendar-event-list time, .theme-light .privacy-label, .theme-aqua .privacy-label { color: var(--accent); }
+.theme-light .topbar-controls .round-button, .theme-aqua .topbar-controls .round-button { background: var(--control); }
+.theme-light .pinned-label, .theme-aqua .pinned-label { color: #28613c; }
+.theme-light .widget-icon, .theme-aqua .widget-icon { color: var(--accent); }
+.theme-light .market-up .bitcoin-change, .theme-aqua .market-up .bitcoin-change { color: #216b48; }
+.theme-light .market-down .bitcoin-change, .theme-aqua .market-down .bitcoin-change { color: #ab2d3d; }
+.theme-light .bitcoin-chart, .theme-aqua .bitcoin-chart { color: var(--accent); }
+.theme-light .market-up .bitcoin-chart, .theme-aqua .market-up .bitcoin-chart { color: #216b48; }
+.theme-light .market-down .bitcoin-chart, .theme-aqua .market-down .bitcoin-chart { color: #ab2d3d; }
+.theme-light .media-thumbnail::after, .theme-aqua .media-thumbnail::after { background: linear-gradient(180deg, transparent 25%, var(--surface) 78%); }
+.theme-light .media-filename, .theme-aqua .media-filename { color: var(--text); text-shadow: none; }
+.theme-light .media-file-meta, .theme-aqua .media-file-meta { color: var(--muted); text-shadow: none; }
+.theme-light .player-bottom, .theme-aqua .player-bottom, .theme-onyx .player-bottom { background: var(--player-surface); color: var(--player-ink); border-radius: 30px; }
+.theme-light .player-button, .theme-aqua .player-button { color: var(--player-ink); background: var(--control); }
+.theme-light .player-time, .theme-aqua .player-time { color: var(--player-ink); }
+.theme-light .player-button.is-focused, .theme-aqua .player-button.is-focused { border-color: var(--focus-ring); }
+.theme-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: -8px; }
+.settings-content .theme-options .option { width: auto; min-width: 0; height: 112px; margin: 8px; padding: 14px; font-size: 22px; display: flex; flex-direction: row; align-items: center; justify-content: flex-start; }
+.theme-preview { position: relative; display: block; flex: 0 0 106px; width: 106px; height: 70px; margin-right: 18px; border-radius: 15px; background: #172530; overflow: hidden; }
+.theme-preview i { position: absolute; top: 12px; left: 10px; width: 38px; height: 27px; background: #334657; border-radius: 7px; }
+.theme-preview i + i { left: 57px; }
+.theme-preview b { position: absolute; left: 40px; bottom: 8px; width: 27px; height: 12px; border-radius: 5px; background: #acd1ff; }
+.swatch-midnight { background: #0c101c; }.swatch-warm { background: #292320; }
+.swatch-onyx { background: #090a0d; }.swatch-onyx i { background: #292b33; }.swatch-onyx b { background: #d4dcf3; }
+.swatch-light { background: #f4f2ed; }.swatch-light i { background: #d6d9dc; }.swatch-light b { background: #285d98; }
+.swatch-aqua { background: linear-gradient(135deg, #e5f4f1, #dcecf6); }.swatch-aqua i { background: #b4d6d8; }.swatch-aqua b { background: #087780; }
+.section-back { margin-bottom: 20px; }

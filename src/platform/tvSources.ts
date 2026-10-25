@@ -24,6 +24,12 @@ export class TvSources {
   get active() { return this.windowRequested; }
   constructor(runtime?: unknown, private timeoutMs = 4000) { this.api = (runtime as { tizen?: SourceApi })?.tizen; }
   private log(message: string) { this.diagnostics.unshift(message); this.diagnostics.length = Math.min(this.diagnostics.length, 20); }
+  async resolve(type: string, number: number): Promise<SourceChoice> {
+    const result = await this.read();
+    const source = result.sources.find(item => item.type === type && item.number === number);
+    if (!source) throw Error(`This input is no longer reported by the TV. ${SOURCE_FALLBACK}`);
+    return source;
+  }
   private call<T>(operation: (success: (value: T) => void, failure: (error: unknown) => void) => void): Promise<T> {
     return new Promise((resolve, reject) => {
       let done = false;
@@ -67,7 +73,7 @@ export class TvSources {
     this.windowRequested = true;
     try {
       await this.call<string[]>((ok, fail) => window.show!(rectangle => {
-        if (epoch !== this.epoch) { void this.hide().catch(() => {}); }
+        if (epoch !== this.epoch) { this.windowRequested = true; void this.hide().catch(() => {}); }
         ok(rectangle);
       }, fail, ['0', '0', '100%', '100%'], 'MAIN', 'FRONT'));
       if (epoch !== this.epoch) { await this.hide(); return 'Source request cancelled.'; }

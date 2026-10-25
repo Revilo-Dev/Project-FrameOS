@@ -1,3 +1,4 @@
+import { settingsSubsection } from './settingsNavigation';
 import { mediaOption } from './mediaOptions';
 import { test, expect } from '@playwright/test';
 import { pathToFileURL } from 'node:url';
@@ -63,7 +64,7 @@ test('long OK hides without opening, Options restores hidden files, toggle and f
   await page.keyboard.press('Escape'); await expect(page.locator('#media-entry-0')).toContainText('Series');
   await page.locator('#media-entry-0').click({ button: 'right' }); await page.locator('#context-hide').click();
   await expect(page.locator('#media-entry-0')).toHaveClass(/media-hidden-item/); await mediaOption(page, 'media-hidden');
-  await expect(page.locator('.media-tile')).toHaveCount(3); await page.reload(); await page.keyboard.press('ArrowDown'); await expect(page.locator('.media-tile')).toHaveCount(3);
+  await expect(page.locator('.media-tile')).toHaveCount(3); await page.reload(); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await expect(page.locator('.media-tile')).toHaveCount(3);
   await mediaOption(page, 'media-hidden'); await page.locator('#media-entry-0').click();
   await expect(page.locator('.media-hidden-item')).toHaveCount(4); await page.locator('#media-entry-1').focus(); await mediaOption(page, 'media-item-options');
   await expect(page.locator('#context-hide')).toHaveText('Unhide'); await page.keyboard.press('Escape');
@@ -102,7 +103,7 @@ test('USB removal during a seek closes the UI immediately and defers native clea
 test('unsupported codecs display an error and Back keeps the current folder', async ({ page }) => {
   await nativeFixture(page, { failPrepare: true }); await openSeries(page); await page.locator('#media-entry-1').click();
   await expect(page.locator('.player-message')).toContainText('UnsupportedCodec'); await page.keyboard.press('Escape'); await expect(page.locator('#media-entry-1')).toBeFocused();
-  await page.reload(); await page.keyboard.press('ArrowDown'); await page.locator('#media-entry-0').click();
+  await page.reload(); await page.locator('#home-media').click(); await page.locator('#media-entry-0').click();
   await page.locator('#media-entry-1').click(); await expect(page.locator('.player-message')).toContainText('UnsupportedCodec');
 });
 test('missing AVPlay reports capability unavailable and does not pretend to play video', async ({ page }) => {
@@ -122,18 +123,18 @@ test('an existing native-index thumbnail loads on a file origin, is cached, and 
   const thumbnail = pathToFileURL(resolve('dist', catalog[0].thumbnail)).href;
   await nativeFixture(page, { thumbnail }); await page.goto(pathToFileURL(resolve('dist/index.html')).href);
   await page.evaluate(csp => { const meta = document.createElement('meta'); meta.httpEquiv = 'Content-Security-Policy'; meta.content = csp; document.head.appendChild(meta); }, contentSecurityPolicy);
-  await page.keyboard.press('ArrowDown');
+  await page.locator('#home-media').click();
   await expect(page.locator('.media-thumbnail img')).toHaveCount(2);
   expect(await page.locator('.media-thumbnail img').first().evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
   const reads = await page.evaluate(() => window.__playerFixture.thumbnails);
-  await page.keyboard.press('Escape'); await page.keyboard.press('ArrowDown'); await expect(page.locator('.media-thumbnail img')).toHaveCount(2);
+  await page.keyboard.press('Escape'); await page.locator('#home-media').click(); await expect(page.locator('.media-thumbnail img')).toHaveCount(2);
   expect(await page.evaluate(() => window.__playerFixture.thumbnails)).toBe(reads);
   await page.locator('#media-entry-1').click(); await expect(page.locator('#player-toggle')).toHaveAttribute('aria-label', 'Pause');
 });
 test('New Beith uses verified coordinates, persists and keeps Brisbane available; Settings dock label stays hidden until focused', async ({ page }) => {
   const requests: string[] = []; page.on('request', request => { if (request.url().includes('api.open-meteo.com')) requests.push(request.url()); });
-  await page.goto('/'); await expect(page.getByRole('button', { name: 'TV Settings', exact: true })).toBeVisible(); await expect(page.locator('#app-settings .app-name')).toHaveCSS('opacity', '0');
-  await page.locator('#top-settings').click(); await page.locator('#settings-tab-weather').click(); await expect(page.locator('#city-brisbane')).toBeVisible(); await page.locator('#city-new-beith').click();
+  await page.goto('/'); await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeVisible(); await expect(page.locator('#app-settings .app-name')).toHaveCSS('opacity', '0');
+  await page.locator('#top-settings').click(); await settingsSubsection(page, 'weather'); await expect(page.locator('#city-brisbane')).toBeVisible(); await page.locator('#city-new-beith').click();
   await page.keyboard.press('Escape'); await expect(page.locator('.weather-city')).toHaveText('New Beith'); await expect(page.locator('.weather-hour')).toHaveCount(6);
   const url = new URL(requests.find(url => url.includes('latitude=-27.766'))!); expect(url.searchParams.get('longitude')).toBe('152.942');
   await page.reload(); await expect(page.locator('.weather-city')).toHaveText('New Beith');

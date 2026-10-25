@@ -5,7 +5,7 @@ import { isWeatherCity } from './weather';
 import { isClockFont } from './clockFonts';
 
 export const SETTINGS_KEY = 'frameos.settings.v1';
-export const DEFAULT_SETTINGS: Settings = { version: 1, theme: 'slate', wallpaper: wallpapers[0].id, motion: 'subtle', weatherCity: 'brisbane', showFps: true, timeFormat: '12h', timeZone: DEFAULT_TIME_ZONE, clockFont: 'modern' };
+export const DEFAULT_SETTINGS: Settings = { version: 1, theme: 'slate', wallpaper: wallpapers[0].id, motion: 'subtle', weatherCity: 'brisbane', showFps: true, timeFormat: '12h', timeZone: DEFAULT_TIME_ZONE, clockFont: 'modern', focusStyle: 'outline' };
 export interface SettingsStorage { getItem(key: string): string | null; setItem(key: string, value: string): void; removeItem?(key: string): void }
 
 export function loadSettings(storage: SettingsStorage): Settings {
@@ -16,7 +16,7 @@ export function loadSettings(storage: SettingsStorage): Settings {
     if (saved.version !== 1) return { ...DEFAULT_SETTINGS };
     return {
       version: 1,
-      theme: ['slate', 'midnight', 'warm'].indexOf(saved.theme || '') >= 0 ? saved.theme! : DEFAULT_SETTINGS.theme,
+      theme: ['slate', 'midnight', 'warm', 'onyx', 'light', 'aqua'].indexOf(saved.theme || '') >= 0 ? saved.theme! : DEFAULT_SETTINGS.theme,
       wallpaper: wallpapers.some(item => item.id === saved.wallpaper) ? saved.wallpaper! : DEFAULT_SETTINGS.wallpaper,
       motion: ['full', 'subtle', 'off'].indexOf(saved.motion || '') >= 0 ? saved.motion! : DEFAULT_SETTINGS.motion,
       weatherCity: isWeatherCity(saved.weatherCity) ? saved.weatherCity : DEFAULT_SETTINGS.weatherCity,
@@ -24,6 +24,7 @@ export function loadSettings(storage: SettingsStorage): Settings {
       timeFormat: saved.timeFormat === '24h' ? '24h' : '12h',
       timeZone: isClockTimeZone(saved.timeZone) ? saved.timeZone : DEFAULT_TIME_ZONE,
       clockFont: isClockFont(saved.clockFont) ? saved.clockFont : DEFAULT_SETTINGS.clockFont,
+      focusStyle: saved.focusStyle === 'strong' ? 'strong' : 'outline',
     };
   } catch { return { ...DEFAULT_SETTINGS }; }
 }

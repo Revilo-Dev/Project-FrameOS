@@ -7,9 +7,9 @@ import type { LauncherItem } from '../types/launcher';
 type OpenApp = (item: LauncherItem, origin: string) => void;
 const DockTile = memo(function DockTile({ item, active, focus, open, moving }: { item: LauncherItem; active: boolean; focus(id: string): void; open: OpenApp; moving: boolean }) {
   const id = `app-${item.id}`;
-  return <FocusButton id={id} focused={active ? id : ''} onFocused={focus} className={`app-tile tile-${item.action.type === 'installed-app' ? 'native' : item.id}${moving ? ' is-moving' : ''}`} aria-label={item.name} aria-pressed={moving || undefined} onClick={() => open(item, id)}>
-    <span className="app-icon-centre"><LauncherIcon item={item} /></span>
-    <span className="app-name" aria-hidden="true">{item.name}</span>
+  return <FocusButton id={id} focused={active ? id : ''} onFocused={focus} className={`app-tile tile-${item.action.type === 'source' ? 'sources' : item.action.type === 'installed-app' ? 'native' : item.id}${moving ? ' is-moving' : ''}`} aria-label={item.name} aria-pressed={moving || undefined} onClick={() => open(item, id)}>
+    <span className="dock-tile-surface"><span className="app-icon-centre"><LauncherIcon item={item} /></span><span className="app-name" aria-hidden="true">{item.name}</span></span>
+    <span className="dock-focus-ring" aria-hidden="true" />
   </FocusButton>;
 });
 export function AppDock({ focused, focus, open, items = launcherItems, moving }: { focused: string; focus(id: string): void; open: OpenApp; items?: LauncherItem[]; moving?: string }) {

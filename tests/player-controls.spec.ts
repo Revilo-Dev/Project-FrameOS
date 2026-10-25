@@ -58,6 +58,6 @@ test('volume stays owned by Samsung on Home and Settings while channel tabs rema
   await nativeFixture(page, { channels: true, volumeKeys: true }); await page.goto('/'); await page.locator('#top-settings').click();
   expect(await page.evaluate(() => window.__playerFixture.keys)).not.toContain('VolumeUp');
   expect(await page.evaluate(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'VolumeDown', keyCode: 448, bubbles: true, cancelable: true })))).toBe(true);
-  await page.keyboard.press('PageUp'); await expect(page.locator('#settings-tab-clock')).toHaveAttribute('aria-pressed', 'true');
+  await page.keyboard.press('PageUp'); await expect(page.locator('#settings-tab-home-dock')).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.press('Escape'); expect((await page.evaluate(() => window.__playerFixture.calls)).filter(call => call.startsWith('seek:'))).toEqual([]);
 });

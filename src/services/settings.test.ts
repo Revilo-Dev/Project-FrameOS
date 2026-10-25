@@ -5,6 +5,15 @@ import { wallpapers } from './wallpapers';
 import { CLOCK_FONTS } from './clockFonts';
 
 describe('settings persistence', () => {
+  it('preserves all legacy choices and persists Onyx Black, Light, Aqua and focus appearance', () => {
+    for (const theme of ['slate', 'midnight', 'warm', 'onyx', 'light', 'aqua'] as const) {
+      let text = JSON.stringify({ ...DEFAULT_SETTINGS, theme, focusStyle: 'strong' });
+      const storage = { getItem: () => text, setItem: (_key: string, value: string) => { text = value; } };
+      const settings = loadSettings(storage); assert.equal(settings.theme, theme); assert.equal(settings.focusStyle, 'strong');
+      assert.ok(saveSettings(storage, settings)); assert.deepEqual(loadSettings(storage), settings);
+    }
+    assert.equal(loadSettings({ getItem: () => '{"version":1,"theme":"warm"}', setItem() {} }).focusStyle, 'outline');
+  });
   it('round trips every clock font and migrates missing/invalid fonts safely', () => {
     for (const font of CLOCK_FONTS) {
       const storage = { getItem: () => JSON.stringify({ ...DEFAULT_SETTINGS, clockFont: font.id }), setItem() {} };

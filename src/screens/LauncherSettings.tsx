@@ -3,13 +3,17 @@ import { FocusButton } from '../components/FocusButton';
 import type { FocusRows } from '../navigation/remote';
 import type { TvApplications } from '../platform/launchTvApp';
 import type { UiPerformance } from '../services/uiPerformance';
+import type { TvSources } from '../platform/tvSources';
+import type { RemoteHoldEvidence } from '../navigation/RemoteHoldEvidence';
+import type { SettingsTab } from '../navigation/layout';
 import { configuredDock, type LauncherPreferences } from '../services/launcherPreferences';
 import { createPreferenceBackup, parsePreferenceBackup, RECOVERY_KEY, type PreferenceBundle } from '../services/preferenceBackup';
 import type { SettingsStorage } from '../services/settings';
 
-export type LauncherTool = 'apps' | 'performance' | 'backup';
+export type LauncherTool = 'apps' | 'performance' | 'backup' | 'remote' | 'sources';
 interface Common { focused: string; focus(id: string): void; rowsChanged(rows: FocusRows): void }
 interface Props extends Common {
+  section: SettingsTab; remoteEvidence: RemoteHoldEvidence; sources: TvSources; openSources(): void;
   tool?: LauncherTool; openTool(tool?: LauncherTool): void; samsungHome(): void; openApps(): void; restoreDock(): void;
   apps: TvApplications; preferences: LauncherPreferences; change(preferences: LauncherPreferences): void;
   performance: UiPerformance; capture(home: boolean): void;
@@ -21,7 +25,7 @@ function useRows(props: Common, rows: FocusRows) {
   useLayoutEffect(() => props.rowsChanged(rows), [encoded, props.rowsChanged]);
 }
 function ToolBack({ focused, focus, back }: Common & { back(): void }) {
-  return <FocusButton id="launcher-tool-back" focused={focused} onFocused={focus} className="text-button" onClick={back}>Back to Appearance</FocusButton>;
+  return <FocusButton id="launcher-tool-back" focused={focused} onFocused={focus} className="text-button" onClick={back}>Back</FocusButton>;
 }
 function ScrollReport({ id, label, value, focused, focus }: { id: string; label: string; value: unknown; focused: string; focus(id: string): void }) {
   const report = useRef<HTMLPreElement>(null);
@@ -32,17 +36,37 @@ export function LauncherSettings(props: Props) {
   if (props.tool === 'apps') return <><ToolBack {...props} back={back} /><InstalledApps {...props} /></>;
   if (props.tool === 'performance') return <><ToolBack {...props} back={back} /><PerformanceSettings {...props} /></>;
   if (props.tool === 'backup') return <><ToolBack {...props} back={back} /><PreferenceSettings {...props} /></>;
-  return <div className="setting-section launcher-tools"><div className="setting-label"><h3>Launcher & recovery</h3><span>Your apps and preferences</span></div>
-    <FocusButton id="launcher-home" focused={props.focused} onFocused={props.focus} className="option" onClick={props.samsungHome}>Open Samsung Home</FocusButton>
-    {(['apps', 'performance', 'backup'] as const).map((tool, index) => <FocusButton key={tool} id={`launcher-${tool}`} focused={props.focused} onFocused={props.focus} className="option" onClick={() => props.openTool(tool)}>{['Installed apps & launch diagnostics', 'UI performance capture', 'Preference backup & restore'][index]}</FocusButton>)}
-  </div>;
+  if (props.tool === 'remote') return <><ToolBack {...props} back={back} /><RemoteTest {...props} /></>;
+  if (props.tool === 'sources') return <><ToolBack {...props} back={back} /><SourceReport {...props} /></>;
+  return <LauncherSections {...props} />;
+}
+function LauncherSections(props: Props) {
+  const [nativeStatus, setNativeStatus] = useState('Settings opens FrameOS Settings. Samsung TV Settings is available through TV.');
+  const [tested, setTested] = useState(() => { try { return !!props.storage.getItem('frameos.native-settings.setting-control.v1'); } catch { return false; } });
+  const tools: LauncherTool[] = props.section === 'home-dock' ? ['apps'] : ['apps', 'performance', 'backup', 'remote', 'sources'];
+  useRows(props, props.section === 'tv-sources' ? [row('launcher-home', 'settings-open-sources'), row('settings-native-test')] : [...(props.section === 'advanced' ? [row('fps-toggle')] : []), ...tools.map(tool => row(`launcher-${tool}`))]);
+  if (props.section === 'tv-sources') return <div className="setting-section launcher-tools"><div className="setting-label"><h3>TV & Sources</h3></div><div className="launcher-actions"><FocusButton id="launcher-home" focused={props.focused} onFocused={props.focus} className="option" onClick={props.samsungHome}>Open Samsung Home</FocusButton><FocusButton id="settings-open-sources" focused={props.focused} onFocused={props.focus} className="option" onClick={props.openSources}>Sources</FocusButton></div><p className="setting-note" role="status">{nativeStatus}</p><FocusButton id="settings-native-test" focused={props.focused} onFocused={props.focus} className="text-button" aria-disabled={tested} onClick={() => { if (tested) return; setTested(true); void props.apps.launchSettings(props.storage).then(result => setNativeStatus(result.message)); }}>{tested ? 'Native Settings test completed' : 'Test native Settings once'}</FocusButton></div>;
+  const names: Record<LauncherTool, string> = { apps: props.section === 'home-dock' ? 'Applications & dock' : 'Launch diagnostics', performance: 'Performance capture', backup: 'Backup, import & recovery', remote: 'Remote input diagnostics', sources: 'Source diagnostics' };
+  return <div className="setting-section launcher-tools"><div className="setting-label"><h3>{props.section === 'home-dock' ? 'Home & Dock' : 'Advanced'}</h3></div>{tools.map(tool => <FocusButton key={tool} id={`launcher-${tool}`} focused={props.focused} onFocused={props.focus} className="option" onClick={() => props.openTool(tool)}>{names[tool]}</FocusButton>)}</div>;
+}
+function RemoteTest(props: Props) {
+  const [evidence, setEvidence] = useState(props.remoteEvidence.get);
+  useEffect(() => props.remoteEvidence.subscribe(() => setEvidence(props.remoteEvidence.get())), [props.remoteEvidence]);
+  useEffect(() => () => props.remoteEvidence.suspend(), [props.remoteEvidence]);
+  useRows(props, [row('launcher-tool-back'), row('remote-test-start', 'remote-test-disable'), row('remote-test-pad'), row('remote-report-up', 'remote-report-down')]);
+  return <div className="launcher-tools"><h3>Remote OK hold test</h3><p className="setting-note" role="status">{evidence.reason}</p><div className="launcher-actions"><FocusButton id="remote-test-start" focused={props.focused} onFocused={props.focus} className="text-button" aria-disabled={evidence.status === 'unsupported'} onClick={() => { props.remoteEvidence.start(); props.focus('remote-test-pad'); }}>Start hold test</FocusButton><FocusButton id="remote-test-disable" focused={props.focused} onFocused={props.focus} className="text-button" onClick={() => props.remoteEvidence.disable()}>Disable dock editing</FocusButton></div><FocusButton id="remote-test-pad" focused={props.focused} onFocused={props.focus} className="option" onClick={() => {}}>Hold OK here, then release twice</FocusButton><ScrollReport id="remote-report" label="Remote input evidence" value={evidence} focused={props.focused} focus={props.focus} /></div>;
+}
+function SourceReport(props: Props) {
+  const [events, setEvents] = useState(() => [...props.sources.diagnostics]);
+  useRows(props, [row('launcher-tool-back'), row('source-report-refresh'), row('source-report-up', 'source-report-down')]);
+  return <div className="launcher-tools"><h3>Source diagnostics</h3><FocusButton id="source-report-refresh" focused={props.focused} onFocused={props.focus} className="text-button" onClick={() => setEvents([...props.sources.diagnostics])}>Refresh report</FocusButton><ScrollReport id="source-report" label="Source diagnostics" value={events} focused={props.focused} focus={props.focus} /></div>;
 }
 function InstalledApps(props: Props) {
   const [records, setRecords] = useState(props.apps.diagnostics.get);
   useEffect(() => props.apps.diagnostics.subscribe(() => setRecords(props.apps.diagnostics.get())), [props.apps]);
   useRows(props, [row('launcher-tool-back'), row('apps-browser', 'launcher-dock-reset'), ...(records.length ? [row('launch-report-up', 'launch-report-down')] : [])]);
   return <div className="launcher-tools"><div className="setting-label"><h3>Dock configuration</h3><span>{props.preferences.order.length} shortcuts</span></div>
-    <p className="setting-note">Add installed apps in All Apps. On the dock, Up opens Options. Choose Move, then Left / Right and Select to save, or Back to cancel. Art Mode stays first. TV and All Apps are protected.</p>
+    <p className="setting-note">Add apps and HDMI shortcuts in All Apps. Up and Down navigate normally. Hold editing is available only after a successful remote test. Art Mode, TV and All Apps are protected.</p>
     <div className="launcher-actions"><FocusButton id="apps-browser" focused={props.focused} onFocused={props.focus} className="text-button" onClick={props.openApps}>Open All Apps</FocusButton><FocusButton id="launcher-dock-reset" focused={props.focused} onFocused={props.focus} className="text-button" onClick={props.restoreDock}>Restore Default Dock...</FocusButton></div>
     <p className="setting-note">{configuredDock(props.preferences).map(item => item.name).join(' ? ')}</p>
     <div className="setting-label"><h3>Recent launch requests</h3><span>Kept for this session</span></div>

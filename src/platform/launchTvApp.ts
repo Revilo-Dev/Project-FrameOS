@@ -1,3 +1,4 @@
+import type { SettingsStorage } from '../services/settings';
 import type { ActionResult } from '../types/launcher';
 import { applicationApi, FRAMEOS_APP_ID, SAMSUNG_HOME_ID, normaliseInstalledApps, queryInstalledApps, selectableApps, type InstalledApp } from './installedApps';
 import { LaunchDiagnostics, launchError } from './LaunchDiagnostics';
@@ -16,7 +17,7 @@ type ApplicationInfo = InstalledApp;
 interface Applications {
   getAppsInfo?(success: (apps: ApplicationInfo[]) => void, failure: (error: unknown) => void): void;
   launch?(id: string, success: () => void, failure: (error: unknown) => void): void;
-  launchAppControl?(control: unknown, id: string, success: () => void, failure: (error: unknown) => void): void;
+  launchAppControl?(control: unknown, id: string | null, success: () => void, failure: (error: unknown) => void): void;
 }
 export function tvAppCandidates(app: TvApp, installed?: ApplicationInfo[]): string[] {
   const spec = TV_APPS[app];
@@ -119,15 +120,34 @@ export class TvApplications {
     finally { this.busy = false; }
   }
   launch(app: TvApp) { const epoch = this.visibilityEpoch; return this.request(() => launchTvApp(this.runtime, app, { diagnostics: this.diagnostics, discover: () => this.discover(), permitted: () => epoch === this.visibilityEpoch })); }
-  async launchSettings(): Promise<ActionResult> {
-    const epoch = this.visibilityEpoch;
-    const result = await this.request(() => launchTvApp(this.runtime, 'youtube', {
-      exact: { id: 'com.samsung.tv.coba.setting', name: 'TV Settings' }, diagnostics: this.diagnostics,
-      discover: () => this.discover(true), permitted: () => epoch === this.visibilityEpoch,
-    }));
-    const fallback = 'To open Samsung Settings manually, select the protected TV tile to open Samsung Home, then choose Settings.';
-    return result ? { ...result, title: 'TV Settings could not be opened', message: `${result.message} ${fallback}` }
-      : { status: 'unsupported', title: 'TV Settings launch requested', message: `The public launch API accepted com.samsung.tv.coba.setting. This does not confirm that Settings appeared on the television; physical verification is required. If it did not appear: ${fallback}` };
+  private settingsAttempted = false;
+  async launchSettings(storage?: SettingsStorage): Promise<ActionResult> {
+    const fallback: ActionResult = { status: 'unsupported', title: 'Use FrameOS Settings', message: 'The Settings tile opens FrameOS Settings. For Samsung TV Settings, open the protected TV tile, then choose Settings in Samsung Home.' };
+    const key = 'frameos.native-settings.setting-control.v1';
+    let prior = false;
+    try { prior = !!storage?.getItem(key); } catch { /* Session guard remains available. */ }
+    if (this.settingsAttempted || prior) return fallback;
+    this.settingsAttempted = true;
+    try { storage?.setItem(key, 'attempted'); } catch { /* Do not retry within this session. */ }
+    const record = this.diagnostics.begin('Samsung Settings application control');
+    const operation = 'http://tizen.org/appcontrol/operation/setting';
+    this.diagnostics.update(record, { method: 'launchAppControl(setting)', discovery: 'Implicit public system resolver; no guessed application ID' });
+    const tizen = (this.runtime as { tizen?: { application?: Applications; ApplicationControl?: new (operation: string) => unknown } })?.tizen;
+    if (!tizen?.application?.launchAppControl || !tizen.ApplicationControl) {
+      this.diagnostics.update(record, { state: 'Failed', error: 'ApplicationControl API unavailable' }); return fallback;
+    }
+    return new Promise(resolve => {
+      let done = false;
+      const finish = (error?: unknown) => {
+        if (done) return; done = true; clearTimeout(timer);
+        const detail = error ? launchError(error) : 'API accepted; Samsung Settings visibility remains unverified';
+        this.diagnostics.update(record, { state: error ? 'Failed' : 'API accepted', error: error ? detail : '', discovery: operation + '; ' + detail });
+        try { storage?.setItem(key, JSON.stringify({ accepted: !error, detail })); } catch { /* Diagnostics also remain in memory. */ }
+        resolve(error ? fallback : { ...fallback, title: 'Native Settings request accepted', message: 'The API accepted the Settings request. Confirm the actual Samsung interface on the television. The dock Settings tile continues to open FrameOS Settings until native behavior is physically verified.' });
+      };
+      const timer = setTimeout(() => finish({ name: 'TimeoutError', message: 'Settings application control did not respond.' }), 5000);
+      try { tizen.application!.launchAppControl!(new tizen.ApplicationControl!(operation), null, () => finish(), finish); } catch (error) { finish(error); }
+    });
   }
   launchInstalled(app: InstalledApp) {
     const epoch = this.visibilityEpoch;

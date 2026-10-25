@@ -2,7 +2,9 @@
 
 > **v0.3.5 interface release:** [behavior, checks and deployment](docs/V0.3.5.md) · [changed files](docs/V0.3.5-FILES.md). Existing media work and the successful TV deployment pipeline are preserved.
 
-# FrameOS v0.4.0
+# FrameOS v0.4.1
+
+The [v0.4.1 corrections](docs/V0.4.1-LAUNCHER.md) restore spatial dock navigation, gate hold editing on measured remote support, add direct HDMI pins, provide a reliable Settings fallback, add Onyx Black/Light/Aqua and repair the focus-ring structure. Theme previews and signed-candidate instructions are included in the handoff. No native Home reassignment is part of this release.
 
 The launcher now includes All Apps, an editable scrolling dock, separate TV and FrameOS Settings, public-API Sources, refreshed Art/Browser tiles and a protected TV escape. See the [v0.4.0 launcher handoff](docs/V0.4.0-LAUNCHER.md) for remote controls, migration, verification limits and the signed candidate. TV deployment still requires approval.
 

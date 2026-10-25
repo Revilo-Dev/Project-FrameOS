@@ -1,4 +1,4 @@
-export type Theme = 'slate' | 'midnight' | 'warm';
+export type Theme = 'slate' | 'midnight' | 'warm' | 'onyx' | 'light' | 'aqua';
 export type WallpaperId = string;
 export type Motion = 'full' | 'subtle' | 'off';
 export type TimeFormat = '12h' | '24h';
@@ -16,4 +16,5 @@ export interface Settings {
   timeFormat: TimeFormat;
   timeZone: string;
   clockFont: ClockFont;
+  focusStyle: 'outline' | 'strong';
 }

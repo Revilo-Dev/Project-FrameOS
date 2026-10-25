@@ -1,8 +1,9 @@
+import { launcherTool, closeSettings } from './settingsNavigation';
 import { test, expect, type Page } from '@playwright/test';
 import { nativeFixture } from './nativeFixture';
 async function settings(page: Page, tool?: string) {
   await page.locator('#top-settings').click();
-  if (tool) await page.locator(`#launcher-${tool}`).click();
+  if (tool) await launcherTool(page, tool);
 }
 async function catalogue(page: Page, apps: { id: string; name: string; show?: boolean }[]) {
   await page.evaluate(apps => {
@@ -12,9 +13,9 @@ async function catalogue(page: Page, apps: { id: string; name: string; show?: bo
 }
 test('Samsung Home escape uses the recorded public launch ID and reports ACK evidence', async ({ page }) => {
   await nativeFixture(page, { apps: true }); await page.goto('/'); await catalogue(page, []);
-  await settings(page); await page.locator('#launcher-home').click();
+  await settings(page); await page.locator('#settings-tab-tv-sources').click(); await page.locator('#launcher-home').click();
   await expect.poll(() => page.evaluate(() => window.__playerFixture.calls.filter(call => call.startsWith('launch:')))).toEqual(['launch:com.samsung.tv.csfs']);
-  await page.locator('#launcher-apps').click();
+  await launcherTool(page, 'apps');
   await expect(page.getByLabel('Launch diagnostics')).toContainText('API accepted');
   await expect(page.getByLabel('Launch diagnostics')).toContainText('com.samsung.tv.csfs');
   await page.locator('#launch-report-down').click();
@@ -28,7 +29,7 @@ test('pins a real installed ID, preserves the dock and focus, and revalidates be
   await settings(page, 'apps');
   await page.locator('#apps-browser').click();
   await page.getByRole('button', { name: 'My Player', exact: true }).click(); await page.locator('#dock-option-add').click();
-  await page.keyboard.press('Escape'); await expect(page.locator('#top-settings')).toBeFocused();
+  await closeSettings(page); await expect(page.locator('#top-settings')).toBeFocused();
   await expect(page.locator('.app-dock .app-tile')).toHaveCount(11);
   await expect(page.locator('#app-art')).toBeVisible(); await expect(page.locator('#app-settings')).toBeVisible();
   await page.locator('[id="app-native:RealApp123.Player"]').click();

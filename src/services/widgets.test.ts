@@ -42,9 +42,9 @@ test('world clocks use IANA daylight saving and the actual local date without ne
   assert.match(worldTime(new Date('2026-01-01T01:00:00Z'), 'Europe/Warsaw', false).time, /02:00/);
 });
 test('Widgets participates in existing Settings channel routing and D-pad rows', () => {
-  assert.equal(adjacentSettingsTab('weather', 1), 'widgets');
-  assert.equal(adjacentSettingsTab('widgets', -1), 'weather');
-  assert.equal(adjacentSettingsTab('appearance', -1), 'media');
+  assert.equal(adjacentSettingsTab('weather', 1), 'media');
+  assert.equal(adjacentSettingsTab('widgets', -1), 'home-dock');
+  assert.equal(adjacentSettingsTab('appearance', -1), 'advanced');
   const rows = settingsLayout('widgets', 0, defaultWidgets().enabled).flat().map(item => item.id);
   assert(rows.includes('widget-later-weather'));
   assert(!rows.includes('widget-earlier-weather'));

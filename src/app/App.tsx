@@ -1,6 +1,7 @@
 import { useBitcoin } from '../components/useBitcoin';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Stage } from '../components/Stage';
+import { RemoteHoldEvidence } from '../navigation/RemoteHoldEvidence';
 import { useRemote } from '../navigation/useRemote';
 import { useArtMode } from '../navigation/useArtMode';
 import { useFocusRecovery } from '../navigation/useFocusRecovery';
@@ -10,7 +11,7 @@ import { useLauncherDock } from '../screens/useLauncherDock';
 import { loadLauncherPreferences, saveLauncherPreferences } from '../services/launcherPreferences';
 import { restorePreferenceBackup, type PreferenceBundle } from '../services/preferenceBackup';
 import { UiPerformance } from '../services/uiPerformance';
-import { adjacentSettingsTab, homeLayout, playerRows, settingsLayout, type SettingsTab } from '../navigation/layout';
+import { adjacentSettingsTab, homeLayout, playerRows, settingsLayout, settingsSection, type SettingsTab } from '../navigation/layout';
 import { mediaOptionsRows, mediaUpReturnsHome } from '../navigation/mediaLayout';
 import { FocusButton } from '../components/FocusButton';
 import { createPlatform } from '../platform';
@@ -40,6 +41,10 @@ interface Playback { entry: MediaEntry; queue: MediaEntry[]; automatic?: boolean
 export function App() {
   const platform = useMemo(() => createPlatform(), []);
   const storage = useMemo(browserStorage, []);
+  const remoteEvidence = useMemo(() => new RemoteHoldEvidence(), []);
+  const [holdSupport, setHoldSupport] = useState(remoteEvidence.get().status);
+  useEffect(() => remoteEvidence.subscribe(() => setHoldSupport(remoteEvidence.get().status)), [remoteEvidence]);
+  useEffect(() => { const stop = () => remoteEvidence.suspend(); window.addEventListener('blur', stop); document.addEventListener('visibilitychange', stop); return () => { window.removeEventListener('blur', stop); document.removeEventListener('visibilitychange', stop); remoteEvidence.cancel(); }; }, [remoteEvidence]);
   const performanceCapture = useMemo(() => new UiPerformance(), []);
   const [launcherPreferences, setLauncherPreferences] = useState(() => loadLauncherPreferences(storage));
   const [settings, setSettings] = useState(() => loadSettings(storage));
@@ -57,6 +62,7 @@ export function App() {
   const lastEntryIdentity = useRef('');
   const pendingMediaFocus = useRef(false);
   const [focused, setFocused] = useState(() => `app-${launcherPreferences.lastFocused}`);
+  const lastDockFocus = useRef(`app-${launcherPreferences.lastFocused}`);
   const [screen, setScreen] = useState<'home' | 'media'>('home');
   const bitcoin = useBitcoin(storage, settings.timeZone, widgets.enabled.includes('bitcoin') && screen === 'home' && !playback);
   const screenRef = useRef(screen); screenRef.current = screen;
@@ -77,6 +83,7 @@ export function App() {
   const origin = useRef('app-youtube');
   const busy = useRef(false);
   const focus = useCallback((id: string) => {
+    if (id.startsWith('app-')) lastDockFocus.current = id;
     setFocused(id);
     document.getElementById(id)?.focus({ preventScroll: true });
   }, []);
@@ -151,12 +158,13 @@ export function App() {
     setPlayback(null); setFocused(index >= 0 ? `media-entry-${index}` : 'media-options');
   };
   const home = () => { setMediaOptions(false); setScreen('home'); setFocused(origin.current); };
-  const openTool = (tool?: LauncherTool) => { setToolRows(undefined); setSettingsTool(tool); setFocused(tool ? 'launcher-tool-back' : `launcher-${settingsTool || 'apps'}`); };
+  const openTool = (tool?: LauncherTool) => { remoteEvidence.suspend(); setToolRows(undefined); setSettingsTool(tool); setFocused(tool ? 'launcher-tool-back' : `launcher-${settingsTool || 'apps'}`); };
   const closeOptions = () => { setMediaOptions(false); setFocused('media-options'); };
   const close = () => {
     if (playback) closePlayer();
     else if (panel?.kind === 'settings') {
       if (settingsTool) { openTool(); return; }
+      if (settingsSection(settingsTab) !== settingsTab) { const child = settingsTab; setSettingsTab(settingsSection(child)); setFocused('settings-tab-' + child); return; }
       if (settingsClosing) return;
       const from = panel.origin, closingPanel = panel;
       setSettingsClosing(true); setFocused(from);
@@ -170,13 +178,14 @@ export function App() {
       if (!hub.parent()) home();
     } else focus(`app-${launcherPreferences.lastFocused}`);
   };
-  const showMedia = (from: string) => { origin.current = from; pendingMediaFocus.current = !hub.entries.length; setScreen('media'); setFocused(hub.recovery ? 'media-recovery-refresh' : hub.entries.length ? 'media-entry-0' : 'media-options'); };
+  const showMedia = (from: string) => { origin.current = from === 'home-media' ? lastDockFocus.current : from; pendingMediaFocus.current = !hub.entries.length; setScreen('media'); setFocused(hub.recovery ? 'media-recovery-refresh' : hub.entries.length ? 'media-entry-0' : 'media-options'); };
   const personalise = (from: string) => { clearTimeout(settingsCloseTimer.current); setSettingsClosing(false); setPanel({ kind: 'settings', origin: from }); setFocused(tabFocusMemory.current[settingsTab] || `settings-tab-${settingsTab}`); };
   const selectSettingsTab = (tab: SettingsTab, restore = false) => {
     setSettingsTool(undefined); setToolRows(undefined);
-    setSettingsTab(tab); setFocused(restore ? tabFocusMemory.current[tab] || `settings-tab-${tab}` : `settings-tab-${tab}`);
+    setSettingsTab(tab); setFocused(settingsSection(tab) !== tab ? 'settings-section-back' : restore ? tabFocusMemory.current[tab] || `settings-tab-${tab}` : `settings-tab-${tab}`);
   };
   const open = async (item: LauncherItem, from: string) => {
+    if (item.action.type === 'source') { void launcher.showSource(item.action.sourceType, item.action.number, from); return; }
     if (item.action.type === 'all-apps') { launcher.showApps(from); return; }
     if (item.action.type === 'sources') { launcher.showSources(from); return; }
     if (item.action.type === 'art-mode') { art.enter(); return; }
@@ -195,7 +204,7 @@ export function App() {
   };
   const change = (next: Settings) => { setSettings(next); setSaved(saveSettings(storage, next)); };
   const changeLauncher = (next: typeof launcherPreferences) => { setLauncherPreferences(next); setSaved(saveLauncherPreferences(storage, next)); };
-  const launcher = useLauncherDock({ preferences: launcherPreferences, change: changeLauncher, apps: platform.apps, sources: platform.sources, focused, focus, open, enabled: screen === 'home' && !panel && !playback && !art.active });
+  const launcher = useLauncherDock({ preferences: launcherPreferences, change: changeLauncher, apps: platform.apps, sources: platform.sources, focused, focus, open, holdEditing: holdSupport === 'supported', disableHold: () => remoteEvidence.reject(), enabled: screen === 'home' && !panel && !playback && !art.active });
   const dock = launcher.dock;
   const changeWidgets = (next: WidgetPreferences) => { setWidgets(next); setSaved(saveWidgets(storage, next)); };
   const restorePreferences = (text: string) => {
@@ -219,9 +228,10 @@ export function App() {
   };
   const playbackIndex = playback?.queue.findIndex(entry => entry.id === playback.entry.id) ?? -1;
   const movePlayback = (offset: number, automatic = false) => { if (!playback || platform.player.get().busy) return; const entry = playback.queue[playbackIndex + offset]; if (entry) { setPlayback({ ...playback, entry, automatic }); setFocused('player-toggle'); } };
-  const rows = playback ? playerRows : activePanel?.kind === 'settings' ? settingsLayout(settingsTab, wallpaperPage, widgets.enabled, hub.allEntries.some(entry => entry.type === 'video'), settingsTool ? toolRows || [[{ id: 'launcher-tool-back', x: 350 }]] : undefined) : activePanel?.kind === 'widget' ? widgetPanelRows(activePanel.widget, organiser, calendarMonth, ['ready', 'offline', 'error', 'expired'].includes(calendar.state.status), ['ready', 'offline'].includes(calendar.state.status) ? Array.from({ length: 7 }, (_, i) => addDays(dayKey(new Date(), settings.timeZone), i)) : []) : activePanel?.kind === 'exit' ? [[{ id: 'exit-cancel', x: 0 }, { id: 'exit-confirm', x: 1 }]] : activePanel?.kind === 'context' ? ['hide', 'details', ...(activePanel.entry.type === 'video' ? ['thumbnail'] : []), 'cancel'].map(id => [{ id: `context-${id}`, x: 960 }]) : activePanel ? [[{ id: activePanel.kind === 'details' ? 'details-close' : 'notice-close', x: 0 }]] : screen === 'media' ? mediaOptions ? mediaOptionsRows(selectedIndex >= 0) : hub.rows : launcher.rows || homeLayout(compact, widgets.enabled, dock);
+  const rows = playback ? playerRows : activePanel?.kind === 'settings' ? settingsLayout(settingsTab, wallpaperPage, widgets.enabled, hub.allEntries.some(entry => entry.type === 'video'), settingsTool || ['home-dock', 'advanced', 'tv-sources'].includes(settingsTab) ? toolRows || [] : undefined) : activePanel?.kind === 'widget' ? widgetPanelRows(activePanel.widget, organiser, calendarMonth, ['ready', 'offline', 'error', 'expired'].includes(calendar.state.status), ['ready', 'offline'].includes(calendar.state.status) ? Array.from({ length: 7 }, (_, i) => addDays(dayKey(new Date(), settings.timeZone), i)) : []) : activePanel?.kind === 'exit' ? [[{ id: 'exit-cancel', x: 0 }, { id: 'exit-confirm', x: 1 }]] : activePanel?.kind === 'context' ? ['hide', 'details', ...(activePanel.entry.type === 'video' ? ['thumbnail'] : []), 'cancel'].map(id => [{ id: `context-${id}`, x: 960 }]) : activePanel ? [[{ id: activePanel.kind === 'details' ? 'details-close' : 'notice-close', x: 0 }]] : screen === 'media' ? mediaOptions ? mediaOptionsRows(selectedIndex >= 0) : hub.rows : launcher.rows || homeLayout(compact, widgets.enabled, dock);
   useFocusRecovery(rows, focused, focus, art.active);
-  useRemote({ rows, current: focused, focus, back: close, measure: performanceCapture.measure, input: (key, current) => {
+  useRemote({ rows, current: focused, focus, back: close, observe: remoteEvidence.observe, measure: performanceCapture.measure, input: (key, current) => {
+    if (settingsClosing && key === 'select') return true;
     if (!panel && !playback && screen === 'home' && launcher.input(key, current)) return true;
     if (activePanel?.kind === 'settings' && (key === 'media-skip-forward' || key === 'media-skip-back')) {
       selectSettingsTab(adjacentSettingsTab(settingsTab, key === 'media-skip-forward' ? 1 : -1), true); return true;
@@ -236,12 +246,12 @@ export function App() {
     if (!activePanel && screen === 'home' && current === 'home-media' && direction === 'down') { showMedia(current); return true; }
     if (activePanel || screen !== 'home' || !current.startsWith('app-')) return false;
     const index = dock.findIndex(item => `app-${item.id}` === current);
-    if (direction === 'down') { showMedia(current); return true; }
+    if (direction === 'down') return 'home-media';
     if (direction === 'left' || direction === 'right') return `app-${dock[Math.max(0, Math.min(dock.length - 1, index + (direction === 'left' ? -1 : 1)))].id}`;
     return false;
   } });
   const wallpaper = wallpapers.find((item) => item.id === settings.wallpaper) || wallpapers[0];
-  return <Stage><div className={`frameos theme-${settings.theme} motion-${settings.motion}${compact ? ' compact' : ''}${playback ? ' player-open' : ''}${art.active ? ' art-mode' : ''}`}>
+  return <Stage><div className={`frameos theme-${settings.theme} focus-${settings.focusStyle}${launcher.sourceViewing ? ' source-viewing' : ''} motion-${settings.motion}${compact ? ' compact' : ''}${playback ? ' player-open' : ''}${art.active ? ' art-mode' : ''}`}>
     <div className="wallpaper" key={wallpaper.id} style={{ backgroundImage: `url("${screen === 'media' ? wallpaper.ambient : wallpaper.src}")` }} />
     <div className={`ambient-wallpaper${screen === 'media' ? ' media-ambient' : ''}`} style={{ backgroundImage: `url("${wallpaper.ambient}")` }} />
     <div className="wallpaper-shade" />
@@ -250,7 +260,7 @@ export function App() {
       <MediaHub changeColumns={columns => updateMedia({ ...mediaPreferences, gridColumns: columns })} hub={hub} adapter={platform.media} thumbnails={platform.thumbnails} focused={screen === 'media' && !panel && !playback ? focused : ''} selected={selectedEntryFocus} focus={focus} home={home} columns={mediaPreferences.gridColumns} inactive={!!panel || !!playback} hidden={screen !== 'media'} openFile={openFile} context={context} showHidden={mediaPreferences.showHidden} toggleHidden={() => { updateMedia({ ...mediaPreferences, showHidden: !mediaPreferences.showHidden }); setFocused('media-hidden'); }} message={mediaMessage} optionsOpen={mediaOptions && screen === 'media' && !panel && !playback} openOptions={() => { setMediaOptions(true); setFocused(`filter-${hub.filter}`); }} closeOptions={closeOptions} refresh={() => { setMediaOptions(false); hub.refresh(); }} />
     </div></div>
     {!panel && !playback && launcher.element}
-    {panel?.kind === 'settings' && <SettingsPanel toolActive={!!settingsTool} launcherTools={<LauncherSettings openApps={() => { setPanel(null); setSettingsTool(undefined); launcher.showApps('top-settings'); }} restoreDock={() => { setPanel(null); setSettingsTool(undefined); launcher.reset('top-settings'); }} tool={settingsTool} openTool={openTool} samsungHome={() => { void open({ id: 'samsung-home', name: 'Samsung Home', icon: 'home', availability: 'available', action: { type: 'samsung-home' } }, 'launcher-home'); }} apps={platform.apps} preferences={launcherPreferences} change={changeLauncher} performance={performanceCapture} capture={capture} bundle={{ settings, widgets, organiser, media: mediaPreferences, launcher: launcherPreferences }} storage={storage} restore={restorePreferences} focused={focused} focus={focus} rowsChanged={setToolRows} />} settings={settings} focused={focused} focus={focus} change={change} close={close} saved={saved} tab={settingsTab} selectTab={tab => selectSettingsTab(tab)} page={wallpaperPage} selectPage={page => { setWallpaperPage(page); setFocused(`wallpaper-${wallpaperPageItems(page)[0].id}`); }} media={platform.media} thumbnails={platform.thumbnails} thumbnailEntries={thumbnailEntries} selectedThumbnail={selectedThumbnail} autoplay={mediaPreferences.autoplayNext} toggleAutoplay={() => updateMedia({ ...mediaPreferences, autoplayNext: !mediaPreferences.autoplayNext })} clearMediaCache={async () => { await Promise.all([hub.clearCache(), platform.thumbnails.clear()]); setMediaMessage('Media cache cleared.'); }} closing={settingsClosing} wallpaper={wallpaper.ambient} widgets={widgets} changeWidgets={changeWidgets} />}
+    {panel?.kind === 'settings' && <SettingsPanel toolActive={!!settingsTool} launcherTools={<LauncherSettings section={settingsSection(settingsTab)} remoteEvidence={remoteEvidence} openSources={() => { setPanel(null); launcher.showSources('top-settings'); }} sources={platform.sources} openApps={() => { setPanel(null); setSettingsTool(undefined); launcher.showApps('top-settings'); }} restoreDock={() => { setPanel(null); setSettingsTool(undefined); launcher.reset('top-settings'); }} tool={settingsTool} openTool={openTool} samsungHome={() => { void open({ id: 'samsung-home', name: 'Samsung Home', icon: 'home', availability: 'available', action: { type: 'samsung-home' } }, 'launcher-home'); }} apps={platform.apps} preferences={launcherPreferences} change={changeLauncher} performance={performanceCapture} capture={capture} bundle={{ settings, widgets, organiser, media: mediaPreferences, launcher: launcherPreferences }} storage={storage} restore={restorePreferences} focused={focused} focus={focus} rowsChanged={setToolRows} />} mediaColumns={mediaPreferences.gridColumns} changeColumns={columns => updateMedia({ ...mediaPreferences, gridColumns: columns })} settings={settings} focused={focused} focus={focus} change={change} close={close} saved={saved} tab={settingsTab} selectTab={tab => selectSettingsTab(tab)} page={wallpaperPage} selectPage={page => { setWallpaperPage(page); setFocused(`wallpaper-${wallpaperPageItems(page)[0].id}`); }} media={platform.media} thumbnails={platform.thumbnails} thumbnailEntries={thumbnailEntries} selectedThumbnail={selectedThumbnail} autoplay={mediaPreferences.autoplayNext} toggleAutoplay={() => updateMedia({ ...mediaPreferences, autoplayNext: !mediaPreferences.autoplayNext })} clearMediaCache={async () => { await Promise.all([hub.clearCache(), platform.thumbnails.clear()]); setMediaMessage('Media cache cleared.'); }} closing={settingsClosing} wallpaper={wallpaper.ambient} widgets={widgets} changeWidgets={changeWidgets} />}
     {panel?.kind === 'widget' && <WidgetPanel key={panel.widget} id={panel.widget} settings={settings} preferences={widgets} organiser={organiser} updateOrganiser={updateOrganiser} calendar={calendar.state} bitcoin={bitcoin} month={calendarMonth} setMonth={setCalendarMonth} selectedDay={calendarDay} selectDay={setCalendarDay} refreshCalendar={() => { void calendar.refresh(); }} focused={focused} focus={focus} close={close} configure={() => { setSettingsTab(panel.widget === 'weather' ? 'weather' : 'widgets'); personalise(panel.origin); }} wallpaper={wallpaper.ambient} saved={organiserSaved} />}
     {panel?.kind === 'notice' && <NoticePanel {...panel} focused={focused} focus={focus} close={close} />}
     {panel?.kind === 'details' && <MediaDetails entry={panel.entry} focused={focused} focus={focus} close={close} />}

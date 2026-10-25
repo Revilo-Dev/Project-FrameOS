@@ -49,7 +49,7 @@ test('Media uses the selected preblurred wallpaper and restores native transpare
 test('opening Media during USB discovery focuses arriving cards without stealing later navigation', async ({ page }) => {
   await nativeFixture(page, { delayDirectory: true }); await page.goto('/');
   await expect.poll(() => page.evaluate(() => window.__playerFixture.reads.length)).toBe(1);
-  await page.keyboard.press('ArrowDown'); await expect(page.locator('#media-options')).toBeFocused();
+  await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await expect(page.locator('#media-options')).toBeFocused();
   await page.evaluate(() => { window.__playerFixture.delayDirectory = false; window.__playerFixture.finishDirectory(); });
   await expect(page.locator('#media-entry-0')).toBeFocused();
   await page.keyboard.press('ArrowRight'); await expect(page.locator('#media-entry-1')).toBeFocused();

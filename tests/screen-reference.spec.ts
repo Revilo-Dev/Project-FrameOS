@@ -1,3 +1,4 @@
+import { settingsSubsection } from './settingsNavigation';
 import { bitcoinFixture } from './bitcoinFixture';
 import { test, expect } from '@playwright/test';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -44,7 +45,7 @@ test('capture all FrameOS screens and assemble the reference gallery', async ({ 
   }
   await page.locator('#top-settings').click();
   for (const [id, title] of [['appearance', 'Appearance'], ['clock', 'Clock'], ['wallpapers', 'Wallpapers'], ['weather', 'Weather'], ['widgets', 'Widgets'], ['media', 'Media / playback'], ['usb', 'USB diagnostics']]) {
-    await page.locator(`#settings-tab-${id}`).click();
+    if (['clock','wallpapers','weather','usb'].includes(id)) await settingsSubsection(page,id); else await page.locator(`#settings-tab-${id}`).click();
     if (id === 'usb') {
       await page.locator('#usb-rescan').click();
       await expect(page.locator('.diagnostic-status')).toContainText('USB detected');
