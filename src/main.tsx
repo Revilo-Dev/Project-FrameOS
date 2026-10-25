@@ -7,6 +7,7 @@ import './styles/refinement.css';
 import './styles/media-player.css';
 import './styles/oneui.css';
 import './styles/widgets.css';
+import './styles/launcher.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode><App /></React.StrictMode>,

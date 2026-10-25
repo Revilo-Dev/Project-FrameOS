@@ -17,9 +17,10 @@ it('launches each actual TV destination and never selects Prime dummy/companion 
 });
 it('tries the second actual browser when the first is unavailable and preserves permission failures', async () => {
   const calls: string[] = [];
-  const runtime = { tizen: { application: { launch(id: string, done: () => void, fail: (e: unknown) => void) { calls.push(id); id === TV_APPS.browser.ids[0] ? fail({ name: 'NotFoundError' }) : done(); } } } };
+  const getAppsInfo = (done: (apps: { id: string; name: string }[]) => void) => done(TV_APPS.browser.ids.map(id => ({ id, name: 'Internet' })));
+  const runtime = { tizen: { application: { getAppsInfo, launch(id: string, done: () => void, fail: (e: unknown) => void) { calls.push(id); id === TV_APPS.browser.ids[0] ? fail({ name: 'NotFoundError' }) : done(); } } } };
   assert.equal(await launchTvApp(runtime, 'browser'), null); assert.deepEqual([...calls], [...TV_APPS.browser.ids]);
   calls.length = 0;
-  const denied = await launchTvApp({ tizen: { application: { launch(id: string, _done: unknown, fail: (e: unknown) => void) { calls.push(id); fail({ name: 'SecurityError' }); } } } }, 'browser');
+  const denied = await launchTvApp({ tizen: { application: { getAppsInfo, launch(id: string, _done: unknown, fail: (e: unknown) => void) { calls.push(id); fail({ name: 'SecurityError' }); } } } }, 'browser');
   assert.match(denied!.message, /permission/); assert.equal(calls.length, 1);
 });

@@ -1,0 +1,33 @@
+/* Original compact dock spacing; automatic edge margins centre short rows. */
+.dock-section, .compact .dock-section { left: 80px; right: 80px; padding-top: 18px; }
+.app-dock, .compact .app-dock { position: relative; top: auto; bottom: auto; left: auto; right: auto; justify-content: flex-start; height: 154px; overflow-x: auto; overflow-y: hidden; padding: 14px 8px; scrollbar-width: none; }
+.app-dock::-webkit-scrollbar { height: 0; }
+.dock-cell { position: relative; flex: 0 0 auto; height: 120px; display: flex; align-items: center; justify-content: center; }
+.dock-cell:first-child { margin-left: auto; }
+.dock-cell:last-child { margin-right: auto; }
+.tile-gallery, .tile-gallery.is-focused, .tile-art, .tile-art.is-focused { background: linear-gradient(135deg, #ff951f 0%, #ff951f 35%, #7431d6 65%, #7431d6 100%); color: #fff; }
+.tile-browser, .tile-browser.is-focused { background: linear-gradient(135deg, #8a43dc 0%, #4052db 50%, #1689f5 100%); }
+.tile-tv, .tile-tv.is-focused { background: linear-gradient(135deg, #28778b, #183f64); }
+.tile-sources, .tile-sources.is-focused { background: linear-gradient(135deg, #398e80, #235a65); }
+.tile-all-apps, .tile-all-apps.is-focused { background: linear-gradient(135deg, #695bc1, #393f7d); }
+.tile-native, .tile-native.is-focused { background: linear-gradient(135deg, #4d657e, #283d56); }
+.app-tile.is-moving, .compact .app-tile.is-moving { transform: translateY(-11px) scale(1.04); border-color: #ffd393; box-shadow: 0 0 0 5px rgba(255,211,147,.23), 0 16px 26px rgba(0,0,0,.35); }
+.dock-move-hint { position: absolute; z-index: 19; left: 280px; right: 280px; top: 728px; text-align: center; padding: 14px; border-radius: 18px; background: var(--panel-glass); font-size: 22px; }
+.launcher-scrim { z-index: 24; }
+.all-apps-panel { position: absolute; top: 64px; left: 150px; width: 1620px; height: 950px; padding: 38px 46px; border-radius: 36px; background: var(--panel-glass); box-shadow: var(--shadow-panel); display: flex; flex-direction: column; }
+.all-apps-panel header { display: flex; justify-content: space-between; align-items: center; }
+.all-apps-panel h2 { margin: 0 0 8px; font-size: 36px; }
+.all-apps-panel p { font-size: 19px; line-height: 1.45; color: #d0d7e4; }
+.all-apps-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); overflow-y: auto; padding: 14px; margin: 4px -14px 0; align-content: start; }
+.all-app-card { position: relative; min-height: 205px; margin: 9px; padding: 18px 10px; border-radius: 24px; border: 3px solid transparent; background: rgba(60,76,98,.5); color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 22px; text-align: center; transition: border-color var(--duration), transform var(--duration); }
+.all-app-card.is-focused { border-color: #fff; transform: translateY(-3px); }
+.all-app-art { display: flex; align-items: center; justify-content: center; width: 88px; height: 88px; margin-bottom: 12px; border-radius: 25px; background-color: #3d536c; }
+.all-app-art .icon, .all-app-art img { width: 58px; height: 58px; object-fit: contain; }
+.pinned-label { color: #c2dfb9; margin-top: 7px; font-size: 16px; }
+.dock-options { min-width: 520px; max-height: 960px; padding: 32px; }
+.dock-options p { font-size: 17px; color: #c6d2df; }
+.source-list { overflow-y: auto; padding: 10px; }
+.source-list .context-action { width: 100%; margin-bottom: 12px; }
+.source-list small { display: block; font-size: 18px; margin-top: 6px; color: #c3d2de; }
+.source-list [aria-current=true] { border-color: #a9ceff; background: #344c65; }
+@media (prefers-reduced-motion: reduce) { .app-dock { scroll-behavior: auto; } .all-app-card { transition: none; } }

@@ -1,7 +1,7 @@
 import { it } from 'node:test';
 import assert from 'node:assert/strict';
 import { BACKUP_LIMIT, createPreferenceBackup, parsePreferenceBackup, readPreferenceBundle, RECOVERY_KEY, restorePreferenceBackup } from './preferenceBackup';
-import { configuredDock, LAUNCHER_KEY, loadLauncherPreferences } from './launcherPreferences';
+import { configuredDock, defaultDock, LAUNCHER_KEY, loadLauncherPreferences } from './launcherPreferences';
 import { SETTINGS_KEY } from './settings';
 function memory() { const data = new Map<string, string>(); return { data, getItem: (key: string) => data.get(key) ?? null, setItem: (key: string, value: string) => { data.set(key, value); }, removeItem: (key: string) => { data.delete(key); } }; }
 it('round trips only allowlisted preferences and keeps Art/Settings dock controls intact', () => {
@@ -9,18 +9,18 @@ it('round trips only allowlisted preferences and keeps Art/Settings dock control
   storage.setItem(LAUNCHER_KEY, JSON.stringify({ version: 1, pins: { youtube: { appId: 'Abcdef1234.Player', name: 'Player' }, art: { appId: 'BadApp', name: 'Bad' }, stan: { appId: 'com.samsung.tv.csfs', name: 'Home' } } }));
   const bundle = readPreferenceBundle(storage), text = createPreferenceBackup(bundle);
   assert.doesNotMatch(text, /secret|account.token|BadApp/); assert.deepEqual(parsePreferenceBackup(text), bundle);
-  const dock = configuredDock(loadLauncherPreferences(storage)); assert.equal(dock.find(item => item.id === 'youtube')?.name, 'Player'); assert.equal(dock.find(item => item.id === 'art')?.action.type, 'art-mode'); assert.equal(dock.find(item => item.id === 'settings')?.action.type, 'settings');
+  const dock = configuredDock(loadLauncherPreferences(storage)); assert.equal(dock.find(item => item.id === 'youtube')?.name, 'Player'); assert.equal(dock.find(item => item.id === 'art')?.action.type, 'art-mode'); assert.equal(dock.find(item => item.id === 'settings')?.action.type, 'system-settings');
 });
 it('migrates v1 backups with no launcher and existing legacy wallpaper/widget fields', () => {
   const preferences = readPreferenceBundle(memory());
   const source = { ...preferences, settings: { ...preferences.settings, wallpaper: 'dusk' }, widgets: { version: 1, enabled: ['weather', 'calendar', 'world-clock'] }, launcher: undefined };
   const bundle = parsePreferenceBackup(JSON.stringify({ format: 'frameos.preferences', version: 1, preferences: source }));
-  assert.deepEqual(bundle.launcher, { version: 1, pins: {} }); assert.notEqual(bundle.settings.wallpaper, 'dusk'); assert.deepEqual(bundle.widgets.enabled, ['weather', 'bitcoin', 'world-clock']);
+  assert.deepEqual(bundle.launcher, defaultDock()); assert.notEqual(bundle.settings.wallpaper, 'dusk'); assert.deepEqual(bundle.widgets.enabled, ['weather', 'bitcoin', 'world-clock']);
 });
 it('rejects unsupported backup/section versions and oversized input before writing', () => {
   const storage = memory(), preferences = readPreferenceBundle(storage);
   assert.throws(() => parsePreferenceBackup('x'.repeat(BACKUP_LIMIT)), /limit/);
-  assert.throws(() => parsePreferenceBackup(JSON.stringify({ format: 'frameos.preferences', version: 3, preferences })), /version/);
+  assert.throws(() => parsePreferenceBackup(JSON.stringify({ format: 'frameos.preferences', version: 99, preferences })), /version/);
   assert.throws(() => restorePreferenceBackup(storage, JSON.stringify({ format: 'frameos.preferences', version: 2, preferences: { ...preferences, launcher: { version: 99 } } })), /version/);
   assert.equal(storage.data.size, 0);
 });

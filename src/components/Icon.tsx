@@ -2,6 +2,9 @@ import type { IconName } from '../types/launcher';
 
 export function Icon({ name, className = '' }: { name: IconName; className?: string }) {
   const paths: Record<IconName, React.ReactNode> = {
+    apps: <>{[10, 21, 32].map(x => [10, 21, 32].map(y => <rect key={`${x}-${y}`} x={x} y={y} width="6" height="6" rx="2" fill="currentColor" stroke="none" />))}</>,
+    tv: <><rect x="5" y="8" width="38" height="27" rx="5" /><path d="M16 41h16M24 35v6" /></>,
+    sources: <><rect x="6" y="8" width="36" height="31" rx="5" /><path d="M2 24h23m-7-7 7 7-7 7M31 16h4M31 23h4M31 30h4" /></>,
     usb: <><path d="M24 39V10m-6 7 6-7 6 7M24 29l-10-7v-5m10 15 11-8v-5" /><circle cx="24" cy="39" r="3" /><circle cx="14" cy="14" r="3" /><path d="M32 13h6v6h-6z" /></>,
     play: <><rect x="5" y="11" width="38" height="27" rx="9" fill="currentColor" stroke="none" /><path d="m21 19 11 6-11 6z" fill="var(--icon-cutout, #233c50)" stroke="none" /></>,
     stan: <text x="24" y="33" textAnchor="middle" fill="currentColor" stroke="none" fontSize="29" fontWeight="700" fontFamily="Arial, sans-serif">S.</text>,

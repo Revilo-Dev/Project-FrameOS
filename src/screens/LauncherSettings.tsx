@@ -2,17 +2,15 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { FocusButton } from '../components/FocusButton';
 import type { FocusRows } from '../navigation/remote';
 import type { TvApplications } from '../platform/launchTvApp';
-import { launchError } from '../platform/LaunchDiagnostics';
-import type { InstalledApp } from '../platform/installedApps';
 import type { UiPerformance } from '../services/uiPerformance';
-import { dockSlots, type DockSlot, type LauncherPreferences } from '../services/launcherPreferences';
+import { configuredDock, type LauncherPreferences } from '../services/launcherPreferences';
 import { createPreferenceBackup, parsePreferenceBackup, RECOVERY_KEY, type PreferenceBundle } from '../services/preferenceBackup';
 import type { SettingsStorage } from '../services/settings';
 
 export type LauncherTool = 'apps' | 'performance' | 'backup';
 interface Common { focused: string; focus(id: string): void; rowsChanged(rows: FocusRows): void }
 interface Props extends Common {
-  tool?: LauncherTool; openTool(tool?: LauncherTool): void; samsungHome(): void;
+  tool?: LauncherTool; openTool(tool?: LauncherTool): void; samsungHome(): void; openApps(): void; restoreDock(): void;
   apps: TvApplications; preferences: LauncherPreferences; change(preferences: LauncherPreferences): void;
   performance: UiPerformance; capture(home: boolean): void;
   bundle: PreferenceBundle; storage: SettingsStorage; restore(text: string): void;
@@ -40,32 +38,13 @@ export function LauncherSettings(props: Props) {
   </div>;
 }
 function InstalledApps(props: Props) {
-  const [apps, setApps] = useState<InstalledApp[]>([]), [page, setPage] = useState(0), [slot, setSlot] = useState<DockSlot>('youtube');
-  const [status, setStatus] = useState('Reading installed apps…'), [loading, setLoading] = useState(true);
   const [records, setRecords] = useState(props.apps.diagnostics.get);
-  const [generation, setGeneration] = useState(0);
   useEffect(() => props.apps.diagnostics.subscribe(() => setRecords(props.apps.diagnostics.get())), [props.apps]);
-  useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    void props.apps.choices(generation > 0).then(values => {
-      if (!alive) return; setApps(values); setPage(current => Math.min(current, Math.max(0, Math.ceil(values.length / 6) - 1)));
-      setStatus(values.length ? `${values.length} installed apps available. Select an app to replace this shortcut.` : 'No selectable apps were returned. Your existing shortcuts are kept.');
-    }, error => { if (alive) setStatus(launchError(error)); }).finally(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
-  }, [props.apps, generation]);
-  const visible = apps.slice(page * 6, page * 6 + 6);
-  useRows(props, [row('launcher-tool-back'), row('apps-refresh', 'apps-default'), row(...dockSlots.slice(0, 3).map(id => `dock-slot-${id}`)), row(...dockSlots.slice(3).map(id => `dock-slot-${id}`)), ...Array.from({ length: Math.ceil(visible.length / 2) }, (_, i) => row(...visible.slice(i * 2, i * 2 + 2).map(app => `app-choice-${app.id}`))), row(...[...(page > 0 ? ['apps-prev'] : []), ...(page + 1 < Math.ceil(apps.length / 6) ? ['apps-next'] : [])]), ...(records.length ? [row('launch-report-up', 'launch-report-down')] : [])]);
-  useLayoutEffect(() => {
-    if (props.focused.startsWith('app-choice-') && !visible.some(app => `app-choice-${app.id}` === props.focused)) props.focus('apps-refresh');
-  }, [apps, page, props.focused]);
-  return <div className="launcher-tools">
-    <div className="setting-label"><h3>Installed apps</h3><span>Choose a dock shortcut</span></div>
-    <div className="launcher-actions"><FocusButton id="apps-refresh" focused={props.focused} onFocused={props.focus} className="text-button" aria-disabled={loading} onClick={() => { if (!loading) { setGeneration(value => value + 1); setStatus('Refreshing installed apps…'); } }}>Refresh installed apps</FocusButton><FocusButton id="apps-default" focused={props.focused} onFocused={props.focus} className="text-button" onClick={() => { const pins = { ...props.preferences.pins }; delete pins[slot]; props.change({ version: 1, pins }); setStatus('Original shortcut restored.'); }}>Restore selected shortcut</FocusButton></div>
-    <div className="launcher-slot-grid">{dockSlots.map(id => <FocusButton key={id} id={`dock-slot-${id}`} focused={props.focused} onFocused={props.focus} className={`option${slot === id ? ' is-selected' : ''}`} aria-pressed={slot === id} onClick={() => setSlot(id)}>{id === 'prime' ? 'Prime Video' : id[0].toUpperCase() + id.slice(1)}{props.preferences.pins[id] ? ` → ${props.preferences.pins[id]!.name}` : ''}</FocusButton>)}</div>
-    <p className="setting-note" role="status">{status}</p>
-    <div className="launcher-app-grid">{visible.map(app => <FocusButton key={app.id} id={`app-choice-${app.id}`} focused={props.focused} onFocused={props.focus} className="option" aria-disabled={loading} onClick={() => { if (loading) return; props.change({ version: 1, pins: { ...props.preferences.pins, [slot]: { appId: app.id, name: app.name } } }); setStatus(`${app.name} assigned to the ${slot} shortcut.`); }}><span>{app.name}</span><small>{app.id}</small></FocusButton>)}</div>
-    <div className="launcher-actions">{page > 0 && <FocusButton id="apps-prev" focused={props.focused} onFocused={props.focus} className="text-button" onClick={() => { setPage(page - 1); props.focus('apps-refresh'); }}>Previous</FocusButton>}{page + 1 < Math.ceil(apps.length / 6) && <FocusButton id="apps-next" focused={props.focused} onFocused={props.focus} className="text-button" onClick={() => { setPage(page + 1); props.focus('apps-refresh'); }}>Next</FocusButton>}</div>
+  useRows(props, [row('launcher-tool-back'), row('apps-browser', 'launcher-dock-reset'), ...(records.length ? [row('launch-report-up', 'launch-report-down')] : [])]);
+  return <div className="launcher-tools"><div className="setting-label"><h3>Dock configuration</h3><span>{props.preferences.order.length} shortcuts</span></div>
+    <p className="setting-note">Add installed apps in All Apps. On the dock, Up opens Options. Choose Move, then Left / Right and Select to save, or Back to cancel. Art Mode stays first. TV and All Apps are protected.</p>
+    <div className="launcher-actions"><FocusButton id="apps-browser" focused={props.focused} onFocused={props.focus} className="text-button" onClick={props.openApps}>Open All Apps</FocusButton><FocusButton id="launcher-dock-reset" focused={props.focused} onFocused={props.focus} className="text-button" onClick={props.restoreDock}>Restore Default Dock...</FocusButton></div>
+    <p className="setting-note">{configuredDock(props.preferences).map(item => item.name).join(' ? ')}</p>
     <div className="setting-label"><h3>Recent launch requests</h3><span>Kept for this session</span></div>
     <p className="setting-note">An API acknowledgement does not confirm that the app appeared on screen. Check the television after launching.</p>
     {records.length ? <ScrollReport id="launch-report" label="Launch diagnostics" value={records} focused={props.focused} focus={props.focus} /> : <p className="setting-note">No launch requests yet.</p>}

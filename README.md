@@ -2,7 +2,9 @@
 
 > **v0.3.5 interface release:** [behavior, checks and deployment](docs/V0.3.5.md) · [changed files](docs/V0.3.5-FILES.md). Existing media work and the successful TV deployment pipeline are preserved.
 
-# FrameOS v0.3.8
+# FrameOS v0.4.0
+
+The launcher now includes All Apps, an editable scrolling dock, separate TV and FrameOS Settings, public-API Sources, refreshed Art/Browser tiles and a protected TV escape. See the [v0.4.0 launcher handoff](docs/V0.4.0-LAUNCHER.md) for remote controls, migration, verification limits and the signed candidate. TV deployment still requires approval.
 
 Latest follow-up replaces Foxtel with Prime Video and wires all six native app destinations. Bitcoin's successive five-minute updates, pause in Media and overdue refresh on Home return have automated coverage. See the [follow-up report and signed candidate](docs/V0.3.8.md#native-app-destinations-and-refresh-follow-up). TV thumbnail failure remains under investigation; the diagnostic summary now keeps the key result fields visible above Retry.
 

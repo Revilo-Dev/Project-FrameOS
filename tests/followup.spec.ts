@@ -15,7 +15,7 @@ test('Bitcoin replaces Calendar with genuine-shaped daily chart, USD quote, stat
   await expect(card).toContainText('24h volume'); await expect(card.locator('svg[role=img]')).toBeVisible();
   expect(await card.evaluate(element => element.scrollHeight <= element.clientHeight)).toBe(true);
   await page.screenshot({ path: 'artifacts/v038/home-bitcoin.png' });
-  await page.keyboard.press('ArrowLeft'); await page.keyboard.press('ArrowUp'); await page.keyboard.press('ArrowRight'); await expect(card).toBeFocused();
+  await page.locator('#top-settings').focus(); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowLeft'); await expect(card).toBeFocused();
   await page.keyboard.press('Enter'); await expect(page.locator('.bitcoin-detail')).toBeVisible();
   await expect(page.locator('.bitcoin-detail')).toContainText('midnight in Australia/Brisbane');
   await page.clock.runFor(600);

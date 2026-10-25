@@ -132,8 +132,8 @@ test('an existing native-index thumbnail loads on a file origin, is cached, and 
 });
 test('New Beith uses verified coordinates, persists and keeps Brisbane available; Settings dock label stays hidden until focused', async ({ page }) => {
   const requests: string[] = []; page.on('request', request => { if (request.url().includes('api.open-meteo.com')) requests.push(request.url()); });
-  await page.goto('/'); await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeVisible(); await expect(page.locator('#app-settings .app-name')).toHaveCSS('opacity', '0');
-  await page.locator('#app-settings').click(); await page.locator('#settings-tab-weather').click(); await expect(page.locator('#city-brisbane')).toBeVisible(); await page.locator('#city-new-beith').click();
+  await page.goto('/'); await expect(page.getByRole('button', { name: 'TV Settings', exact: true })).toBeVisible(); await expect(page.locator('#app-settings .app-name')).toHaveCSS('opacity', '0');
+  await page.locator('#top-settings').click(); await page.locator('#settings-tab-weather').click(); await expect(page.locator('#city-brisbane')).toBeVisible(); await page.locator('#city-new-beith').click();
   await page.keyboard.press('Escape'); await expect(page.locator('.weather-city')).toHaveText('New Beith'); await expect(page.locator('.weather-hour')).toHaveCount(6);
   const url = new URL(requests.find(url => url.includes('latitude=-27.766'))!); expect(url.searchParams.get('longitude')).toBe('152.942');
   await page.reload(); await expect(page.locator('.weather-city')).toHaveText('New Beith');

@@ -3,6 +3,7 @@ import type { MediaAdapter } from '../types/media';
 import type { AvPlayController } from './AvPlayController';
 import type { ThumbnailService } from '../services/thumbnails';
 import type { TvApplications } from './launchTvApp';
+import type { TvSources } from './tvSources';
 
 export interface PlatformAdapter {
   readonly kind: 'browser' | 'tizen';
@@ -10,6 +11,7 @@ export interface PlatformAdapter {
   readonly player: AvPlayController;
   readonly thumbnails: ThumbnailService;
   readonly apps: TvApplications;
+  readonly sources: TvSources;
   registerMediaKeys(): () => void;
   perform(action: NativeAction): Promise<ActionResult | null>;
   exit(): Promise<ActionResult | null>;

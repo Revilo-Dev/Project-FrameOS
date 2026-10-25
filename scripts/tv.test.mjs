@@ -329,3 +329,11 @@ test('Bitcoin permits only its API origin and YouTube launch privilege stays off
   assert(!enabled.additions.includes('application.info')); assert(!enabled.additions.includes('filesystem.write'));
   assert.equal(enabled.manifest.toString().replace(enabled.additions, ''), policyManifest.toString());
 });
+test('v0.4.0 launcher adds exactly the approved public TVWindow privilege to the existing application policy', () => {
+  const previous = createPackagingManifest(policyManifest, { ...reviewedPolicy(), release: '0.3.8', youtubeLaunch: true });
+  const next = createPackagingManifest(policyManifest, { ...reviewedPolicy(), release: '0.4.0', youtubeLaunch: true, tvWindow: true });
+  const addition = '    <tizen:privilege name="http://tizen.org/privilege/tv.window"/>\n';
+  assert.equal(next.additions.replace(/\r\n/g, '\n').replace(addition, ''), previous.additions.replace(/\r\n/g, '\n'));
+  assert.equal(next.manifest.toString().replace(next.additions, ''), policyManifest.toString());
+  assert.throws(() => createPackagingManifest(policyManifest, { ...reviewedPolicy(), release: '0.4.0', youtubeLaunch: true, tvWindow: true, arbitrary: true }), /Invalid manifest policy/);
+});

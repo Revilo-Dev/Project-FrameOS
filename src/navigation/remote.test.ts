@@ -24,12 +24,12 @@ describe('remote navigation', () => {
     assert.equal(remoteKey({ key: 'Unidentified', keyCode: 40 }), 'down');
     assert.equal(remoteKey({ key: 'MediaPlay', keyCode: 415 }), 'media-play');
   });
-  it('reaches all seven tiles and the Media prompt without a redundant USB tile', () => {
+  it('reaches all ten default tiles and the Media prompt without a redundant USB tile', () => {
     let id = 'app-art';
     const visited = [id];
     for (let i = 0; i < 15; i++) { id = nextFocus(homeRows, id, 'right'); visited.push(id); }
-    assert.equal(new Set(visited).size, 7);
-    assert.equal(id, 'app-settings');
+    assert.equal(new Set(visited).size, 10);
+    assert.equal(id, 'app-all-apps');
     assert.equal(nextFocus(homeRows, id, 'down'), 'home-media');
     assert.equal(nextFocus(homeRows, 'app-youtube', 'left'), 'app-art');
     assert.equal(nextFocus(homeRows, 'app-art', 'left'), 'app-art');

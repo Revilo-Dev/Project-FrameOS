@@ -1,0 +1,8 @@
+Original proposal: approved by the user and applied to the fresh packaging copy on 25 October 2026.
+The protected external Tizen project manifest remains unchanged.
+
+    <tizen:privilege name="http://tizen.org/privilege/application.launch"/>
++   <tizen:privilege name="http://tizen.org/privilege/tv.window"/>
+
+Purpose: public TVWindow getSource/setSource/show/hide methods.
+No other privilege, source manifest, Home routing or startup change is proposed.

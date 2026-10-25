@@ -69,7 +69,7 @@ test('refreshed home has the supplied logo/icons, one customisable clock, hourly
   await expect(page.getByText('Your home, reimagined')).toHaveCount(0);
   await expect(page.getByText('Coming soon', { exact: false })).toHaveCount(0);
   for (const name of ['YouTube', 'Stan', 'Prime Video', 'Gallery', 'Art Mode', 'Browser']) await expect(page.getByRole('button', { name, exact: true })).toContainText(name);
-  await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'TV Settings', exact: true })).toBeVisible();
   await expect(page.locator('#app-settings .app-name')).toHaveCSS('opacity', '0');
   await expect(page.getByRole('button', { name: 'USB Media', exact: true })).toHaveCount(0);
   await expect(page.locator('.brand-logo')).toHaveAttribute('src', './assets/frameos.svg');
@@ -104,7 +104,7 @@ test('native insertion, root/nested browsing, details, multiple drives, cache an
   await expect(page.locator('#media-entry-0')).toContainText('Movies');
   expect(await page.evaluate(() => window.__testUsb.reads)).toEqual(['USB A']);
   await page.keyboard.press('Enter');
-  await expect(page.locator('#media-entry-1')).toContainText('.MKV');
+  await expect(page.locator('#media-entry-1')).toHaveAttribute('aria-label', /\.MKV$/);
   expect(await page.evaluate(() => window.__testUsb.reads)).toEqual(['USB A', 'USB A/Movies']);
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('ContextMenu');
@@ -231,10 +231,10 @@ test('narrow arrangement, rapid input, modal Tab and reduced motion remain usabl
   await page.setViewportSize({ width: 800, height: 600 });
   await page.goto('/'); await expect(page.locator('.frameos')).toHaveClass(/compact/);
   await page.evaluate(() => { for (let index = 0; index < 40; index++) document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', repeat: true, bubbles: true, cancelable: true })); });
-  await expect(page.locator('#app-settings')).toBeFocused();
-  await page.keyboard.press('Enter'); await page.locator('#settings-tab-weather').click(); await page.locator('#city-hobart').focus(); await page.keyboard.press('Tab');
+  await expect(page.locator('#app-all-apps')).toBeFocused();
+  await page.locator('#top-settings').click(); await page.locator('#settings-tab-weather').click(); await page.locator('#city-hobart').focus(); await page.keyboard.press('Tab');
   await expect(page.locator('#settings-close')).toBeFocused();
-  await page.keyboard.press('Escape'); await expect(page.locator('#app-settings')).toBeFocused();
+  await page.keyboard.press('Escape'); await expect(page.locator('#top-settings')).toBeFocused();
   expect(await page.locator('#app-settings').evaluate(element => getComputedStyle(element).transitionDuration.split(',').every(value => value.trim() === '0s'))).toBe(true);
   const dock = await page.locator('.app-dock').boundingBox();
   expect(dock!.x).toBeGreaterThanOrEqual(0); expect(dock!.x + dock!.width).toBeLessThanOrEqual(801);

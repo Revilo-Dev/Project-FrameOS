@@ -42,10 +42,10 @@ test('paused completion, playback errors and manual stop do not trigger autoplay
   await page.evaluate(() => window.__playerFixture.listener!.onerror('UnsupportedCodec')); await page.clock.runFor(2000);
   await expect(page.locator('.player-message')).toContainText('UnsupportedCodec'); await expect(page.locator('.player-next-transition')).toHaveCount(0);
   await page.evaluate(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'MediaStop', bubbles: true })));  await expect(page.locator('.video-player')).toHaveCount(0);
-  await page.keyboard.press('Escape'); await page.keyboard.press('Escape'); await page.locator('#app-settings').click(); await page.locator('#settings-tab-media').click();
+  await page.keyboard.press('Escape'); await page.keyboard.press('Escape'); await page.locator('#top-settings').click(); await page.locator('#settings-tab-media').click();
   await page.locator('#autoplay-toggle').click(); await expect(page.locator('#autoplay-toggle')).toContainText('OFF');
-  await page.reload(); await page.locator('#app-settings').click(); await page.locator('#settings-tab-media').click(); await expect(page.locator('#autoplay-toggle')).toContainText('OFF');
-  await page.keyboard.press('Escape'); await page.keyboard.press('ArrowDown'); await page.locator('#media-entry-0').click(); await page.locator('#media-entry-1').click(); await expect(page.locator('#player-toggle')).toHaveAttribute('aria-label', 'Pause');
+  await page.reload(); await page.locator('#top-settings').click(); await page.locator('#settings-tab-media').click(); await expect(page.locator('#autoplay-toggle')).toContainText('OFF');
+  await page.keyboard.press('Escape'); await page.locator('#home-media').click(); await page.locator('#media-entry-0').click(); await page.locator('#media-entry-1').click(); await expect(page.locator('#player-toggle')).toHaveAttribute('aria-label', 'Pause');
   await page.evaluate(() => window.__playerFixture.listener!.onstreamcompleted()); await page.clock.runFor(3000); await expect(page.locator('#player-toggle')).toHaveAttribute('aria-label', 'Replay');
 });
 
@@ -122,7 +122,7 @@ test('persistent cached root appears before a delayed reconciliation and clearin
   await page.reload(); await page.evaluate(() => { window.__playerFixture.delayDirectory = true; }); await page.keyboard.press('ArrowDown');
   await expect(page.locator('#media-entry-0')).toContainText('Series');
   await page.evaluate(() => { window.__playerFixture.delayDirectory = false; window.__playerFixture.finishDirectory(); });
-  await page.keyboard.press('Escape'); await page.locator('#app-settings').click(); await page.locator('#settings-tab-media').click(); await page.locator('#media-cache-clear').click();
+  await page.keyboard.press('Escape'); await page.locator('#top-settings').click(); await page.locator('#settings-tab-media').click(); await page.locator('#media-cache-clear').click();
   await expect(page.locator('.settings-content').getByText('Media cache cleared.', { exact: true })).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('frameos.media.v1')!).showHidden)).toBe(true);
 });

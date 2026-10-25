@@ -18,7 +18,8 @@ export function createPackagingManifest(original, policy) {
   if (!Buffer.isBuffer(original)) throw new Error('Policy overlay requires the original manifest bytes.');
   if (!policy || policy.version !== 1 || !['0.3.0', '0.4.0', '0.3.8'].includes(policy.release)
       || !/^[a-f\d]{64}$/.test(policy.originalManifestSha256 || '')
-      || Object.keys(policy).sort().join(',') !== (policy.release === '0.3.8' ? 'originalManifestSha256,release,version,youtubeLaunch' : 'originalManifestSha256,release,version')
+      || Object.keys(policy).sort().join(',') !== (policy.release === '0.4.0' && policy.tvWindow === true ? 'originalManifestSha256,release,tvWindow,version,youtubeLaunch' : policy.release === '0.3.8' ? 'originalManifestSha256,release,version,youtubeLaunch' : 'originalManifestSha256,release,version')
+      || policy.tvWindow === true && policy.youtubeLaunch !== true
       || policy.release === '0.3.8' && typeof policy.youtubeLaunch !== 'boolean') {
     throw new Error('Invalid manifest policy; arbitrary metadata/policy changes are not supported.');
   }
@@ -31,10 +32,10 @@ export function createPackagingManifest(original, policy) {
   }
   const newline = xml.includes('\r\n') ? '\r\n' : '\n';
   const additions = [
-    ...[...readOnlyPrivileges, ...(['0.4.0', '0.3.8'].includes(policy.release) ? ['http://tizen.org/privilege/content.write'] : []), ...(policy.youtubeLaunch === true ? ['http://tizen.org/privilege/application.launch'] : [])].map((privilege) => `    <tizen:privilege name="${privilege}"/>`),
+    ...[...readOnlyPrivileges, ...(['0.4.0', '0.3.8'].includes(policy.release) ? ['http://tizen.org/privilege/content.write'] : []), ...(policy.youtubeLaunch === true ? ['http://tizen.org/privilege/application.launch'] : []), ...(policy.tvWindow === true ? ['http://tizen.org/privilege/tv.window'] : [])].map((privilege) => `    <tizen:privilege name="${privilege}"/>`),
     `    <access origin="${weatherOrigin}" subdomains="false"/>`,
-    ...(policy.release === '0.3.8' ? [`    <access origin="${bitcoinOrigin}" subdomains="false"/>`] : []),
-    `    <tizen:content-security-policy>${policy.release === '0.3.8' ? contentSecurityPolicy : contentSecurityPolicy.replace(' ' + bitcoinOrigin, '')}</tizen:content-security-policy>`,
+    ...(policy.release === '0.3.8' || policy.tvWindow === true ? [`    <access origin="${bitcoinOrigin}" subdomains="false"/>`] : []),
+    `    <tizen:content-security-policy>${policy.release === '0.3.8' || policy.tvWindow === true ? contentSecurityPolicy : contentSecurityPolicy.replace(' ' + bitcoinOrigin, '')}</tizen:content-security-policy>`,
   ].join(newline) + newline;
   const offset = original.indexOf(Buffer.from('</widget>'));
   const manifest = Buffer.concat([original.subarray(0, offset), Buffer.from(additions), original.subarray(offset)]);

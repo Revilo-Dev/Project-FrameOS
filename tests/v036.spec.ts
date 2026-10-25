@@ -42,7 +42,7 @@ test('three default widgets fit between the centred clock and dock and are D-pad
   expect(geometry).toBe(true);
   const headings = await page.locator('.dashboard-card .widget-heading').evaluateAll(items => items.map(item => item.getBoundingClientRect().top));
   expect(Math.max(...headings) - Math.min(...headings)).toBeLessThan(1);
-  await page.keyboard.press('ArrowLeft'); await page.keyboard.press('ArrowUp'); await expect(page.locator('#widget-weather')).toBeFocused();
+  await page.locator('#top-settings').focus(); await page.keyboard.press('ArrowDown'); await expect(page.locator('#widget-world-clock')).toBeFocused(); await page.keyboard.press('ArrowLeft'); await page.keyboard.press('ArrowLeft'); await expect(page.locator('#widget-weather')).toBeFocused();
   await page.keyboard.press('ArrowRight'); await expect(page.locator('#widget-bitcoin')).toBeFocused();
   await page.keyboard.press('Enter'); await expect(page.locator('.widget-panel-bitcoin')).toBeVisible();
   await page.keyboard.press('Escape'); await expect(page.locator('#widget-bitcoin')).toBeFocused();
@@ -71,7 +71,7 @@ test('Settings enforces the maximum, persists order and supports one, two and ze
   await expect(page.locator('#top-settings')).toBeFocused(); await page.reload(); await expect(page.locator('.dashboard-card')).toHaveCount(0);
 });
 test('local tasks can be entered with the remote, completed, removed and restored after reload', async ({ page }) => {
-  await seed(page, ['todo']); await page.goto('/'); await page.keyboard.press('ArrowUp'); await page.keyboard.press('Enter');
+  await seed(page, ['todo']); await page.goto('/'); await page.locator('#top-settings').focus(); await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter');
   await page.keyboard.press('ArrowDown'); await expect(page.locator('#organiser-title')).toBeFocused();
   await page.keyboard.type('Water the plants'); await page.keyboard.press('Enter'); await expect(page.locator('#organiser-add')).toBeFocused();
   await page.keyboard.press('Enter'); await expect(page.locator('.organiser-item')).toHaveCount(1);

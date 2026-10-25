@@ -26,27 +26,26 @@ test('pins a real installed ID, preserves the dock and focus, and revalidates be
   const actual = { id: 'RealApp123.Player', name: 'My Player', show: true };
   await catalogue(page, [actual, { id: 'FakeApp123.service', name: 'Service', show: true }, { id: 'TdjFk7yyVS.frameos', name: 'FrameOS', show: true }, { id: 'org.tizen.art-app', name: 'Art', show: true }]);
   await settings(page, 'apps');
-  await expect(page.locator('.launcher-app-grid button')).toHaveCount(1);
-  await page.getByRole('button', { name: /My Player RealApp123.Player/ }).click();
-  await page.keyboard.press('Escape'); await expect(page.locator('#launcher-apps')).toBeFocused();
+  await page.locator('#apps-browser').click();
+  await page.getByRole('button', { name: 'My Player', exact: true }).click(); await page.locator('#dock-option-add').click();
   await page.keyboard.press('Escape'); await expect(page.locator('#top-settings')).toBeFocused();
-  await expect(page.locator('.app-dock .app-tile')).toHaveCount(7);
+  await expect(page.locator('.app-dock .app-tile')).toHaveCount(11);
   await expect(page.locator('#app-art')).toBeVisible(); await expect(page.locator('#app-settings')).toBeVisible();
-  await page.locator('#app-youtube').click();
+  await page.locator('[id="app-native:RealApp123.Player"]').click();
   await expect.poll(() => page.evaluate(() => window.__playerFixture.calls.includes('launch:RealApp123.Player'))).toBe(true);
-  await page.reload(); await expect(page.locator('#app-youtube')).toContainText('My Player');
-  await catalogue(page, []); await page.locator('#app-youtube').click();
+  await page.reload(); await expect(page.locator('[id="app-native:RealApp123.Player"]')).toContainText('My Player');
+  await catalogue(page, []); await page.locator('[id="app-native:RealApp123.Player"]').click();
   await expect(page.getByRole('heading', { name: 'My Player is not installed' })).toBeVisible();
   expect(await page.evaluate(() => window.__playerFixture.calls.filter(call => call.startsWith('launch:')))).toEqual([]);
 });
 test('refresh falls back safely if the focused installed app disappears', async ({ page }) => {
   await nativeFixture(page, { apps: true }); await page.goto('/');
   await catalogue(page, [{ id: 'RealApp123.Player', name: 'My Player', show: true }]); await settings(page, 'apps');
-  await page.getByRole('button', { name: /My Player RealApp123.Player/ }).focus();
+  await page.locator('#apps-browser').click(); await page.getByRole('button', { name: 'My Player', exact: true }).focus();
   await catalogue(page, []);
   // Trigger a refresh without changing DOM focus first, as an asynchronous refresh would.
-  await page.locator('#apps-refresh').evaluate((element: HTMLElement) => element.click());
-  await expect(page.locator('#apps-refresh')).toBeFocused(); await expect(page.locator('.launcher-app-grid button')).toHaveCount(0);
+  await page.locator('#all-apps-refresh').evaluate((element: HTMLElement) => element.click());
+  await expect(page.locator('#all-apps-refresh')).toBeFocused(); await expect(page.getByRole('button', { name: 'My Player', exact: true })).toHaveCount(0);
 });
 test('restores focus only on return to FrameOS and leaves active editors alone', async ({ page }) => {
   await nativeFixture(page, { apps: true }); await page.goto('/'); await page.locator('#app-stan').focus();

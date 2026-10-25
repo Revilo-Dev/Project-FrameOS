@@ -15,11 +15,11 @@ export function readPreferenceBundle(storage: SettingsStorage): PreferenceBundle
 export function parsePreferenceBackup(text: string): PreferenceBundle {
   if (text.length * 2 > BACKUP_LIMIT) throw Error('Backup exceeds the 256 KiB limit.');
   const value = JSON.parse(text);
-  if (value?.format !== 'frameos.preferences' || ![1, 2].includes(value.version) || !value.preferences || typeof value.preferences !== 'object') throw Error('Unsupported backup format/version.');
+  if (value?.format !== 'frameos.preferences' || ![1, 2, 3].includes(value.version) || !value.preferences || typeof value.preferences !== 'object') throw Error('Unsupported backup format/version.');
   const source = value.preferences;
   for (const section of Object.keys(sections) as (keyof PreferenceBundle)[]) {
     if (section === 'launcher' && value.version === 1 && source.launcher === undefined) continue;
-    if (!source[section] || source[section].version !== 1) throw Error(`Unsupported ${section} preference version.`);
+    if (!source[section] || !(section === 'launcher' ? [1, 2] : [1]).includes(source[section].version)) throw Error(`Unsupported ${section} preference version.`);
   }
   // Existing loaders perform bounded validation and legacy field migrations.
   // An allowlist excludes account tokens, calendar data, caches and unknown keys.
@@ -27,8 +27,8 @@ export function parsePreferenceBackup(text: string): PreferenceBundle {
   return readPreferenceBundle({ getItem: key => data.get(key) ?? null, setItem() {} });
 }
 export function createPreferenceBackup(bundle: PreferenceBundle) {
-  const preferences = parsePreferenceBackup(JSON.stringify({ format: 'frameos.preferences', version: 2, preferences: bundle }));
-  const text = JSON.stringify({ format: 'frameos.preferences', version: 2, createdAt: new Date().toISOString(), preferences }, null, 2);
+  const preferences = parsePreferenceBackup(JSON.stringify({ format: 'frameos.preferences', version: 3, preferences: bundle }));
+  const text = JSON.stringify({ format: 'frameos.preferences', version: 3, createdAt: new Date().toISOString(), preferences }, null, 2);
   if (text.length * 2 > BACKUP_LIMIT) throw Error('Backup exceeds the 256 KiB limit.');
   return text;
 }

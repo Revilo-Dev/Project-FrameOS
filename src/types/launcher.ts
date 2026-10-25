@@ -1,4 +1,4 @@
-export type IconName = 'usb' | 'play' | 'stan' | 'prime' | 'gallery' | 'art' | 'browser' | 'settings' | 'arrow' | 'close' | 'check' | 'home' | 'moon' | 'file' | 'music';
+export type IconName = 'usb' | 'play' | 'stan' | 'prime' | 'gallery' | 'art' | 'browser' | 'settings' | 'arrow' | 'close' | 'check' | 'home' | 'moon' | 'file' | 'music' | 'apps' | 'tv' | 'sources';
 
 export type NativeAction =
   | { type: 'usb' }
@@ -11,7 +11,7 @@ export type NativeAction =
   | { type: 'installed-app'; appId: string; name: string }
   | { type: 'avplay'; source: string };
 
-export type LauncherAction = NativeAction | { type: 'settings' };
+export type LauncherAction = NativeAction | { type: 'settings' } | { type: 'all-apps' } | { type: 'sources' };
 
 export interface LauncherItem {
   id: string;
@@ -19,6 +19,8 @@ export interface LauncherItem {
   icon: IconName;
   action: LauncherAction;
   availability: 'available' | 'planned' | 'unavailable';
+  iconPath?: string;
+  kind?: 'internal' | 'installed' | 'system' | 'pinned';
   metadata?: { category: string; description: string };
 }
 

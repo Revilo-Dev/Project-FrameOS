@@ -1,6 +1,9 @@
 export const FRAMEOS_APP_ID = 'TdjFk7yyVS.frameos';
 export const SAMSUNG_HOME_ID = 'com.samsung.tv.csfs';
-export interface InstalledApp { id: string; name: string; show?: boolean; version?: string }
+export interface InstalledApp { id: string; name: string; show?: boolean; version?: string; iconPath?: string }
+export function safeIconPath(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length < 2048 && /^(file:\/\/\/|\/|\.\/|data:image\/(png|jpeg|webp);base64,)/i.test(value) && !/[\x00-\x1f]/.test(value) ? value : undefined;
+}
 export interface ApplicationApi {
   getAppsInfo?(success: (apps: InstalledApp[]) => void, failure: (error: unknown) => void): void;
   getCurrentApplication?(): { appInfo: { id: string } };
@@ -18,7 +21,7 @@ export function normaliseInstalledApps(values: unknown): InstalledApp[] {
     // Native WebIDL fields can be inherited getters rather than own properties.
     try {
       if (!validAppId(item.id) || typeof item.name !== 'string' || !item.name.trim() || apps.has(item.id)) continue;
-      apps.set(item.id, { id: item.id, name: item.name.replace(/[\x00-\x1f]/g, ' ').trim().slice(0, 120), ...(typeof item.show === 'boolean' ? { show: item.show } : {}), ...(typeof item.version === 'string' ? { version: item.version.slice(0, 60) } : {}) });
+      apps.set(item.id, { id: item.id, name: item.name.replace(/[\x00-\x1f]/g, ' ').trim().slice(0, 120), ...(typeof item.show === 'boolean' ? { show: item.show } : {}), ...(typeof item.version === 'string' ? { version: item.version.slice(0, 60) } : {}), ...(safeIconPath(item.iconPath) ? { iconPath: safeIconPath(item.iconPath) } : {}) });
     } catch { /* A malformed native record must not hide other installed apps. */ }
   }
   return [...apps.values()].sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));

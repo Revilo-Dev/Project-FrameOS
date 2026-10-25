@@ -44,8 +44,27 @@ it('bounds a stalled launch, ignores late success and never retries permission f
   const diagnostics = new LaunchDiagnostics(); let late!: () => void; let calls = 0;
   const result = await launchTvApp({ tizen: { application: { launch(_id: string, done: () => void) { late = done; } } } }, 'youtube', { diagnostics, timeoutMs: 5 });
   assert.match(result!.message, /TimeoutError/); late(); assert.equal(diagnostics.get()[0].state, 'Failed');
-  await launchTvApp({ tizen: { application: { launch(_id: string, _done: unknown, fail: (e: unknown) => void) { calls++; fail({ name: 'SecurityError' }); } } } }, 'browser');
+  await launchTvApp({ tizen: { application: { launch(_id: string, _done: unknown, fail: (e: unknown) => void) { calls++; fail({ name: 'SecurityError' }); } } } }, 'youtube');
   assert.equal(calls, 1);
+});
+it('verifies the exact TV Settings component and reports denial or ACK without claiming visible success', async () => {
+  for (const outcome of ['missing', 'SecurityError', 'NotSupportedError', 'accepted']) {
+    const calls: string[] = [];
+    const service = new TvApplications({ tizen: { application: {
+      getAppsInfo(done: (apps: InstalledApp[]) => void) { done(outcome === 'missing' ? [] : [{ id: 'com.samsung.tv.coba.setting', name: 'Settings' }]); },
+      launch(id: string, done: () => void, fail: (error: unknown) => void) { calls.push(id); outcome === 'accepted' ? done() : fail({ name: outcome }); },
+    } } });
+    const result = await service.launchSettings();
+    assert.match(result.message, /Samsung Home/);
+    assert.deepEqual(calls, outcome === 'missing' ? [] : ['com.samsung.tv.coba.setting']);
+    if (outcome === 'accepted') { assert.match(result.message, /does not confirm/); assert.equal(service.diagnostics.get()[0].state, 'API accepted'); }
+    else assert.equal(service.diagnostics.get()[0].state, 'Failed');
+  }
+});
+it('refuses unverified browser IDs when installed-app discovery is unavailable', async () => {
+  const calls: string[] = [];
+  const result = await launchTvApp({ tizen: { application: { launch(id: string) { calls.push(id); } } } }, 'browser');
+  assert.match(result!.message, /could not be verified/); assert.deepEqual(calls, []);
 });
 it('records the AppControl fallback and ignores a late ACK from a failed attempt', async () => {
   const diagnostics = new LaunchDiagnostics();

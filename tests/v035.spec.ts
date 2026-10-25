@@ -31,15 +31,15 @@ test('dock expands only the focused icon, reveals every full title and never ove
       document.dispatchEvent(new KeyboardEvent('keydown', { key: index < 12 ? 'ArrowLeft' : 'ArrowRight', bubbles: true, cancelable: true }));
       await new Promise(requestAnimationFrame);
       const rects = Array.from(document.querySelectorAll('.app-tile')).map(element => element.getBoundingClientRect());
-      if (!rects.every((rect, i) => rect.left >= 0 && rect.right <= 1920 && Math.abs(rect.height - 104) < .1 && (!i || rect.left >= rects[i - 1].right))) failures.push({ frame: index, rects: rects.map(({ left, right, height }) => ({ left, right, height })) });
+      if (!rects.every((rect, i) => Math.abs(rect.height - 104) < .1 && (!i || rect.left >= rects[i - 1].right))) failures.push({ frame: index, rects: rects.map(({ left, right, height }) => ({ left, right, height })) });
     }
     return failures;
   });
   expect(stable).toEqual([]);
-  await expect(page.locator('#app-settings')).toBeFocused();
-  await page.keyboard.press('Enter'); await expect(page.getByRole('dialog')).toHaveAttribute('aria-labelledby', 'settings-title');
-  await page.keyboard.press('Escape'); await expect(page.locator('#app-settings')).toBeFocused();
-  await expect(page.locator('#app-settings')).toHaveCSS('width', '290px');
+  await expect(page.locator('#app-all-apps')).toBeFocused();
+  await page.locator('#top-settings').click(); await expect(page.getByRole('dialog')).toHaveAttribute('aria-labelledby', 'settings-title');
+  await page.keyboard.press('Escape'); await expect(page.locator('#top-settings')).toBeFocused();
+  await expect(page.locator('#app-settings')).toHaveCSS('width', '104px');
   await page.screenshot({ path: 'artifacts/v035-home.png' });
 });
 
@@ -76,7 +76,7 @@ test('clock remains readable if local font decoding is unavailable', async ({ pa
 
 test('Settings floats above wallpaper; channel keys wrap tabs, restore focus, and do not compete with player seeks', async ({ page }) => {
   await nativeFixture(page, { channels: true }); await page.goto('/');
-  await page.locator('#app-settings').click();
+  await page.locator('#top-settings').click();
   const bounds = await page.locator('.settings-panel').boundingBox();
   expect(bounds!.width / 1920).toBeGreaterThan(.65); expect(bounds!.width / 1920).toBeLessThan(.75);
   expect(bounds!.y).toBeGreaterThan(0); expect(bounds!.y + bounds!.height).toBeLessThan(1080);
@@ -90,8 +90,8 @@ test('Settings floats above wallpaper; channel keys wrap tabs, restore focus, an
   await expect(page.locator('#settings-tab-media')).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.press('PageUp'); await expect(page.locator('#settings-tab-appearance')).toHaveAttribute('aria-pressed', 'true');
   expect((await page.evaluate(() => window.__playerFixture.calls)).filter(call => call.startsWith('seek:'))).toEqual([]);
-  await page.keyboard.press('Escape'); await expect(page.locator('#app-settings')).toBeFocused();
-  await page.keyboard.press('ArrowDown'); await expect(page.locator('#media-entry-0')).toBeFocused(); await page.keyboard.press('Enter');
+  await page.keyboard.press('Escape'); await expect(page.locator('#top-settings')).toBeFocused();
+  await page.locator('#app-settings').focus(); await page.keyboard.press('ArrowDown'); await expect(page.locator('#media-entry-0')).toBeFocused(); await page.keyboard.press('Enter');
   await page.locator('#media-entry-1').click(); await expect(page.locator('#player-toggle')).toHaveAttribute('aria-label', 'Pause');
   await page.evaluate(() => document.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 9101, bubbles: true, cancelable: true })));
   await expect(page.locator('#player-seek')).toHaveAttribute('aria-valuenow', '30000');

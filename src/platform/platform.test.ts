@@ -29,10 +29,11 @@ describe('platform boundary', () => {
     assert.deepEqual(await platform.media.listStorages(), []);
   });
   for (const adapter of [new BrowserAdapter(), new TizenAdapter()]) {
-    it(`${adapter.kind} reports every native action as unsupported without calling APIs`, async () => {
+    it(`${adapter.kind} reports native API availability without invoking unavailable APIs`, async () => {
       for (const action of actions) {
         const result = await adapter.perform(action);
         assert(result);
+        if (action.type === 'system-settings') { assert.match(result.message, /Samsung Home/); continue; }
         if (adapter.kind === 'tizen' && ['launch-app', 'gallery', 'browser'].includes(action.type)) { assert.equal(result.status, 'unavailable'); continue; }
         assert.equal(result.status, 'unsupported');
         assert.match(result.message, action.type === 'art-mode' ? /FrameOS Home/ : /future version/);

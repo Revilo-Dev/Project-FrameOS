@@ -42,7 +42,7 @@ export function launchTvApp(runtime: unknown, app: TvApp, options: LaunchOptions
     const finish = (result: ActionResult | null) => { if (done) return; done = true; clearTimeout(timer); mark(result ? { state: 'Failed', error: result.message } : { state: 'API accepted', error: '' }); resolve(result); };
     const fail = (error: unknown) => {
       const value = error as { name?: string; message?: string };
-      finish({ status: value?.name === 'NotFoundError' ? 'unavailable' : 'error', title: `Unable to open ${spec.name}`, message: value?.name === 'SecurityError' ? 'The TV denied permission to launch this app. Check the installed package’s application.launch privilege and the target app’s launch restrictions.' : `${value?.name || 'LaunchError'}: ${value?.message || `The television could not launch ${spec.name}.`}`.slice(0, 400) });
+      finish({ status: value?.name === 'NotFoundError' ? 'unavailable' : 'error', title: `Unable to open ${spec.name}`, message: value?.name === 'SecurityError' ? 'SecurityError: The TV denied permission to launch this app. Check the installed package’s application.launch privilege and the target app’s launch restrictions.' : `${value?.name || 'LaunchError'}: ${value?.message || `The television could not launch ${spec.name}.`}`.slice(0, 400) });
     };
     const timer = setTimeout(() => fail({ name: 'TimeoutError', message: 'The TV app launcher did not respond.' }), options.timeoutMs ?? 10000);
     const launch = (ids: string[], index = 0, control = false) => {
@@ -72,7 +72,8 @@ export function launchTvApp(runtime: unknown, app: TvApp, options: LaunchOptions
         if (options.exact) {
           if (!apps) { fail({ name: 'DiscoveryError', message: 'The installed app could not be verified. Refresh the installed-app list and try again.' }); return; }
           launch(apps.some(item => item.id === options.exact!.id) ? [options.exact.id] : []);
-        } else launch(tvAppCandidates(app, apps));
+        } else if (app === 'browser' && !apps) fail({ name: 'DiscoveryError', message: 'The installed Samsung browser could not be verified. Refresh All Apps and try again.' });
+        else launch(tvAppCandidates(app, apps));
       } catch (error) { fail(error); }
     };
     try {
@@ -118,6 +119,16 @@ export class TvApplications {
     finally { this.busy = false; }
   }
   launch(app: TvApp) { const epoch = this.visibilityEpoch; return this.request(() => launchTvApp(this.runtime, app, { diagnostics: this.diagnostics, discover: () => this.discover(), permitted: () => epoch === this.visibilityEpoch })); }
+  async launchSettings(): Promise<ActionResult> {
+    const epoch = this.visibilityEpoch;
+    const result = await this.request(() => launchTvApp(this.runtime, 'youtube', {
+      exact: { id: 'com.samsung.tv.coba.setting', name: 'TV Settings' }, diagnostics: this.diagnostics,
+      discover: () => this.discover(true), permitted: () => epoch === this.visibilityEpoch,
+    }));
+    const fallback = 'To open Samsung Settings manually, select the protected TV tile to open Samsung Home, then choose Settings.';
+    return result ? { ...result, title: 'TV Settings could not be opened', message: `${result.message} ${fallback}` }
+      : { status: 'unsupported', title: 'TV Settings launch requested', message: `The public launch API accepted com.samsung.tv.coba.setting. This does not confirm that Settings appeared on the television; physical verification is required. If it did not appear: ${fallback}` };
+  }
   launchInstalled(app: InstalledApp) {
     const epoch = this.visibilityEpoch;
     return this.request(() => launchTvApp(this.runtime, 'youtube', { exact: app, diagnostics: this.diagnostics, permitted: () => epoch === this.visibilityEpoch, discover: async () => selectableApps(await this.discover(true)) }));

@@ -43,7 +43,7 @@ export function SettingsPanel({ toolActive, launcherTools, settings, focused, fo
     else if (rect.bottom > bounds.bottom - 8) view.scrollTop += (rect.bottom - bounds.bottom + 8) / scale;
   }, [focused, tab]);
   return <div className={`panel-scrim${closing ? ' is-closing' : ''}`}><div className="settings-wallpaper" style={{ backgroundImage: `url("${wallpaper}")` }} /><section className="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-    <header className="panel-header"><div><span className="panel-kicker">MAKE IT YOURS</span><h2 id="settings-title">Settings</h2></div><FocusButton id="settings-close" focused={focused} onFocused={focus} className="round-button" aria-label="Close settings" onClick={close}><Icon name="close" /></FocusButton></header>
+    <header className="panel-header"><div><span className="panel-kicker">MAKE IT YOURS</span><h2 id="settings-title">FrameOS Settings</h2></div><FocusButton id="settings-close" focused={focused} onFocused={focus} className="round-button" aria-label="Close settings" onClick={close}><Icon name="close" /></FocusButton></header>
     <nav className="settings-tabs" aria-label="Settings sections">{settingsTabs.map(item => <FocusButton key={item.id} id={`settings-tab-${item.id}`} focused={focused} onFocused={focus} className={`settings-tab${tab === item.id ? ' is-selected' : ''}`} aria-pressed={tab === item.id} onClick={() => selectTab(item.id)}>{item.name}</FocusButton>)}</nav>
     <div ref={content} className={`settings-content settings-content-${tab}`} key={tab} onScroll={event => { scrollPositions.current[tab] = event.currentTarget.scrollTop; }}>
       {tab === 'widgets' && <WidgetsSettings preferences={widgets} change={changeWidgets} focused={focused} focus={focus} />}

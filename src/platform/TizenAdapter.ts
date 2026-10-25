@@ -8,6 +8,7 @@ import { browserStorage } from '../services/settings';
 import { ThumbnailDiagnostics } from './ThumbnailDiagnostics';
 import { registerMediaKeys } from './mediaKeys';
 import { TvApplications } from './launchTvApp';
+import { TvSources } from './tvSources';
 
 export class TizenAdapter implements PlatformAdapter {
   readonly kind = 'tizen' as const;
@@ -15,10 +16,12 @@ export class TizenAdapter implements PlatformAdapter {
   readonly player: AvPlayController;
   readonly thumbnails: ThumbnailService;
   readonly apps: TvApplications;
+  readonly sources: TvSources;
   constructor(runtime: unknown = typeof window === 'undefined' ? undefined : window) {
     this.media = new TizenMediaAdapter(mediaFilesystem(runtime), { runtimeAvailable: true });
     this.runtime = runtime;
     this.apps = new TvApplications(runtime);
+    this.sources = new TvSources(runtime);
     this.player = new AvPlayController(avPlayApi(runtime));
     const diagnostics = new ThumbnailDiagnostics();
     this.thumbnails = new ThumbnailService(fallbackThumbnailProvider(runtime, { diagnostics, resolveFile: entry => this.media.resolveFile(entry) }), browserStorage(), Date.now, undefined, diagnostics);
@@ -37,6 +40,7 @@ export class TizenAdapter implements PlatformAdapter {
     if (action.type === 'launch-app') return this.apps.launch(action.app);
     if (action.type === 'gallery' || action.type === 'browser' || action.type === 'samsung-home') return this.apps.launch(action.type);
     if (action.type === 'installed-app') return this.apps.launchInstalled({ id: action.appId, name: action.name });
+    if (action.type === 'system-settings') return this.apps.launchSettings();
     return plannedAction(action);
   }
   registerMediaKeys() { return registerMediaKeys(this.runtime); }
