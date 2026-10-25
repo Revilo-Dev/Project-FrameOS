@@ -28,7 +28,7 @@ export function validateSnapshot(snapshot, { allowMock = false } = {}) {
   }
   for (const key of [MAIN, HOME]) if (!/^[a-z\d][a-z\d_.-]{0,255}$/i.test(snapshot.values[key].value)) fail(`Original ${key} is not an unambiguous app ID.`);
   const boot = snapshot.bootEligibility;
-  if (!boot || boot.appId !== TARGET.appId || !['verified', 'unverified'].includes(boot.status) || (boot.status === 'verified' && typeof boot.supported !== 'boolean')) fail('Invalid/missing boot eligibility record.');
+  if (!boot || boot.appId !== TARGET.appId || !['verified', 'unverified'].includes(boot.status) || (boot.status === 'verified' ? typeof boot.supported !== 'boolean' : boot.supported !== null)) fail('Invalid/missing boot eligibility record.');
   return structuredClone(snapshot);
 }
 export function envelope(snapshot, options) {
@@ -100,21 +100,31 @@ export async function simulateRestore(baseline, adapter, { journal = async () =>
   try {
     const first = await bounded(() => adapter.read());
     const plan = restorePlan(baseline, first, { allowMock: true });
+    let expectedValues = structuredClone(first.values);
+    const requireExpected = snapshot => {
+      restorePlan(baseline, snapshot, { allowMock: true });
+      if (!equal(snapshot.values, expectedValues)) fail('Native state changed unexpectedly since planning; stop without replay.');
+    };
     for (const step of plan.steps) {
       const live = await bounded(() => adapter.read());
-      restorePlan(baseline, live, { allowMock: true });
+      requireExpected(live);
       if (!equal(live.values[step.key], step.expectedBefore)) fail('State changed since planning; stop without replay.');
       const entry = { key: step.key, state: 'intent', restore: step.restore }; log.entries.push(entry);
       await bounded(() => journal(structuredClone(log)));
+      // Persisting intent can take time. Recheck the complete state before sending.
+      requireExpected(await bounded(() => adapter.read()));
       entry.state = 'sent-unconfirmed';
       await bounded(() => adapter.write(step.key, structuredClone(step.restore)));
       const readback = await bounded(() => adapter.read());
       const remaining = restorePlan(baseline, readback, { allowMock: true });
       if (!equal(readback.values[step.key], step.restore)) fail('Restore readback differs; stop.');
+      expectedValues = { ...expectedValues, [step.key]: structuredClone(step.restore) };
+      if (!equal(readback.values, expectedValues)) fail('Restore changed another native field unexpectedly; stop without further writes.');
       entry.state = 'verified'; log.remainingSteps = remaining.steps.length;
       await bounded(() => journal(structuredClone(log)));
     }
     const final = await bounded(() => adapter.read());
+    requireExpected(final);
     if (restorePlan(baseline, final, { allowMock: true }).steps.length) fail('Final restoration readback incomplete.');
     log.state = 'mock-complete'; await bounded(() => journal(structuredClone(log))); return log;
   } catch (error) { log.state = 'stopped-requires-fresh-inspection'; log.error = error.message; try { await bounded(() => journal(structuredClone(log))); } catch { /* No further native action on journal failure. */ } const failure = Error(error.message); failure.journal = log; throw failure; }

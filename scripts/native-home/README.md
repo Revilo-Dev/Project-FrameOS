@@ -1,5 +1,15 @@
 # Native Home compatibility and recovery framework — phase 1
 
+The [v0.5.0 native access findings](../../docs/V0.5.0-NATIVE-HOME.md) document the newer source/SDK review and exact remaining blocker. No live reader/writer or independent TV restoration route has been established. The launcher is still v0.4.1.
+
+```powershell
+# Offline local SDK/source-evidence assessment; no TV operation:
+node scripts/native-home/cli.mjs compatibility
+npm run test:native-home
+```
+
+The compatibility command hashes the installed Tizen 5.5 Web SDK descriptions and historical phase-1 inputs. Its timestamp is an offline assessment date, not a new physical reading. The strengthened mock restore engine now detects changes to any native field before each write, rechecks after intent persistence, and stops on unexpected cross-field side effects. [The physical-test record](physical-test-record.example.json) is an unrun template, not evidence of working recovery.
+
 This is PC-side inspection, baseline validation, duplicate-copy verification, nonexecuting restore planning and a mock-only restore engine. **No live native reader/writer, helper binary or apply/restore transport is registered.** It cannot change the TV's Home/startup configuration. Do not interpret passing local tests as physical recovery verification.
 
 ## Current device result

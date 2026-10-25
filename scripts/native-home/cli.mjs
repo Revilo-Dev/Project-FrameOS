@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { createController } from '../frameos-controller/controller.mjs';
 import { TARGET, FIELDS, LIBRARIES, REFERENCES } from './spec.mjs';
 import { restorePlan, saveCopies, trialReadiness, verifyCopies, verifyEnvelope } from './recovery.mjs';
+import { inspectCompatibility } from './compatibility.mjs';
 
 async function json(file) {
   const content = await readFile(file, 'utf8'); if (Buffer.byteLength(content) > 65536) throw Error('Input exceeds 64 KiB.');
@@ -30,12 +31,13 @@ export async function inspectNative({ controller = createController(), historica
 export async function main(args = process.argv.slice(2)) {
   const [command, ...files] = args;
   let result;
-  if (command === 'inspect' && files.length === 0) result = await inspectNative();
+  if (command === 'compatibility' && files.length === 0) result = await inspectCompatibility();
+  else if (command === 'inspect' && files.length === 0) result = await inspectNative();
   else if (command === 'verify-baseline' && files.length === 1) { const payload = verifyEnvelope(await json(files[0])); result = { validFormatAndChecksum: true, identity: payload.identity, deviceProvenanceVerified: false, liveRestorationAvailable: false }; }
   else if (command === 'save-baseline' && files.length === 3) result = await saveCopies(await json(files[0]), ...files.slice(1));
   else if (command === 'restore-plan' && files.length === 3) { const baseline = await verifyCopies(files[0], files[1]); result = { ...restorePlan(baseline.payload, await json(files[2])), copies: baseline.copies, warning: 'Offline plan only. Imported JSON does not prove native reads or recovery. No execution transport exists.' }; }
   else if (command === 'restore' || command === 'apply') throw Error('BLOCKED: native writes are unavailable. No reviewed live transport, verified recovery or native-write approval exists. No TV command was sent.');
-  else throw Error('Usage: cli.mjs inspect | verify-baseline <envelope.json> | save-baseline <captured-snapshot.json> <absolute-copy1> <absolute-copy2> | restore-plan <copy1> <copy2> <current-snapshot.json>. There is no live apply/restore command.');
+  else throw Error('Usage: cli.mjs compatibility (offline) | inspect (SDB capabilities only) | verify-baseline <envelope.json> | save-baseline <captured-snapshot.json> <absolute-copy1> <absolute-copy2> | restore-plan <copy1> <copy2> <current-snapshot.json>. There is no live apply/restore command.');
   console.log(JSON.stringify(result, null, 2)); return result;
 }
 if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url) main().catch(error => { console.error(error.message); process.exitCode = 1; });

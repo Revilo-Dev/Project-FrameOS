@@ -107,3 +107,29 @@ test('no live restore/apply CLI or transport exists, even with valid-looking inp
   const readiness = trialReadiness(fixture(), { physicalRestoreVerified: true, frameosClosed: true, requiresFrameos: false, baselineSha256: digest(fixture()), firmware: TARGET.firmware });
   assert.equal(readiness.ready, false); assert.ok(readiness.blockers.some(reason => /transport/.test(reason)));
 });
+
+test('unverified boot eligibility cannot contain a guessed boolean', () => {
+  const original = fixture(); original.bootEligibility = { appId: TARGET.appId, status: 'unverified', supported: false };
+  assert.throws(() => validateSnapshot(original, { allowMock: true }), /eligibility/);
+});
+test('a write that also changes another permitted Home field is an unexpected side effect', async () => {
+  const original = fixture(), state = changed(original), adapter = mock(state);
+  adapter.write = async (key, value) => { adapter.writes.push(key); state.values[key] = value; state.values[HOME] = structuredClone(original.values[HOME]); };
+  let error; try { await simulateRestore(original, adapter); } catch (value) { error = value; }
+  assert.match(error.message, /another native field/); assert.deepEqual(adapter.writes, [MAIN]);
+  assert.equal(error.journal.entries[0].state, 'sent-unconfirmed');
+});
+test('a previously restored field changing before the next step stops restoration', async () => {
+  const original = fixture(), state = changed(original), adapter = mock(state);
+  await assert.rejects(simulateRestore(original, adapter, { journal: async log => {
+    if (log.entries[0]?.state === 'verified') state.values[MAIN].value = TARGET.appId;
+  } }), /changed unexpectedly/);
+  assert.deepEqual(adapter.writes, [MAIN]);
+});
+test('state or device drift while persisting intent is detected before a write', async () => {
+  for (const mutation of [state => { state.values[HOME] = structuredClone(fixture().values[HOME]); }, state => { state.identity.firmware = 'changed'; }, state => { state.capture.deviceFingerprint = 'c'.repeat(64); }]) {
+    const original = fixture(), state = changed(original), adapter = mock(state);
+    await assert.rejects(simulateRestore(original, adapter, { journal: async log => { if (log.entries[0]?.state === 'intent') mutation(state); } }));
+    assert.deepEqual(adapter.writes, []);
+  }
+});

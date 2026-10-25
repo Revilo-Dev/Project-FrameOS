@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/navigation/RemoteHoldEvidence.test.ts src/services/launcherPreferences.test.ts src/platform/tvSources.test.ts src/platform/applicationReliability.test.ts src/services/preferenceBackup.test.ts src/services/uiPerformance.test.ts src/navigation/remote.test.ts src/navigation/mediaLayout.test.ts src/navigation/HoldGesture.test.ts src/components/widgetViews.test.tsx src/services/widgets.test.ts src/services/bitcoin.test.ts src/platform/launchYouTube.test.ts src/platform/launchTvApp.test.ts src/services/localOrganiser.test.ts src/services/calendar.test.ts src/services/settings.test.ts src/services/clock.test.ts src/services/weather.test.ts src/services/media.test.ts src/services/mediaFeatures.test.ts src/services/thumbnails.test.ts src/platform/platform.test.ts src/platform/TizenMediaAdapter.test.ts src/platform/AvPlayController.test.ts src/platform/mediaKeys.test.ts src/platform/thumbnailRepair.test.ts src/platform/thumbnailIntegration.test.ts src/services/v04.test.ts scripts/generate-thumbnails.test.mjs scripts/tv.test.mjs",
     "test:e2e": "playwright test",
+    "test:native-home": "node --test scripts/native-home/compatibility.test.mjs scripts/native-home/recovery.test.mjs scripts/frameos-controller/controller.test.mjs",
     "stage:tizen": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Stage-Tizen.ps1",
     "check:tv": "node scripts/tv.mjs check",
     "stage:tv": "node scripts/tv.mjs stage",

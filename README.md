@@ -4,6 +4,8 @@
 
 # FrameOS v0.4.1
 
+The [v0.5.0 native Home investigation](docs/V0.5.0-NATIVE-HOME.md) is blocked by unavailable permitted native access and independent restoration on this Tizen 5.5 firmware. It adds an offline compatibility command and strengthens mock recovery; it does not replace Home or release a v0.5.0 TV application.
+
 The [v0.4.1 corrections](docs/V0.4.1-LAUNCHER.md) restore spatial dock navigation, gate hold editing on measured remote support, add direct HDMI pins, provide a reliable Settings fallback, add Onyx Black/Light/Aqua and repair the focus-ring structure. Theme previews and signed-candidate instructions are included in the handoff. No native Home reassignment is part of this release.
 
 The launcher now includes All Apps, an editable scrolling dock, separate TV and FrameOS Settings, public-API Sources, refreshed Art/Browser tiles and a protected TV escape. See the [v0.4.0 launcher handoff](docs/V0.4.0-LAUNCHER.md) for remote controls, migration, verification limits and the signed candidate. TV deployment still requires approval.
