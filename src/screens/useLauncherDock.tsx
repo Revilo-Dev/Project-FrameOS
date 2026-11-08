@@ -75,7 +75,13 @@ export function useLauncherDock(props: Props) {
     if (id === 'art') { setStatus('Art Mode stays first.'); return; }
     setView(null); setMenu(undefined); setMoving({ id, draft: props.preferences }); props.focus(`app-${id}`);
   };
-  const dismiss = () => { setView(null); setMenu(undefined); setMoving(undefined); };
+  const dismiss = (onDismiss?: () => void) => {
+    const generation = ++sourceGeneration.current; sourcePending.current = false; setSourceBusy(false);
+    setMenu(undefined); setMoving(undefined);
+    if (view === 'source-player' || sourceViewing) {
+      void props.sources.hide().then(() => { if (generation !== sourceGeneration.current) return; setSourceViewing(false); setView(null); onDismiss?.(); }, () => { if (generation !== sourceGeneration.current) return; setSourceStatus('Press TV to return to Samsung Home.'); props.focus('source-view-home'); });
+    } else { setView(null); onDismiss?.(); }
+  };
   const close = (): boolean => {
     if (moving) { setMoving(undefined); props.focus(`app-${moving.id}`); return true; }
     if (view === 'info') { setView('context'); props.focus('dock-option-info'); return true; }

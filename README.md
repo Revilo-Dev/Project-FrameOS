@@ -20,6 +20,8 @@ See the [v0.4 handoff](docs/V0.4.md) for autoplay, channel skipping, continuous 
 
 A quiet, remote-first launcher, read-only USB Media Hub and Samsung AVPlay video player for a 2020 Samsung Frame. React 18, TypeScript and Vite; no component libraries, remote scripts or CDNs. Artwork, SVG branding and the licensed clock font are bundled locally. Weather uses Open-Meteo; the installed TV provides its local Samsung SDK script.
 
+The player includes Home at the top right and an Episodes side panel with the current video marked, all visible videos in the same folder in natural order, and direct episode selection. Back or Left closes the list while playback continues. On Home, Media is a label; one Down press from the dock opens the Media Hub. Home key events return directly to FrameOS Home and close playback or open panels. The app requests the physical Home key only when Samsung's public input API advertises it; firmware that reserves Home for Smart Hub may not deliver it. Physical remote behavior still needs TV verification. This does not change the TV's native Home assignment or startup settings.
+
 See the [v0.3 verification and TV handoff](docs/V0.3.md) for player behavior, episode detection, Hide/Unhide, thumbnails, compatibility limits, changed files and exact deployment steps. **No v0.3 TV installation or physical video playback verification has been performed.**
 
 ```powershell

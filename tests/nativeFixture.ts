@@ -54,6 +54,6 @@ export async function nativeFixture(page: Page, options: { apps?: boolean; video
   }, options);
 }
 export async function openSeries(page: Page) {
-  await page.goto('/'); await expect(page.locator('#app-youtube')).toBeFocused(); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await expect(page.locator('#media-entry-0')).toBeFocused();
+  await page.goto('/'); await expect(page.locator('#app-youtube')).toBeFocused(); await page.keyboard.press('ArrowDown'); await expect(page.locator('#media-entry-0')).toBeFocused();
   await page.keyboard.press('Enter'); await expect(page.locator('#media-entry-0')).toHaveText(/Extras/);
 }

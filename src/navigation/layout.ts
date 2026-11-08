@@ -15,16 +15,19 @@ export function adjacentSettingsTab(tab: SettingsTab, offset: number): SettingsT
 export const homeRows: FocusRows = [
   ['settings', 'network', 'power'].map((id, i) => ({ id: `top-${id}`, x: 1610 + i * 80 })),
   launcherItems.map((item, i) => ({ id: `app-${item.id}`, x: 200 + i * 248 })),
-  [{ id: 'home-media', x: 960 }],
 ];
 export const playerRows: FocusRows = [
+  [{ id: 'player-episodes', x: 1660 }, { id: 'player-home', x: 1810 }],
   ['previous', 'rewind', 'toggle', 'forward', 'next'].map((id, i) => ({ id: `player-${id}`, x: 744 + i * 108 })),
   [{ id: 'player-seek', x: 960 }],
 ];
+export function playerEpisodeRows(count: number): FocusRows {
+  return [[{ id: 'player-episodes-close', x: 1660 }], ...Array.from({ length: count }, (_, i) => [{ id: `player-episode-${i}`, x: 1660 }])];
+}
 export function homeLayout(_compact: boolean, widgets: WidgetId[] = [], dock = launcherItems): FocusRows {
   const dashboard = widgets.length ? [widgets.map((id, i) => ({ id: `widget-${id}`, x: 960 + (i - (widgets.length - 1) / 2) * 560 }))] : [];
   const apps = dock.map((item, i) => ({ id: `app-${item.id}`, x: 960 + (i - (dock.length - 1) / 2) * 124 }));
-  return [homeRows[0], ...dashboard, apps, homeRows[2]];
+  return [homeRows[0], ...dashboard, apps];
 }
 export function settingsLayout(tab: SettingsTab, page: number, enabledWidgets: WidgetId[] = [], hasThumbnailVideos = false, appearanceRows?: FocusRows): FocusRows {
   const rows: FocusRows = [[{ id: 'settings-close', x: 1800 }], settingsTabs.map((item, i) => ({ id: `settings-tab-${item.id}`, x: 140 + i * 200 })), ...(settingsSection(tab) !== tab ? [[{ id: 'settings-section-back', x: 200 }]] : [])];

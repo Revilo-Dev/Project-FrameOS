@@ -1,3 +1,4 @@
+import { openMedia } from './mediaNavigation';
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -16,7 +17,7 @@ for (const width of [1920, 960]) test(`video artwork fills equal fixed cards ben
     videoNames: ['A short video.mp4', 'A very long video title with enough words to wrap across multiple lines without ever changing the thumbnail or the card size.mkv'],
   });
   await page.goto(pathToFileURL(resolve('dist/index.html')).href);
-  await expect(page.locator('#media-entry-0')).toBeAttached(); await page.locator('#home-media').click();
+  await expect(page.locator('#media-entry-0')).toBeAttached(); await openMedia(page);
   await page.locator('#media-entry-0').click();
   const cards = page.locator('.media-type-video');
   await expect(cards).toHaveCount(2); await expect(cards.locator('.media-thumbnail img')).toHaveCount(2);

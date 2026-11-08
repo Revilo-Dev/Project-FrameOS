@@ -42,7 +42,6 @@
 .app-tile.is-focused { border-color: #fff; box-shadow: 0 0 0 4px rgba(255,255,255,.12); }
 .media-prompt { position: absolute; top: 977px; left: 860px; width: 200px; padding: 5px 12px; color: #edf1f4; background: transparent; border: 1px solid transparent; border-radius: 16px; display: flex; flex-direction: column; align-items: center; font-size: 22px; letter-spacing: .8px; transition: transform var(--duration), border-color var(--duration); }
 .media-prompt > svg { width: 28px; height: 16px; margin-top: 13px; opacity: .8; }
-.media-prompt.is-focused { border-color: var(--focus-ring); transform: translateY(3px); }
 .compact .home-centre { top: 154px; }
 .compact .clock time { font-size: 112px; }
 .compact .dock-section { top: 664px; left: 230px; right: 230px; padding-top: 20px; }

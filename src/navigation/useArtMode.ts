@@ -13,7 +13,7 @@ export function useArtMode(restore: () => void) {
     const wake = () => { state.current = false; setActive(false); restoreRef.current(); };
     const keydown = (event: KeyboardEvent) => {
       const key = remoteKey(event);
-      if (!key || !['select', 'back', 'left', 'right', 'up', 'down', 'tab'].includes(key)) return;
+      if (!key || !['select', 'back', 'home', 'left', 'right', 'up', 'down', 'tab'].includes(key)) return;
       const held = down.current.has(key); down.current.add(key);
       if (!state.current && !swallowed.current.has(key)) return;
       event.preventDefault(); event.stopImmediatePropagation();

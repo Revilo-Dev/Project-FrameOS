@@ -1,3 +1,4 @@
+import { openMedia } from './mediaNavigation';
 import { mediaOption } from './mediaOptions';
 import { test, expect } from '@playwright/test';
 import { nativeFixture, openSeries } from './nativeFixture';
@@ -45,7 +46,7 @@ test('paused completion, playback errors and manual stop do not trigger autoplay
   await page.keyboard.press('Escape'); await page.keyboard.press('Escape'); await page.locator('#top-settings').click(); await page.locator('#settings-tab-media').click();
   await page.locator('#autoplay-toggle').click(); await expect(page.locator('#autoplay-toggle')).toContainText('OFF');
   await page.reload(); await page.locator('#top-settings').click(); await page.locator('#settings-tab-media').click(); await expect(page.locator('#autoplay-toggle')).toContainText('OFF');
-  await page.keyboard.press('Escape'); await page.locator('#home-media').click(); await page.locator('#media-entry-0').click(); await page.locator('#media-entry-1').click(); await expect(page.locator('#player-toggle')).toHaveAttribute('aria-label', 'Pause');
+  await page.keyboard.press('Escape'); await openMedia(page); await page.locator('#media-entry-0').click(); await page.locator('#media-entry-1').click(); await expect(page.locator('#player-toggle')).toHaveAttribute('aria-label', 'Pause');
   await page.evaluate(() => window.__playerFixture.listener!.onstreamcompleted()); await page.clock.runFor(3000); await expect(page.locator('#player-toggle')).toHaveAttribute('aria-label', 'Replay');
 });
 

@@ -2,6 +2,25 @@ import { it } from 'node:test';
 import assert from 'node:assert/strict';
 import { registerMediaKeys } from './mediaKeys';
 import { remoteKey } from '../navigation/remote';
+import { registerHomeKey } from './homeKey';
+it('registers advertised Home for the app lifetime and removes its discovered code', () => {
+  const calls: string[] = [];
+  const release = registerHomeKey({ tizen: { tvinputdevice: {
+    getSupportedKeys: () => [{ name: 'Home', code: 12399 }],
+    registerKey(name: string) { calls.push(`register:${name}`); }, unregisterKey(name: string) { calls.push(`unregister:${name}`); },
+  } } });
+  assert.equal(remoteKey({ key: 'Unidentified', keyCode: 12399 }), 'home');
+  release();
+  assert.deepEqual(calls, ['register:Home', 'unregister:Home']);
+  assert.equal(remoteKey({ key: 'Unidentified', keyCode: 12399 }), null);
+});
+it('does not claim Home when firmware reserves it or registration fails', () => {
+  let registrations = 0;
+  registerHomeKey({ tizen: { tvinputdevice: { getSupportedKeys: () => [], registerKey() { registrations++; } } } })();
+  registerHomeKey({ tizen: { tvinputdevice: { getSupportedKeys: () => [{ name: 'Home', code: 12398 }], registerKey() { throw Error('SecurityError'); } } } })();
+  assert.equal(registrations, 0);
+  assert.equal(remoteKey({ key: 'Unidentified', keyCode: 12398 }), null);
+});
 it('registers/unregisters only media keys and preserves Samsung system buttons', () => {
   const registered: string[] = [], removed: string[] = [];
   const cleanup = registerMediaKeys({ tizen: { tvinputdevice: {

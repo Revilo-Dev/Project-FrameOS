@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { adjacentSettingsTab, homeRows, playerRows, settingsLayout } from './layout';
+import { adjacentSettingsTab, homeRows, playerEpisodeRows, playerRows, settingsLayout } from './layout';
 import { nextFocus, remoteKey, tabFocus } from './remote';
 
 describe('remote navigation', () => {
@@ -9,6 +9,12 @@ describe('remote navigation', () => {
     assert.equal(nextFocus(playerRows, 'player-toggle', 'right'), 'player-forward');
     assert.equal(nextFocus(playerRows, 'player-next', 'down'), 'player-seek');
     assert.equal(nextFocus(playerRows, 'player-seek', 'up'), 'player-toggle');
+    assert.equal(nextFocus(playerRows, 'player-toggle', 'up'), 'player-episodes');
+    assert.equal(nextFocus(playerRows, 'player-episodes', 'right'), 'player-home');
+    const episodes = playerEpisodeRows(3);
+    assert.equal(nextFocus(episodes, 'player-episodes-close', 'down'), 'player-episode-0');
+    assert.equal(nextFocus(episodes, 'player-episode-2', 'up'), 'player-episode-1');
+    assert.equal(tabFocus(episodes, 'player-episode-2', false), 'player-episodes-close');
   });
   it('cycles the existing Settings tabs with wrapping and makes clock fonts D-pad reachable', () => {
     assert.equal(adjacentSettingsTab('appearance', -1), 'advanced');
@@ -23,14 +29,17 @@ describe('remote navigation', () => {
     assert.equal(remoteKey({ key: 'Escape', keyCode: 27 }), 'back');
     assert.equal(remoteKey({ key: 'Unidentified', keyCode: 40 }), 'down');
     assert.equal(remoteKey({ key: 'MediaPlay', keyCode: 415 }), 'media-play');
+    assert.equal(remoteKey({ key: 'Home', keyCode: 36 }), 'home');
+    assert.equal(remoteKey({ key: 'BrowserHome', keyCode: 0 }), 'home');
   });
-  it('reaches all ten default tiles and the Media prompt without a redundant USB tile', () => {
+  it('reaches all ten default tiles without focusing the Media label', () => {
     let id = 'app-art';
     const visited = [id];
     for (let i = 0; i < 15; i++) { id = nextFocus(homeRows, id, 'right'); visited.push(id); }
     assert.equal(new Set(visited).size, 10);
     assert.equal(id, 'app-all-apps');
-    assert.equal(nextFocus(homeRows, id, 'down'), 'home-media');
+    assert.equal(nextFocus(homeRows, id, 'down'), id);
+    assert.equal(homeRows.some(row => row.some(node => node.id === 'home-media')), false);
     assert.equal(nextFocus(homeRows, 'app-youtube', 'left'), 'app-art');
     assert.equal(nextFocus(homeRows, 'app-art', 'left'), 'app-art');
   });

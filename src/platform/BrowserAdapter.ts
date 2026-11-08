@@ -14,6 +14,7 @@ export class BrowserAdapter implements PlatformAdapter {
   readonly apps = new TvApplications();
   readonly sources = new TvSources();
   registerMediaKeys() { return () => {}; }
+  registerHomeKey() { return () => {}; }
   constructor(readonly media: MediaAdapter = new UnavailableMediaAdapter()) {}
   async perform(action: NativeAction) { return action.type === 'system-settings' ? this.apps.launchSettings() : plannedAction(action); }
   async exit() { return { status: 'unsupported' as const, title: 'Close this browser tab', message: 'The TV version closes FrameOS. In this preview, close the browser tab to exit.' }; }

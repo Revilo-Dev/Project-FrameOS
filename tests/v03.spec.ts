@@ -1,3 +1,4 @@
+import { openMedia } from './mediaNavigation';
 import { settingsSubsection } from './settingsNavigation';
 import { mediaOption } from './mediaOptions';
 import { test, expect } from '@playwright/test';
@@ -64,7 +65,7 @@ test('long OK hides without opening, Options restores hidden files, toggle and f
   await page.keyboard.press('Escape'); await expect(page.locator('#media-entry-0')).toContainText('Series');
   await page.locator('#media-entry-0').click({ button: 'right' }); await page.locator('#context-hide').click();
   await expect(page.locator('#media-entry-0')).toHaveClass(/media-hidden-item/); await mediaOption(page, 'media-hidden');
-  await expect(page.locator('.media-tile')).toHaveCount(3); await page.reload(); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await expect(page.locator('.media-tile')).toHaveCount(3);
+  await expect(page.locator('.media-tile')).toHaveCount(3); await page.reload(); await page.keyboard.press('ArrowDown'); await expect(page.locator('.media-tile')).toHaveCount(3);
   await mediaOption(page, 'media-hidden'); await page.locator('#media-entry-0').click();
   await expect(page.locator('.media-hidden-item')).toHaveCount(4); await page.locator('#media-entry-1').focus(); await mediaOption(page, 'media-item-options');
   await expect(page.locator('#context-hide')).toHaveText('Unhide'); await page.keyboard.press('Escape');
@@ -103,7 +104,7 @@ test('USB removal during a seek closes the UI immediately and defers native clea
 test('unsupported codecs display an error and Back keeps the current folder', async ({ page }) => {
   await nativeFixture(page, { failPrepare: true }); await openSeries(page); await page.locator('#media-entry-1').click();
   await expect(page.locator('.player-message')).toContainText('UnsupportedCodec'); await page.keyboard.press('Escape'); await expect(page.locator('#media-entry-1')).toBeFocused();
-  await page.reload(); await page.locator('#home-media').click(); await page.locator('#media-entry-0').click();
+  await page.reload(); await openMedia(page); await page.locator('#media-entry-0').click();
   await page.locator('#media-entry-1').click(); await expect(page.locator('.player-message')).toContainText('UnsupportedCodec');
 });
 test('missing AVPlay reports capability unavailable and does not pretend to play video', async ({ page }) => {
@@ -123,11 +124,11 @@ test('an existing native-index thumbnail loads on a file origin, is cached, and 
   const thumbnail = pathToFileURL(resolve('dist', catalog[0].thumbnail)).href;
   await nativeFixture(page, { thumbnail }); await page.goto(pathToFileURL(resolve('dist/index.html')).href);
   await page.evaluate(csp => { const meta = document.createElement('meta'); meta.httpEquiv = 'Content-Security-Policy'; meta.content = csp; document.head.appendChild(meta); }, contentSecurityPolicy);
-  await page.locator('#home-media').click();
+  await openMedia(page);
   await expect(page.locator('.media-thumbnail img')).toHaveCount(2);
   expect(await page.locator('.media-thumbnail img').first().evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
   const reads = await page.evaluate(() => window.__playerFixture.thumbnails);
-  await page.keyboard.press('Escape'); await page.locator('#home-media').click(); await expect(page.locator('.media-thumbnail img')).toHaveCount(2);
+  await page.keyboard.press('Escape'); await openMedia(page); await expect(page.locator('.media-thumbnail img')).toHaveCount(2);
   expect(await page.evaluate(() => window.__playerFixture.thumbnails)).toBe(reads);
   await page.locator('#media-entry-1').click(); await expect(page.locator('#player-toggle')).toHaveAttribute('aria-label', 'Pause');
 });

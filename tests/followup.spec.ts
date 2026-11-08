@@ -1,3 +1,4 @@
+import { openMedia } from './mediaNavigation';
 import { test, expect } from '@playwright/test';
 import { nativeFixture } from './nativeFixture';
 import { bitcoinFixture } from './bitcoinFixture';
@@ -36,7 +37,7 @@ for (const outcome of ['success', 'missing', 'denied'] as const) test(`YouTube n
 test('Media uses the selected preblurred wallpaper and restores native transparency only for playback', async ({ page }) => {
   await nativeFixture(page); await page.goto('/');
   await expect(page.locator('#media-entry-0')).toBeAttached();
-  await page.locator('#home-media').click(); await expect(page.locator('#media-entry-0')).toBeFocused();
+  await openMedia(page); await expect(page.locator('#media-entry-0')).toBeFocused();
   await page.keyboard.press('Enter'); await expect(page.locator('#media-entry-0')).toContainText('Extras');
   expect(await page.locator('.wallpaper').evaluate(element => getComputedStyle(element).backgroundImage)).toBe(await page.locator('.ambient-wallpaper').evaluate(element => getComputedStyle(element).backgroundImage));
   await expect(page.locator('.media-hub')).toHaveCSS('background-color', 'rgba(11, 20, 31, 0.24)');
@@ -49,7 +50,7 @@ test('Media uses the selected preblurred wallpaper and restores native transpare
 test('opening Media during USB discovery focuses arriving cards without stealing later navigation', async ({ page }) => {
   await nativeFixture(page, { delayDirectory: true }); await page.goto('/');
   await expect.poll(() => page.evaluate(() => window.__playerFixture.reads.length)).toBe(1);
-  await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await expect(page.locator('#media-options')).toBeFocused();
+  await page.keyboard.press('ArrowDown'); await expect(page.locator('#media-options')).toBeFocused();
   await page.evaluate(() => { window.__playerFixture.delayDirectory = false; window.__playerFixture.finishDirectory(); });
   await expect(page.locator('#media-entry-0')).toBeFocused();
   await page.keyboard.press('ArrowRight'); await expect(page.locator('#media-entry-1')).toBeFocused();
@@ -68,7 +69,7 @@ test('Bitcoin fetches fresh prices every five minutes and refreshes overdue data
   await page.clock.fastForward(299000); expect(requests).toBe(1);
   await page.clock.fastForward(2000); await expect(card).toContainText('$68,000.00'); expect(requests).toBe(2);
   await page.clock.fastForward(300001); await expect(card).toContainText('$69,000.00'); expect(requests).toBe(3);
-  await page.locator('#home-media').click(); await page.clock.fastForward(301000); expect(requests).toBe(3);
+  await openMedia(page); await page.clock.fastForward(301000); expect(requests).toBe(3);
   await page.keyboard.press('Escape'); await expect(card).toContainText('$70,000.00'); expect(requests).toBe(4);
 });
 

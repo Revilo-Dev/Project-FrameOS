@@ -1,12 +1,17 @@
 export type Direction = 'left' | 'right' | 'up' | 'down';
 export type MediaKey = 'media-toggle' | 'media-play' | 'media-pause' | 'media-stop' | 'media-next' | 'media-previous' | 'media-forward' | 'media-rewind' | 'media-skip-forward' | 'media-skip-back';
-export type RemoteKey = Direction | MediaKey | 'select' | 'back' | 'tab' | 'context' | null;
+export type RemoteKey = Direction | MediaKey | 'select' | 'back' | 'home' | 'tab' | 'context' | null;
 const mediaNames: Record<string, MediaKey> = { MediaPlayPause: 'media-toggle', MediaPlay: 'media-play', MediaPause: 'media-pause', MediaStop: 'media-stop', MediaTrackNext: 'media-next', MediaTrackPrevious: 'media-previous', MediaFastForward: 'media-forward', MediaRewind: 'media-rewind' };
 const channelNames: Record<string, MediaKey> = { ChannelUp: 'media-skip-forward', ChannelDown: 'media-skip-back' };
 let channelsActive = false;
 const systemVolumeCodes = new Set([447, 448, 449]);
 const systemVolumeNames = new Set(['VolumeUp', 'VolumeDown', 'VolumeMute', 'AudioVolumeUp', 'AudioVolumeDown', 'AudioVolumeMute']);
 const nativeMediaCodes = new Map<number, MediaKey>();
+const nativeHomeCodes = new Set<number>();
+export function bindHomeKey(code: number) {
+  nativeHomeCodes.add(code);
+  return () => { nativeHomeCodes.delete(code); };
+}
 export function bindMediaKeys(keys: { name: string; code: number }[]) {
   channelsActive = true;
   for (const key of keys) if (systemVolumeNames.has(key.name)) systemVolumeCodes.add(key.code);
@@ -18,6 +23,7 @@ export type FocusRows = readonly (readonly FocusNode[])[];
 
 export function remoteKey(event: { key: string; keyCode: number }): RemoteKey {
   if (systemVolumeNames.has(event.key) || systemVolumeCodes.has(event.keyCode)) return null;
+  if (['Home', 'BrowserHome', 'GoHome'].includes(event.key) || event.keyCode === 36 || nativeHomeCodes.has(event.keyCode)) return 'home';
   const keys: Record<string, RemoteKey> = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', Enter: 'select', Escape: 'back', Backspace: 'back', BrowserBack: 'back', GoBack: 'back', Tab: 'tab' };
   const codes: Record<number, RemoteKey> = { 37: 'left', 39: 'right', 38: 'up', 40: 'down', 13: 'select', 27: 'back', 8: 'back', 10009: 'back' };
   return keys[event.key] || codes[event.keyCode] || mediaNames[event.key] || nativeMediaCodes.get(event.keyCode) || (channelsActive ? channelNames[event.key] : null) || (event.key === 'PageUp' ? 'media-skip-forward' : event.key === 'PageDown' ? 'media-skip-back' : event.key === ' ' ? 'media-toggle' : event.key === 'ContextMenu' ? 'context' : null);

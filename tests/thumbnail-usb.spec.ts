@@ -1,3 +1,4 @@
+import { openMedia } from './mediaNavigation';
 import { test, expect } from '@playwright/test';
 import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -21,7 +22,7 @@ for (const format of ['MP4', 'MKV']) test(`new Windows generator ${format} scree
   const imageUri = pathToFileURL(resolve(root, item.image)).href;
   await nativeFixture(page, { folderName: 'Nested Unicode é', offline: { name, ...item, imageUri } });
   await page.goto(pathToFileURL(resolve('dist/index.html')).href);
-  await page.locator('#home-media').click(); await page.locator('#media-entry-0').click();
+  await openMedia(page); await page.locator('#media-entry-0').click();
   const image = page.locator('#media-entry-1 .media-thumbnail img');
   await expect(image).toBeVisible();
   const rendering = await image.evaluate(el => { const image = el as HTMLImageElement; return { complete: image.complete, width: image.naturalWidth, height: image.naturalHeight, uri: image.currentSrc }; });
@@ -33,7 +34,7 @@ for (const format of ['MP4', 'MKV']) test(`new Windows generator ${format} scree
   await expect(page.locator('.thumbnail-attempts')).not.toContainText('native-find');
   await expect(page.locator('.thumbnail-attempts')).not.toContainText('html-video');
   const diagnostic = await page.locator('.thumbnail-diagnostic-facts').innerText();
-  await page.reload(); await page.locator('#home-media').click(); await page.locator('#media-entry-0').click();
+  await page.reload(); await openMedia(page); await page.locator('#media-entry-0').click();
   await expect(image).toBeVisible();
   await page.locator('#media-entry-1').click({ button: 'right' }); await page.locator('#context-thumbnail').click();
   await expect(page.locator('.thumbnail-diagnostic-facts')).toContainText('Persistent hit');
@@ -66,7 +67,7 @@ test('grid defaults to five, supports all 3–7 choices, persists and keeps larg
     await expect(page.locator(`#media-entry-${columns}`)).toBeFocused();
     expect(await page.locator('.media-tile').count()).toBeLessThanOrEqual(columns * 5 + 1);
   }
-  await page.reload(); await page.locator('#home-media').click(); await page.locator('#media-entry-0').click();
+  await page.reload(); await openMedia(page); await page.locator('#media-entry-0').click();
   await page.locator('#media-options').click(); await expect(page.locator('#grid-7')).toHaveAttribute('aria-checked', 'true'); await page.keyboard.press('Escape');
   await page.locator('#media-entry-0').focus();
   await expect(page.locator('.breadcrumbs button, .media-home-indicator[tabindex]')).toHaveCount(0);

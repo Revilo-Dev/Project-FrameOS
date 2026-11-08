@@ -1,3 +1,4 @@
+import { openMedia } from './mediaNavigation';
 import { settingsSubsection } from './settingsNavigation';
 import { bitcoinFixture } from './bitcoinFixture';
 import { test, expect } from '@playwright/test';
@@ -77,7 +78,7 @@ test('capture all FrameOS screens and assemble the reference gallery', async ({ 
   await page.locator('#top-settings').click(); await page.locator('#settings-tab-widgets').click();
   for (const id of ['weather', 'calendar', 'world-clock']) await page.locator(`#widget-toggle-${id}`).click();
   await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toHaveCount(0);
-  await page.locator('#home-media').click(); await expect(page.locator('#media-entry-0')).toBeFocused();
+  await openMedia(page); await expect(page.locator('#media-entry-0')).toBeFocused();
   await capture('media-root', 'Media Hub · USB root');
   await page.keyboard.press('Enter'); await expect(page.locator('#media-entry-0')).toContainText('Extras');
   await capture('media-folder', 'Media Hub · episode folder');
@@ -105,7 +106,7 @@ test('capture all FrameOS screens and assemble the reference gallery', async ({ 
   await capture('app-notice', 'Application availability notice'); await page.keyboard.press('Escape');
   await page.locator('#top-power').click(); await expect(page.locator('#exit-cancel')).toBeVisible();
   await capture('exit', 'Exit confirmation'); await page.keyboard.press('Escape');
-  await page.locator('#home-media').click(); await expect(page.locator('#media-entry-0')).toContainText('Series');
+  await openMedia(page); await expect(page.locator('#media-entry-0')).toContainText('Series');
   await page.locator('#media-entry-0').click(); await expect(page.locator('#media-entry-0')).toContainText('Extras');
   await page.locator('#media-entry-0').click(); await expect(page.getByText('This folder is empty', { exact: true })).toBeVisible();
   await capture('empty-folder', 'Media Hub · empty folder'); await page.keyboard.press('Escape');

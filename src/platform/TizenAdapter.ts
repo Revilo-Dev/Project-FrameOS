@@ -7,6 +7,7 @@ import { fallbackThumbnailProvider } from './thumbnailFallbacks';
 import { browserStorage } from '../services/settings';
 import { ThumbnailDiagnostics } from './ThumbnailDiagnostics';
 import { registerMediaKeys } from './mediaKeys';
+import { registerHomeKey } from './homeKey';
 import { TvApplications } from './launchTvApp';
 import { TvSources } from './tvSources';
 
@@ -44,4 +45,5 @@ export class TizenAdapter implements PlatformAdapter {
     return plannedAction(action);
   }
   registerMediaKeys() { return registerMediaKeys(this.runtime); }
+  registerHomeKey() { return registerHomeKey(this.runtime); }
 }

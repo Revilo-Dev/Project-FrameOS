@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { video } from '../../tests/mediaFixture';
-import { compareMediaNames, detectEpisode, playbackQueue, videoDisplayTitle } from './episodes';
+import { compareMediaNames, detectEpisode, folderVideos, playbackQueue, videoDisplayTitle } from './episodes';
 import { defaultMediaPreferences, hiddenIdentity, isMediaHidden, loadMediaPreferences, saveMediaPreferences, toggleMediaHidden } from './mediaPreferences';
 import { localFilePath, playbackPath } from './playbackPath';
 
@@ -28,6 +28,7 @@ describe('episode identification and playback lists', () => {
     const current = video('Show.S01E02.MKV');
     const entries = [video('Show.S02E01.mp4'), video('Show.S01E10.mkv'), current, video('Show.S01E01.mp4'), video('Other.S01E03.mp4'), video('Show.S01E03.mp4', 'usb-b/Series'), { ...video('folder'), isDirectory: true, type: 'folder' as const }, { ...video('notes.txt'), type: 'other' as const }];
     assert.deepEqual(playbackQueue(entries, current).map(entry => entry.name), ['Show.S01E01.mp4', 'Show.S01E02.MKV', 'Show.S01E10.mkv', 'Show.S02E01.mp4']);
+    assert.deepEqual(folderVideos(entries, current).map(entry => entry.name), ['Other.S01E03.mp4', 'Show.S01E01.mp4', 'Show.S01E02.MKV', 'Show.S01E10.mkv', 'Show.S02E01.mp4']);
     assert.deepEqual([video('Episode 10.mp4'), video('Episode 2.mp4'), video('Episode 1.mp4')].sort(compareMediaNames).map(entry => detectEpisode(entry.name)!.episode), [1, 2, 10]);
     assert.deepEqual(playbackQueue([video('Movie 10.mp4'), video('Movie 2.MKV')], video('Movie 2.MKV')).map(entry => entry.name), ['Movie 2.MKV', 'Movie 10.mp4']);
   });

@@ -91,7 +91,7 @@ test('Settings floats above wallpaper; channel keys wrap tabs, restore focus, an
   await page.keyboard.press('PageUp'); await expect(page.locator('#settings-tab-appearance')).toHaveAttribute('aria-pressed', 'true');
   expect((await page.evaluate(() => window.__playerFixture.calls)).filter(call => call.startsWith('seek:'))).toEqual([]);
   await closeSettings(page); await expect(page.locator('#top-settings')).toBeFocused();
-  await page.locator('#app-settings').focus(); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await expect(page.locator('#media-entry-0')).toBeFocused(); await page.keyboard.press('Enter');
+  await page.locator('#app-settings').focus(); await page.keyboard.press('ArrowDown'); await expect(page.locator('#media-entry-0')).toBeFocused(); await page.keyboard.press('Enter');
   await page.locator('#media-entry-1').click(); await expect(page.locator('#player-toggle')).toHaveAttribute('aria-label', 'Pause');
   await page.evaluate(() => document.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 9101, bubbles: true, cancelable: true })));
   await expect(page.locator('#player-seek')).toHaveAttribute('aria-valuenow', '30000');
@@ -133,7 +133,7 @@ test('Media Options contains filters, sorting, hidden files and Refresh without 
 
 test('Media Up skips display-only breadcrumbs before returning Home; Back retains folder hierarchy', async ({ page }) => {
   await nativeFixture(page); await page.goto('/'); await expect(page.locator('#app-youtube')).toBeFocused();
-  await page.keyboard.press('ArrowRight'); await expect(page.locator('#app-stan')).toBeFocused(); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowRight'); await expect(page.locator('#app-stan')).toBeFocused(); await page.keyboard.press('ArrowDown');
   await expect(page.locator('#media-entry-0')).toBeFocused(); await page.keyboard.press('Enter');
   await expect(page.locator('#media-entry-0')).toContainText('Extras');
   await page.keyboard.press('Escape'); await expect(page.locator('#media-entry-0')).toContainText('Series');
@@ -142,13 +142,13 @@ test('Media Up skips display-only breadcrumbs before returning Home; Back retain
   await expect(page.locator('.page-stack')).toHaveClass(/page-stack-media/);
   await page.keyboard.press('ArrowUp'); await expect(page.locator('#app-stan')).toBeFocused();
   await expect(page.locator('.page-stack')).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, 0)');
-  await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await expect(page.locator('#media-entry-0')).toBeFocused();
+  await page.keyboard.press('ArrowDown'); await expect(page.locator('#media-entry-0')).toBeFocused();
   await page.keyboard.press('Escape'); await expect(page.locator('#app-stan')).toBeFocused();
 });
 
 test('folder titles clamp to two lines, retain full names and focus without card expansion', async ({ page }) => {
   const name = 'A very long folder name with family holiday collections and television series '.repeat(3) + '終';
-  await nativeFixture(page, { folderName: name }); await page.goto('/'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
+  await nativeFixture(page, { folderName: name }); await page.goto('/'); await page.keyboard.press('ArrowDown');
   const folder = page.locator('#media-entry-0'); await expect(folder).toBeFocused();
   await expect(page.locator('.page-stack')).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, -1080)');
   await expect(folder).toHaveAttribute('title', name); await expect(folder.locator('.media-filename')).toHaveText(name);

@@ -11,7 +11,7 @@ import { useLauncherDock } from '../screens/useLauncherDock';
 import { loadLauncherPreferences, saveLauncherPreferences } from '../services/launcherPreferences';
 import { restorePreferenceBackup, type PreferenceBundle } from '../services/preferenceBackup';
 import { UiPerformance } from '../services/uiPerformance';
-import { adjacentSettingsTab, homeLayout, playerRows, settingsLayout, settingsSection, type SettingsTab } from '../navigation/layout';
+import { adjacentSettingsTab, homeLayout, playerEpisodeRows, playerRows, settingsLayout, settingsSection, type SettingsTab } from '../navigation/layout';
 import { mediaOptionsRows, mediaUpReturnsHome } from '../navigation/mediaLayout';
 import { FocusButton } from '../components/FocusButton';
 import { createPlatform } from '../platform';
@@ -28,7 +28,7 @@ import type { MediaEntry } from '../types/media';
 import type { Settings } from '../types/settings';
 import { VideoPlayer, type PlayerHandle } from '../screens/VideoPlayer';
 import { loadMediaPreferences, saveMediaPreferences, toggleMediaHidden, isMediaHidden, type MediaPreferences } from '../services/mediaPreferences';
-import { playbackQueue } from '../services/episodes';
+import { folderVideos, playbackQueue } from '../services/episodes';
 import { loadWidgets, saveWidgets, type WidgetId, type WidgetPreferences } from '../services/widgets';
 import { loadOrganiser, saveOrganiser, type LocalOrganiser } from '../services/localOrganiser';
 import { addDays, dayKey } from '../services/calendar';
@@ -36,7 +36,7 @@ import { useCalendar } from '../components/useCalendar';
 import { WidgetPanel, widgetPanelRows } from '../screens/WidgetPanel';
 
 type Panel = { kind: 'settings'; origin: string } | { kind: 'widget'; origin: string; widget: WidgetId } | { kind: 'exit'; origin: string } | { kind: 'notice'; origin: string; result: ActionResult; icon: IconName; label: string } | { kind: 'details' | 'context'; origin: string; entry: MediaEntry };
-interface Playback { entry: MediaEntry; queue: MediaEntry[]; automatic?: boolean }
+interface Playback { entry: MediaEntry; queue: MediaEntry[]; episodes: MediaEntry[]; automatic?: boolean }
 
 export function App() {
   const platform = useMemo(() => createPlatform(), []);
@@ -58,6 +58,7 @@ export function App() {
   const [mediaPreferences, setMediaPreferences] = useState(() => loadMediaPreferences(storage));
   const [mediaMessage, setMediaMessage] = useState('');
   const [playback, setPlayback] = useState<Playback | null>(null);
+  const [episodesOpen, setEpisodesOpen] = useState(false);
   const player = useRef<PlayerHandle>(null);
   const lastEntryIdentity = useRef('');
   const pendingMediaFocus = useRef(false);
@@ -80,7 +81,6 @@ export function App() {
   const [toolRows, setToolRows] = useState<FocusRows>();
   const [wallpaperPage, setWallpaperPage] = useState(0);
   const [online, setOnline] = useState(navigator.onLine);
-  const origin = useRef('app-youtube');
   const busy = useRef(false);
   const focus = useCallback((id: string) => {
     if (id.startsWith('app-')) lastDockFocus.current = id;
@@ -111,6 +111,7 @@ export function App() {
     if (hub.storage) setMediaMessage(message => message === 'USB drive disconnected.' ? '' : message);
   }, [hub.storage?.id]);
   // One registration owner and one key listener, shared by Settings and playback.
+  useEffect(() => platform.registerHomeKey(), [platform]);
   useEffect(() => {
     if (playback || panel?.kind === 'settings') return platform.registerMediaKeys();
   }, [platform, !!playback, panel?.kind === 'settings']);
@@ -155,9 +156,14 @@ export function App() {
   const closePlayer = () => {
     platform.player.close();
     const index = hub.entries.findIndex(entry => entry.id === playback?.entry.id);
-    setPlayback(null); setFocused(index >= 0 ? `media-entry-${index}` : 'media-options');
+    setPlayback(null); setEpisodesOpen(false); setFocused(index >= 0 ? `media-entry-${index}` : 'media-options');
   };
-  const home = () => { setMediaOptions(false); setScreen('home'); setFocused(origin.current); };
+  const home = () => {
+    remoteEvidence.suspend(); platform.player.close(); launcher.dismiss(() => setFocused(lastDockFocus.current));
+    clearTimeout(settingsCloseTimer.current); pendingMediaFocus.current = false;
+    setPlayback(null); setEpisodesOpen(false); setPanel(null); setSettingsClosing(false); setSettingsTool(undefined); setToolRows(undefined);
+    setMediaOptions(false); setScreen('home');
+  };
   const openTool = (tool?: LauncherTool) => { remoteEvidence.suspend(); setToolRows(undefined); setSettingsTool(tool); setFocused(tool ? 'launcher-tool-back' : `launcher-${settingsTool || 'apps'}`); };
   const closeOptions = () => { setMediaOptions(false); setFocused('media-options'); };
   const close = () => {
@@ -178,7 +184,7 @@ export function App() {
       if (!hub.parent()) home();
     } else focus(`app-${launcherPreferences.lastFocused}`);
   };
-  const showMedia = (from: string) => { origin.current = from === 'home-media' ? lastDockFocus.current : from; pendingMediaFocus.current = !hub.entries.length; setScreen('media'); setFocused(hub.recovery ? 'media-recovery-refresh' : hub.entries.length ? 'media-entry-0' : 'media-options'); };
+  const showMedia = () => { pendingMediaFocus.current = !hub.entries.length; setScreen('media'); setFocused(hub.recovery ? 'media-recovery-refresh' : hub.entries.length ? 'media-entry-0' : 'media-options'); };
   const personalise = (from: string) => { clearTimeout(settingsCloseTimer.current); setSettingsClosing(false); setPanel({ kind: 'settings', origin: from }); setFocused(tabFocusMemory.current[settingsTab] || `settings-tab-${settingsTab}`); };
   const selectSettingsTab = (tab: SettingsTab, restore = false) => {
     setSettingsTool(undefined); setToolRows(undefined);
@@ -190,7 +196,7 @@ export function App() {
     if (item.action.type === 'sources') { launcher.showSources(from); return; }
     if (item.action.type === 'art-mode') { art.enter(); return; }
     if (item.action.type === 'settings') { personalise(from); return; }
-    if (item.action.type === 'usb') { showMedia(from); return; }
+    if (item.action.type === 'usb') { showMedia(); return; }
     if (busy.current) return;
     busy.current = true;
     let result: ActionResult | null;
@@ -223,14 +229,24 @@ export function App() {
   const context = (entry: MediaEntry, from: string) => { setPanel({ kind: 'context', entry, origin: from }); setFocused('context-hide'); };
   const contextFromFocus = (id: string) => { const entry = hub.entries[Number(id.slice(12))]; if (entry) context(entry, id); };
   const openFile = (entry: MediaEntry, from: string) => {
-    if (entry.type === 'video') { setPlayback({ entry, queue: playbackQueue(hub.allEntries, entry) }); setFocused('player-toggle'); }
+    if (entry.type === 'video') { setPlayback({ entry, queue: playbackQueue(hub.allEntries, entry), episodes: folderVideos(hub.allEntries, entry) }); setEpisodesOpen(false); setFocused('player-toggle'); }
     else { setPanel({ kind: 'details', entry, origin: from }); setFocused('details-close'); }
   };
   const playbackIndex = playback?.queue.findIndex(entry => entry.id === playback.entry.id) ?? -1;
-  const movePlayback = (offset: number, automatic = false) => { if (!playback || platform.player.get().busy) return; const entry = playback.queue[playbackIndex + offset]; if (entry) { setPlayback({ ...playback, entry, automatic }); setFocused('player-toggle'); } };
-  const rows = playback ? playerRows : activePanel?.kind === 'settings' ? settingsLayout(settingsTab, wallpaperPage, widgets.enabled, hub.allEntries.some(entry => entry.type === 'video'), settingsTool || ['home-dock', 'advanced', 'tv-sources'].includes(settingsTab) ? toolRows || [] : undefined) : activePanel?.kind === 'widget' ? widgetPanelRows(activePanel.widget, organiser, calendarMonth, ['ready', 'offline', 'error', 'expired'].includes(calendar.state.status), ['ready', 'offline'].includes(calendar.state.status) ? Array.from({ length: 7 }, (_, i) => addDays(dayKey(new Date(), settings.timeZone), i)) : []) : activePanel?.kind === 'exit' ? [[{ id: 'exit-cancel', x: 0 }, { id: 'exit-confirm', x: 1 }]] : activePanel?.kind === 'context' ? ['hide', 'details', ...(activePanel.entry.type === 'video' ? ['thumbnail'] : []), 'cancel'].map(id => [{ id: `context-${id}`, x: 960 }]) : activePanel ? [[{ id: activePanel.kind === 'details' ? 'details-close' : 'notice-close', x: 0 }]] : screen === 'media' ? mediaOptions ? mediaOptionsRows(selectedIndex >= 0) : hub.rows : launcher.rows || homeLayout(compact, widgets.enabled, dock);
+  const movePlayback = (offset: number, automatic = false) => { if (!playback || platform.player.get().busy) return; const entry = playback.queue[playbackIndex + offset]; if (entry) { setPlayback({ ...playback, entry, automatic }); setEpisodesOpen(false); setFocused('player-toggle'); } };
+  const toggleEpisodes = () => {
+    if (!playback) return;
+    const index = playback.episodes.findIndex(entry => entry.id === playback.entry.id);
+    setEpisodesOpen(!episodesOpen); setFocused(episodesOpen ? 'player-episodes' : index >= 0 ? `player-episode-${index}` : 'player-episodes-close');
+  };
+  const playEpisode = (entry: MediaEntry) => {
+    if (!playback || platform.player.get().busy || !playback.episodes.some(episode => episode.id === entry.id)) return;
+    if (entry.id !== playback.entry.id) setPlayback({ ...playback, entry, automatic: false, queue: playbackQueue(playback.episodes, entry) });
+    setEpisodesOpen(false); setFocused('player-toggle');
+  };
+  const rows = playback ? episodesOpen ? playerEpisodeRows(playback.episodes.length) : playerRows : activePanel?.kind === 'settings' ? settingsLayout(settingsTab, wallpaperPage, widgets.enabled, hub.allEntries.some(entry => entry.type === 'video'), settingsTool || ['home-dock', 'advanced', 'tv-sources'].includes(settingsTab) ? toolRows || [] : undefined) : activePanel?.kind === 'widget' ? widgetPanelRows(activePanel.widget, organiser, calendarMonth, ['ready', 'offline', 'error', 'expired'].includes(calendar.state.status), ['ready', 'offline'].includes(calendar.state.status) ? Array.from({ length: 7 }, (_, i) => addDays(dayKey(new Date(), settings.timeZone), i)) : []) : activePanel?.kind === 'exit' ? [[{ id: 'exit-cancel', x: 0 }, { id: 'exit-confirm', x: 1 }]] : activePanel?.kind === 'context' ? ['hide', 'details', ...(activePanel.entry.type === 'video' ? ['thumbnail'] : []), 'cancel'].map(id => [{ id: `context-${id}`, x: 960 }]) : activePanel ? [[{ id: activePanel.kind === 'details' ? 'details-close' : 'notice-close', x: 0 }]] : screen === 'media' ? mediaOptions ? mediaOptionsRows(selectedIndex >= 0) : hub.rows : launcher.rows || homeLayout(compact, widgets.enabled, dock);
   useFocusRecovery(rows, focused, focus, art.active);
-  useRemote({ rows, current: focused, focus, back: close, observe: remoteEvidence.observe, measure: performanceCapture.measure, input: (key, current) => {
+  useRemote({ rows, current: focused, focus, back: close, home, observe: remoteEvidence.observe, measure: performanceCapture.measure, input: (key, current) => {
     if (settingsClosing && key === 'select') return true;
     if (!panel && !playback && screen === 'home' && launcher.input(key, current)) return true;
     if (activePanel?.kind === 'settings' && (key === 'media-skip-forward' || key === 'media-skip-back')) {
@@ -243,10 +259,9 @@ export function App() {
     if (!panel && screen === 'home' && launcher.direction(direction, current)) return true;
     if (launcher.active) return false;
     if (!activePanel && screen === 'media' && !mediaOptions && direction === 'up' && mediaUpReturnsHome(current)) { home(); return true; }
-    if (!activePanel && screen === 'home' && current === 'home-media' && direction === 'down') { showMedia(current); return true; }
     if (activePanel || screen !== 'home' || !current.startsWith('app-')) return false;
     const index = dock.findIndex(item => `app-${item.id}` === current);
-    if (direction === 'down') return 'home-media';
+    if (direction === 'down') { showMedia(); return true; }
     if (direction === 'left' || direction === 'right') return `app-${dock[Math.max(0, Math.min(dock.length - 1, index + (direction === 'left' ? -1 : 1)))].id}`;
     return false;
   } });
@@ -255,8 +270,8 @@ export function App() {
     <div className="wallpaper" key={wallpaper.id} style={{ backgroundImage: `url("${screen === 'media' ? wallpaper.ambient : wallpaper.src}")` }} />
     <div className={`ambient-wallpaper${screen === 'media' ? ' media-ambient' : ''}`} style={{ backgroundImage: `url("${wallpaper.ambient}")` }} />
     <div className="wallpaper-shade" />
-    <div className="page-window"><div className={`page-stack${screen === 'media' ? ' page-stack-media' : ''}`} onWheel={event => { if (!art.active && screen === 'home' && !panel && event.deltaY > 20) showMedia(focused); }}>
-      <Home dock={dock} moving={launcher.moving} artMode={art.active} focused={screen === 'home' && !panel && !launcher.active ? focused : ''} focus={focus} open={(item, from) => { if (launcher.moving) launcher.input('select', from); else void open(item, from); }} personalise={personalise} weatherCity={settings.weatherCity} timeFormat={settings.timeFormat} timeZone={settings.timeZone} clockFont={settings.clockFont} inactive={!!panel || launcher.active} hidden={screen !== 'home'} showMedia={showMedia} showFps={settings.showFps} online={online} settings={settings} widgets={widgets} organiser={organiser} calendar={calendar.state} bitcoin={bitcoin} openWidget={openWidget} wallpaper={wallpaper.ambient} network={() => { setPanel({ kind: 'notice', origin: 'top-network', icon: 'browser', label: 'Network', result: { status: 'unavailable', title: online ? 'Network available' : 'You’re offline', message: online ? 'The device reports a network connection. Weather updates confirm internet access. Manage Wi-Fi in Samsung TV settings.' : 'The device reports no network connection. Saved weather remains available. Manage Wi-Fi in Samsung TV settings.' } }); setFocused('notice-close'); }} power={() => { setPanel({ kind: 'exit', origin: 'top-power' }); setFocused('exit-cancel'); }} />
+    <div className="page-window"><div className={`page-stack${screen === 'media' ? ' page-stack-media' : ''}`} onWheel={event => { if (!art.active && screen === 'home' && !panel && event.deltaY > 20) showMedia(); }}>
+      <Home dock={dock} moving={launcher.moving} artMode={art.active} focused={screen === 'home' && !panel && !launcher.active ? focused : ''} focus={focus} open={(item, from) => { if (launcher.moving) launcher.input('select', from); else void open(item, from); }} personalise={personalise} weatherCity={settings.weatherCity} timeFormat={settings.timeFormat} timeZone={settings.timeZone} clockFont={settings.clockFont} inactive={!!panel || launcher.active} hidden={screen !== 'home'} showFps={settings.showFps} online={online} settings={settings} widgets={widgets} organiser={organiser} calendar={calendar.state} bitcoin={bitcoin} openWidget={openWidget} wallpaper={wallpaper.ambient} network={() => { setPanel({ kind: 'notice', origin: 'top-network', icon: 'browser', label: 'Network', result: { status: 'unavailable', title: online ? 'Network available' : 'You’re offline', message: online ? 'The device reports a network connection. Weather updates confirm internet access. Manage Wi-Fi in Samsung TV settings.' : 'The device reports no network connection. Saved weather remains available. Manage Wi-Fi in Samsung TV settings.' } }); setFocused('notice-close'); }} power={() => { setPanel({ kind: 'exit', origin: 'top-power' }); setFocused('exit-cancel'); }} />
       <MediaHub changeColumns={columns => updateMedia({ ...mediaPreferences, gridColumns: columns })} hub={hub} adapter={platform.media} thumbnails={platform.thumbnails} focused={screen === 'media' && !panel && !playback ? focused : ''} selected={selectedEntryFocus} focus={focus} home={home} columns={mediaPreferences.gridColumns} inactive={!!panel || !!playback} hidden={screen !== 'media'} openFile={openFile} context={context} showHidden={mediaPreferences.showHidden} toggleHidden={() => { updateMedia({ ...mediaPreferences, showHidden: !mediaPreferences.showHidden }); setFocused('media-hidden'); }} message={mediaMessage} optionsOpen={mediaOptions && screen === 'media' && !panel && !playback} openOptions={() => { setMediaOptions(true); setFocused(`filter-${hub.filter}`); }} closeOptions={closeOptions} refresh={() => { setMediaOptions(false); hub.refresh(); }} />
     </div></div>
     {!panel && !playback && launcher.element}
@@ -269,7 +284,7 @@ export function App() {
       {isMediaHidden(panel.entry, hub.hidden) && <p className="context-note">Restoring this item also restores any hidden parent folders.</p>}
       <FocusButton id="context-details" focused={focused} onFocused={focus} className="context-action" onClick={() => { setPanel({ ...panel, kind: 'details' }); setFocused('details-close'); }}>Details</FocusButton>{panel.entry.type === 'video' && <FocusButton id="context-thumbnail" focused={focused} onFocused={focus} className="context-action" onClick={() => { setSettingsTab('usb'); setPanel({ kind: 'settings', origin: panel.origin }); setFocused('thumbnail-retry'); }}>Thumbnail Diagnostics</FocusButton>}<FocusButton id="context-cancel" focused={focused} onFocused={focus} className="context-action" onClick={close}>Cancel</FocusButton>
     </section></div>}
-    {playback && <VideoPlayer ref={player} platform={platform} entry={playback.entry} focused={focused} focus={focus} close={closePlayer} previous={() => movePlayback(-1)} next={automatic => movePlayback(1, automatic)} autoplay={mediaPreferences.autoplayNext} automatic={!!playback.automatic} hasPrevious={playbackIndex > 0} hasNext={playbackIndex >= 0 && playbackIndex < playback.queue.length - 1} />}
+    {playback && <VideoPlayer ref={player} episodes={playback.episodes} episodesOpen={episodesOpen} toggleEpisodes={toggleEpisodes} playEpisode={playEpisode} home={home} platform={platform} entry={playback.entry} focused={focused} focus={focus} close={closePlayer} previous={() => movePlayback(-1)} next={automatic => movePlayback(1, automatic)} autoplay={mediaPreferences.autoplayNext} automatic={!!playback.automatic} hasPrevious={playbackIndex > 0} hasNext={playbackIndex >= 0 && playbackIndex < playback.queue.length - 1} />}
     {panel?.kind === 'exit' && <div className="notice-scrim"><section className="notice-panel" role="dialog" aria-modal="true" aria-labelledby="exit-title"><h2 id="exit-title">Close FrameOS?</h2><p>Return to Samsung Home. Use your TV remote’s power button to turn off the television.</p><div className="exit-actions"><FocusButton id="exit-cancel" focused={focused} onFocused={focus} className="text-button" onClick={close}>Stay here</FocusButton><FocusButton id="exit-confirm" focused={focused} onFocused={focus} className="primary-button" onClick={async () => { const result = await platform.exit(); if (result) { setPanel({ kind: 'notice', origin: 'top-power', result, icon: 'home', label: 'FrameOS' }); setFocused('notice-close'); } }}>Close FrameOS</FocusButton></div></section></div>}
   </div></Stage>;
 }

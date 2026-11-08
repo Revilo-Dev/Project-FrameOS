@@ -1,3 +1,4 @@
+import { openMedia } from './mediaNavigation';
 import { settingsSubsection, closeSettings } from './settingsNavigation';
 import { mediaOption } from './mediaOptions';
 import { test, expect, type Page } from '@playwright/test';
@@ -87,7 +88,7 @@ test('Down from dock opens genuine no-USB state and Back restores the selected t
   await usbFixture(page, { count: 0, drives: [] });
   await page.goto('/');
   await page.keyboard.press('ArrowRight');
-  await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowDown');
   await expect(page.getByText('Connect a USB device', { exact: true })).toBeVisible();
   await expect(page.getByText('Insert a USB drive to browse your media.')).toBeVisible();
   await expect(page.locator('.media-tile')).toHaveCount(0);
@@ -98,7 +99,7 @@ test('Down from dock opens genuine no-USB state and Back restores the selected t
 
 test('native insertion, root/nested browsing, details, multiple drives, cache and removal work', async ({ page }) => {
   await usbFixture(page, { count: 3, drives: [] });
-  await page.goto('/'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
+  await page.goto('/'); await page.keyboard.press('ArrowDown');
   await expect(page.getByText('Connect a USB device', { exact: true })).toBeVisible();
   await page.evaluate(() => window.__testUsbChange('USB A', true));
   await expect(page.locator('#media-entry-0')).toBeFocused();
@@ -135,7 +136,7 @@ test('native insertion, root/nested browsing, details, multiple drives, cache an
 
 test('filters keep folders accessible, empty folders are clear and disconnect closes stale details', async ({ page }) => {
   await usbFixture(page, { count: 3, drives: ['USB A'] });
-  await page.goto('/'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
+  await page.goto('/'); await page.keyboard.press('ArrowDown');
   await expect(page.locator('#media-entry-0')).toBeFocused(); await page.keyboard.press('Enter');
   await expect(page.locator('#media-entry-0')).toContainText('Empty folder');
   await mediaOption(page, 'filter-video'); await expect(page.locator('.media-tile')).toHaveCount(2);
@@ -154,7 +155,7 @@ test('filters keep folders accessible, empty folders are clear and disconnect cl
 
 test('large folders render a bounded scrolling window while arrows restore details focus', async ({ page }) => {
   await usbFixture(page, { count: 5000, drives: ['USB A'] });
-  await page.goto('/'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
+  await page.goto('/'); await page.keyboard.press('ArrowDown');
   await expect(page.locator('#media-entry-0')).toBeFocused();
   expect(await page.locator('.media-tile').count()).toBeLessThanOrEqual(31);
   await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
@@ -222,7 +223,7 @@ test('packaged file origin and production CSP load without remote scripts or sec
   await expect(page.locator('.weather-hour')).toHaveCount(6);
   await page.goto(pathToFileURL(resolve('dist/index.html')).href);
   await expect(page.locator('#app-youtube')).toBeFocused();
-  await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await expect(page.getByText('USB browsing unavailable', { exact: true })).toBeInViewport();
+  await page.keyboard.press('ArrowDown'); await expect(page.getByText('USB browsing unavailable', { exact: true })).toBeInViewport();
   await page.keyboard.press('Escape'); await expect(page.locator('#app-youtube')).toBeFocused();
   expect(errors).toEqual([]);
 });
@@ -246,7 +247,7 @@ test('capture home, settings and Media Hub for visual review', async ({ page }) 
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.screenshot({ path: 'artifacts/v02-home.png' });
   await page.locator('#top-settings').click(); await page.screenshot({ path: 'artifacts/v02-settings.png' });
-  await page.keyboard.press('Escape'); await page.locator('#home-media').click(); await expect(page.locator('#media-entry-0')).toBeFocused();
+  await page.keyboard.press('Escape'); await openMedia(page); await expect(page.locator('#media-entry-0')).toBeFocused();
   await page.screenshot({ path: 'artifacts/v02-media.png' });
 });
 
@@ -296,7 +297,7 @@ test('native diagnostics read the packaged privilege and enumerate genuine nativ
 
 for (const fail of ['discover', 'resolve', 'enumerate'] as const) test(`native ${fail} failures remain errors and are never presented as no USB or empty directories`, async ({ page }) => {
   await usbFixture(page, { count: 3, drives: ['removable_sdc7'], fail });
-  await page.goto('/'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
+  await page.goto('/'); await page.keyboard.press('ArrowDown');
   await expect(page.locator(fail === 'discover' ? '.media-error' : '.media-recovery')).toBeInViewport();
   await expect(page.getByText('Connect a USB device', { exact: true })).toHaveCount(0);
   await expect(page.getByText('This folder is empty', { exact: true })).toHaveCount(0);
@@ -316,7 +317,7 @@ test('network and exit controls are remote accessible, and animation/FPS prefere
   await page.locator('#settings-tab-advanced').click(); await page.locator('#fps-toggle').click(); await page.keyboard.press('Escape');
   await expect(page.locator('.fps-counter')).toHaveCount(0);
   await page.keyboard.press('ArrowDown'); await expect(page.locator('#widget-world-clock')).toBeFocused();
-  await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
   await expect(page.locator('.page-stack')).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, -1080)');
   await expect(page.locator('.home')).toHaveAttribute('aria-hidden', 'true');
   await page.keyboard.press('Escape'); await expect(page.locator('#app-all-apps')).toBeFocused();

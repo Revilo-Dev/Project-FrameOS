@@ -1,3 +1,4 @@
+import { openMedia } from './mediaNavigation';
 import { test, expect, type Page } from '@playwright/test';
 import { nativeFixture } from './nativeFixture';
 import { bitcoinFixture } from './bitcoinFixture';
@@ -34,7 +35,7 @@ async function calibrate(page: Page) {
   await expect(page.getByLabel('Remote input evidence')).toContainText('"status": "supported"');
   await page.keyboard.press('Escape'); await page.keyboard.press('Escape'); await expect(page.locator('.settings-panel')).toHaveCount(0); await page.locator('#app-youtube').focus();
 }
-test('Up never opens dock options and Down uses normal spatial focus', async ({ page }) => {
+test('Up uses spatial focus and one Down opens Media', async ({ page }) => {
   await setup(page);
   const ids = await page.locator('.app-tile').evaluateAll(nodes => nodes.map(node => node.id));
   for (const id of ids) {
@@ -42,7 +43,7 @@ test('Up never opens dock options and Down uses normal spatial focus', async ({ 
     await expect(page.locator('.dock-options')).toHaveCount(0);
     expect(await page.evaluate(() => document.activeElement?.id.startsWith('widget-') || document.activeElement?.id.startsWith('top-'))).toBe(true);
   }
-  await page.locator('#app-youtube').focus(); await page.keyboard.press('ArrowDown'); await expect(page.locator('#home-media')).toBeFocused();
+  await page.locator('#app-youtube').focus(); await page.keyboard.press('ArrowDown'); await expect(page.locator('#media-entry-0')).toBeFocused();
 });
 test('short OK opens promptly while unverified long editing stays disabled without substitute shortcuts', async ({ page }) => {
   await setup(page); await page.keyboard.down('Enter');
@@ -135,7 +136,7 @@ test('three new themes persist, retain settings and provide preview screenshots 
     await page.keyboard.press('Escape'); await page.locator('#app-browser').focus(); await expect(page.locator('#app-browser')).toHaveCSS('width', '290px'); await page.screenshot({ animations: 'disabled', path: `artifacts/v041-previews/${theme}-home.png` });
     await page.locator('#app-all-apps').click(); await page.screenshot({ animations: 'disabled', path: `artifacts/v041-previews/${theme}-all-apps.png` }); await page.keyboard.press('Escape');
     await page.locator('#app-sources').click(); await page.screenshot({ animations: 'disabled', path: `artifacts/v041-previews/${theme}-sources.png` }); await page.keyboard.press('Escape');
-    await page.locator('#home-media').click(); await expect(page.locator('#media-entry-0')).toBeVisible(); await page.screenshot({ animations: 'disabled', path: `artifacts/v041-previews/${theme}-media.png` });
+    await openMedia(page); await expect(page.locator('#media-entry-0')).toBeVisible(); await page.screenshot({ animations: 'disabled', path: `artifacts/v041-previews/${theme}-media.png` });
     await page.locator('#media-entry-1').click(); await expect(page.locator('#player-toggle')).toHaveAttribute('aria-label', 'Pause'); await page.screenshot({ animations: 'disabled', path: `artifacts/v041-previews/${theme}-player.png` });
     await page.keyboard.press('Escape'); await page.keyboard.press('Escape'); await page.reload(); await expect(page.locator('.frameos')).toHaveClass(new RegExp(`theme-${theme}`));
   }

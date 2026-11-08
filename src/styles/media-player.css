@@ -42,8 +42,13 @@ html.native-playback, .native-playback body, .native-playback #root, .native-pla
 .player-top, .player-bottom { position: absolute; left: 0; width: 100%; opacity: 0; visibility: hidden; transition: opacity 220ms ease, visibility 220ms; pointer-events: none; }
 .controls-visible .player-top, .controls-visible .player-bottom { opacity: 1; visibility: visible; pointer-events: auto; }
 .player-top { top: 0; padding: 45px 70px 100px; display: flex; align-items: center; background: linear-gradient(180deg, rgba(0,0,0,.85), rgba(0,0,0,.45) 50%, transparent); }
-.player-top .icon { transform: rotate(180deg); }
-.player-top h1 { margin: 0 0 0 28px; max-width: 1640px; font-size: 30px; font-weight: 500; line-height: 1.4; letter-spacing: -.3px; overflow-wrap: break-word; }
+.player-top h1 { margin: 0; flex: 1; min-width: 0; max-height: 84px; overflow: hidden; font-size: 30px; font-weight: 500; line-height: 1.4; letter-spacing: -.3px; overflow-wrap: break-word; }
+.player-top-actions { display: flex; align-items: center; flex-shrink: 0; margin-left: 40px; }
+.player-header-button { display: inline-flex; align-items: center; justify-content: center; min-height: 64px; padding: 12px 20px; border: 2px solid transparent; border-radius: 16px; color: #edf4fc; background: rgba(255,255,255,.1); font-size: 22px; }
+.player-top-actions .player-header-button + .player-header-button { margin-left: 16px; }
+.player-header-button .icon { width: 30px; height: 30px; flex-shrink: 0; }
+.player-header-button > span { margin-left: 12px; }
+.player-header-button.is-focused { border-color: #72b5ff; background: rgba(114,181,255,.2); }
 .player-bottom { bottom: 0; padding: 100px 90px 42px; background: linear-gradient(0deg, rgba(0,0,0,.9), rgba(0,0,0,.5) 62%, transparent); }
 .player-timeline { width: 100%; padding: 19px 0; border: 2px solid transparent; border-radius: 8px; background: transparent; }
 .player-track { display: block; height: 5px; background: rgba(255,255,255,.3); border-radius: 3px; overflow: hidden; }
@@ -86,6 +91,28 @@ html.native-playback, .native-playback body, .native-playback #root, .native-pla
 .player-time { text-align: center; margin: 0 0 12px; }
 .player-timeline { border: 0; outline: none; box-shadow: none; padding: 22px 0; }
 .player-timeline.is-focused, .player-timeline:focus { border: 0; outline: none; box-shadow: none; background: transparent; }
+
+.player-episode-scrim { position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 2; background: rgba(0,0,0,.35); }
+.player-episode-panel { position: absolute; top: 0; right: 0; bottom: 0; z-index: 3; width: 640px; display: flex; flex-direction: column; padding: 42px 34px 30px; color: #edf4fc; background: #0c1520; border-left: 1px solid rgba(211,229,250,.15); box-shadow: -20px 0 70px rgba(0,0,0,.3); }
+.player-episode-panel > header { display: flex; align-items: flex-start; flex-shrink: 0; margin-bottom: 26px; }
+.player-episode-panel > header > div { flex: 1; min-width: 0; padding-right: 20px; }
+.player-episode-panel h2 { margin: 0 0 10px; font-size: 32px; font-weight: 500; }
+.player-episode-panel p { margin: 0; font-size: 18px; color: #afc2d3; overflow-wrap: break-word; }
+.player-episode-panel p > span { white-space: nowrap; }
+.player-episode-panel .player-header-button { padding: 12px; }
+.player-episode-list { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; list-style: none; margin: 0; padding: 3px 8px 3px 3px; }
+.player-episode-list::-webkit-scrollbar { width: 5px; }
+.player-episode-list::-webkit-scrollbar-thumb { background: rgba(221,234,245,.25); border-radius: 4px; }
+.player-episode-list > li + li { margin-top: 10px; }
+.player-episode { display: flex; align-items: center; width: 100%; padding: 22px 18px; border: 2px solid transparent; border-radius: 16px; background: rgba(255,255,255,.04); color: #edf4fc; text-align: left; }
+.player-episode-number { flex-shrink: 0; width: 42px; margin-right: 16px; color: #afc2d3; font-size: 20px; font-variant-numeric: tabular-nums; }
+.player-episode-info { min-width: 0; font-size: 21px; line-height: 1.4; overflow-wrap: break-word; }
+.player-episode-info > span, .player-episode-info > small { display: block; }
+.player-episode-info > small { margin-top: 8px; color: #87c3ff; font-size: 16px; }
+.player-episode.is-playing { background: rgba(114,181,255,.12); }
+.player-episode.is-focused { border-color: #72b5ff; background: rgba(114,181,255,.2); }
+.player-episode[aria-disabled=true] { opacity: .5; }
+.episodes-open .player-top, .episodes-open .player-bottom { pointer-events: none; }
 .player-track { position: relative; height: 9px; overflow: visible; border-radius: 6px; }
 .player-track > .player-fill { border-radius: 6px; transition: width 1s linear; }
 .player-track > .player-knob { position: absolute; top: 50%; width: 17px; height: 17px; border-radius: 50%; transform: translate(-50%,-50%); background: #f0f6fa; transition: left 1s linear; }

@@ -13,6 +13,7 @@ export interface PlatformAdapter {
   readonly apps: TvApplications;
   readonly sources: TvSources;
   registerMediaKeys(): () => void;
+  registerHomeKey(): () => void;
   perform(action: NativeAction): Promise<ActionResult | null>;
   exit(): Promise<ActionResult | null>;
 }

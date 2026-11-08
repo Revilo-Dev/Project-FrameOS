@@ -49,8 +49,11 @@ export function compareMediaNames(a: MediaEntry, b: MediaEntry): number {
   const group = collator.compare(left ? left.series || 'Episode' : a.name, right ? right.series || 'Episode' : b.name);
   return group || (left && right ? (left.season || 0) - (right.season || 0) || left.episode - right.episode : 0) || collator.compare(a.name, b.name);
 }
+export function folderVideos(entries: readonly MediaEntry[], current: MediaEntry): MediaEntry[] {
+  return entries.filter(entry => entry.type === 'video' && !entry.isDirectory && entry.storageId === current.storageId && entry.parentPath === current.parentPath).sort(compareMediaNames);
+}
 export function playbackQueue(entries: readonly MediaEntry[], current: MediaEntry): MediaEntry[] {
-  const videos = entries.filter(entry => entry.type === 'video' && !entry.isDirectory && entry.storageId === current.storageId && entry.parentPath === current.parentPath);
+  const videos = folderVideos(entries, current);
   const episode = detectEpisode(current.name);
   const series = episode ? videos.filter(entry => { const other = detectEpisode(entry.name); return other && seriesKey(other) === seriesKey(episode); }) : [];
   return (series.length > 1 ? series : videos).slice().sort(series.length > 1 ? compareMediaNames : (a, b) => collator.compare(a.name, b.name));

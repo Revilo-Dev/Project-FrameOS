@@ -13,14 +13,14 @@ import type { CalendarState } from '../services/calendar';
 
 interface Props {
   focused: string; focus(id: string): void; open(item: LauncherItem, origin: string): void;
-  personalise(origin: string): void; showMedia(origin: string): void;
+  personalise(origin: string): void;
   network(): void; power(): void; online: boolean; showFps: boolean;
   weatherCity: WeatherCity; inactive: boolean; hidden: boolean;
   timeFormat: TimeFormat; timeZone: string; clockFont: ClockFont;
   settings: Settings; widgets: WidgetPreferences; organiser: LocalOrganiser; calendar: CalendarState; bitcoin: BitcoinState;
   openWidget(id: WidgetId): void; wallpaper: string; artMode?: boolean; dock?: LauncherItem[]; moving?: string;
 }
-export function Home({ focused, focus, open, personalise, inactive, hidden, showMedia, network, power, online, showFps, timeFormat, timeZone, clockFont, settings, widgets, organiser, calendar, bitcoin, openWidget, wallpaper, artMode, dock, moving }: Props) {
+export function Home({ focused, focus, open, personalise, inactive, hidden, network, power, online, showFps, timeFormat, timeZone, clockFont, settings, widgets, organiser, calendar, bitcoin, openWidget, wallpaper, artMode, dock, moving }: Props) {
   return <main className={`home${hidden ? ' home-away' : ''}`} aria-hidden={inactive || hidden || undefined}>
     <header className="topbar">
       <div className="brand"><img className="brand-logo" src="./assets/frameos.svg" alt="FrameOS" />{showFps && !hidden && <FpsCounter />}</div>
@@ -29,6 +29,6 @@ export function Home({ focused, focus, open, personalise, inactive, hidden, show
     <div className="home-centre"><Clock timeFormat={timeFormat} timeZone={timeZone} font={clockFont} hideDate={artMode} /></div>
     <WidgetDashboard preferences={widgets} organiser={organiser} calendar={calendar} bitcoin={bitcoin} settings={settings} focused={focused} focus={focus} open={openWidget} wallpaper={wallpaper} />
     <AppDock focused={focused} focus={focus} open={open} items={dock} moving={moving} />
-    <FocusButton id="home-media" focused={focused} onFocused={focus} className="media-prompt" onClick={() => showMedia('home-media')}><span>Media</span><svg viewBox="0 0 28 16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m3 3 11 10L25 3" /></svg></FocusButton>
+    <div id="home-media" className="media-prompt"><span>Media</span><svg viewBox="0 0 28 16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m3 3 11 10L25 3" /></svg></div>
   </main>;
 }

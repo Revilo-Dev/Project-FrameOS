@@ -8,6 +8,7 @@ interface RemoteState {
   current: string;
   focus(id: string): void;
   back(): void;
+  home(): void;
   measure?(work: () => void): void;
   direction?(direction: Direction, current: string): boolean | string;
   input?(key: NonNullable<RemoteKey>, current: string): boolean;
@@ -31,8 +32,9 @@ export function useRemote(state: RemoteState) {
       if (document.hidden) return;
       const target = event.target instanceof HTMLElement ? event.target : null;
       // Let native editors own arrows/channel buttons while their keyboard is open.
-      if (event.isComposing || target?.isContentEditable || target?.matches('input, textarea, select')) return;
+      if (key !== 'home' && (event.isComposing || target?.isContentEditable || target?.matches('input, textarea, select'))) return;
       const active = latest.current;
+      if (key === 'home') { clearTimeout(watchdog); hold.cancel(); selectDown = false; event.preventDefault(); if (!event.repeat) active.home(); return; }
       if (key === 'select') {
         event.preventDefault();
         lastSelect = Date.now();

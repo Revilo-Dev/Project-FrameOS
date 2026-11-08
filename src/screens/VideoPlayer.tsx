@@ -1,5 +1,5 @@
 import { videoDisplayTitle } from '../services/episodes';
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react';
 import type { PlatformAdapter } from '../platform/PlatformAdapter';
 import type { MediaEntry } from '../types/media';
 import type { RemoteKey } from '../navigation/remote';
@@ -14,8 +14,8 @@ export function mediaTime(milliseconds: number) {
   const seconds = Math.max(0, Math.floor(milliseconds / 1000));
   return `${seconds >= 3600 ? `${Math.floor(seconds / 3600)}:` : ''}${String(Math.floor(seconds / 60) % 60).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 }
-interface Props { platform: PlatformAdapter; entry: MediaEntry; focused: string; focus(id: string): void; close(): void; next(automatic?: boolean): void; previous(): void; hasNext: boolean; hasPrevious: boolean; autoplay: boolean; automatic: boolean }
-export const VideoPlayer = forwardRef<PlayerHandle, Props>(function VideoPlayer({ platform, entry, focused, focus, close, next, previous, hasNext, hasPrevious, autoplay, automatic }, ref) {
+interface Props { platform: PlatformAdapter; entry: MediaEntry; episodes: MediaEntry[]; episodesOpen: boolean; toggleEpisodes(): void; playEpisode(entry: MediaEntry): void; home(): void; focused: string; focus(id: string): void; close(): void; next(automatic?: boolean): void; previous(): void; hasNext: boolean; hasPrevious: boolean; autoplay: boolean; automatic: boolean }
+export const VideoPlayer = forwardRef<PlayerHandle, Props>(function VideoPlayer({ platform, entry, episodes, episodesOpen, toggleEpisodes, playEpisode, home, focused, focus, close, next, previous, hasNext, hasPrevious, autoplay, automatic }, ref) {
   const controller = platform.player;
   const [snapshot, setSnapshot] = useState(controller.get);
   const [visible, setVisible] = useState(true);
@@ -26,6 +26,9 @@ export const VideoPlayer = forwardRef<PlayerHandle, Props>(function VideoPlayer(
   const [feedback, setFeedback] = useState('');
   const nextAction = useRef(next); nextAction.current = next;
   const closeAction = useRef(close); closeAction.current = close;
+  useLayoutEffect(() => {
+    if (episodesOpen) document.getElementById(focused)?.scrollIntoView({ block: 'nearest' });
+  }, [episodesOpen, focused]);
   useEffect(() => { if (snapshot.status === 'playing') { setCancelledNext(false); setTransition(false); } }, [snapshot.status]);
   useEffect(() => { setCancelledNext(false); setTransition(false); }, [entry.id]);
   useEffect(() => {
@@ -64,13 +67,14 @@ export const VideoPlayer = forwardRef<PlayerHandle, Props>(function VideoPlayer(
     return () => { window.removeEventListener('pagehide', leave); document.removeEventListener('visibilitychange', visibility); document.documentElement.classList.remove('native-playback'); };
   }, [controller]);
   useEffect(() => {
-    if (snapshot.status !== 'playing' || snapshot.busy || snapshot.buffering || resolveError) { setVisible(true); return; }
+    if (episodesOpen || snapshot.status !== 'playing' || snapshot.busy || snapshot.buffering || resolveError) { setVisible(true); return; }
     const timer = setTimeout(() => setVisible(false), 4000);
     return () => clearTimeout(timer);
-  }, [snapshot.status, snapshot.busy, snapshot.buffering, resolveError, activity]);
+  }, [snapshot.status, snapshot.busy, snapshot.buffering, resolveError, activity, episodesOpen]);
   useImperativeHandle(ref, () => ({ input(key, current) {
+    if (episodesOpen && (key === 'back' || key === 'left')) { toggleEpisodes(); reveal(); return true; }
     if (key === 'back') { if (transition && (controller.get().status === 'ended' || automatic && (controller.get().status === 'error' || !!resolveError))) { setCancelledNext(true); setTransition(false); return true; } return false; }
-    const wasHidden = !visible;
+    const wasHidden = !visible && !episodesOpen;
     reveal();
     if (key.startsWith('media-')) {
       if (key === 'media-toggle') controller.toggle();
@@ -93,14 +97,17 @@ export const VideoPlayer = forwardRef<PlayerHandle, Props>(function VideoPlayer(
   const percent = snapshot.duration > 0 ? Math.min(100, snapshot.position / snapshot.duration * 100) : 0;
   const blocked = snapshot.busy || !['playing', 'paused', 'ended'].includes(snapshot.status);
   const title = videoDisplayTitle(entry.name);
-  return <section className={`video-player${visible ? ' controls-visible' : ''}${controller.available ? '' : ' player-unavailable'}`} role="dialog" aria-modal="true" aria-label={`Video player: ${entry.name}`} onMouseMove={reveal} onClick={() => { if (!visible) reveal(); }}>
+  return <section className={`video-player${visible ? ' controls-visible' : ''}${episodesOpen ? ' episodes-open' : ''}${controller.available ? '' : ' player-unavailable'}`} role="dialog" aria-modal="true" aria-label={`Video player: ${entry.name}`} onMouseMove={reveal} onClick={() => { if (!visible) reveal(); }}>
     {platform.player.available && <object className="native-video-surface" type="application/avplayer" aria-label="Native video surface" />}
-    <header className="player-top"><h1>{title}</h1></header>
+    <header className="player-top" aria-hidden={!visible || episodesOpen || undefined}><h1>{title}</h1><div className="player-top-actions">
+      <FocusButton id="player-episodes" focused={focused} onFocused={focus} className="player-header-button" aria-label="Episode list" aria-expanded={episodesOpen} aria-controls="player-episode-panel" onClick={() => { reveal(); toggleEpisodes(); }}><svg className="icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true"><path d="M19 12h21M19 24h21M19 36h21M8 12h1M8 24h1M8 36h1" /></svg><span>Episodes</span></FocusButton>
+      <FocusButton id="player-home" focused={focused} onFocused={focus} className="player-header-button" aria-label="FrameOS Home" onClick={home}><svg className="icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" aria-hidden="true"><path d="m6 22 18-16 18 16M11 19v23h12V28h8v14h6V19" /></svg><span>Home</span></FocusButton>
+    </div></header>
     {!exhausted && (error || snapshot.buffering || snapshot.status === 'preparing' || snapshot.status === 'closed') && <div className="player-message" role="status">{error || (snapshot.buffering ? `Buffering ${Math.round(snapshot.percent)}%` : 'Preparing video…')}</div>}
     {feedback && <div className="player-skip-feedback" role="status">{feedback}</div>}
     {transition && <div className="player-next-transition" role="status">Playing next episode<span>Back to cancel</span></div>}
     {(snapshot.status === 'ended' || exhausted) && !transition && <div className="player-ended" role="status">Video finished{!hasNext && <span>{exhausted ? 'No more playable videos in this folder' : 'End of this folder’s playback list'}</span>}</div>}
-    <div className="player-bottom" aria-hidden={!visible || undefined}>
+    <div className="player-bottom" aria-hidden={!visible || episodesOpen || undefined}>
       <div className="player-controls">
         <FocusButton id="player-previous" focused={focused} onFocused={focus} className="player-button" aria-label="Previous Episode" aria-disabled={!hasPrevious || snapshot.busy} onClick={() => { reveal(); if (hasPrevious && !snapshot.busy) previous(); }}><TrackIcon /></FocusButton>
         <FocusButton id="player-rewind" focused={focused} onFocused={focus} className="player-button" aria-label="Rewind 10 seconds" aria-disabled={blocked} onClick={() => seekBy(-10000)}><span className="player-skip-label" aria-hidden="true">&#8722;10</span></FocusButton>
@@ -111,5 +118,12 @@ export const VideoPlayer = forwardRef<PlayerHandle, Props>(function VideoPlayer(
       <div className="player-time">{mediaTime(snapshot.position)} <span>/ {mediaTime(snapshot.duration)}</span></div>
       <FocusButton id="player-seek" focused={focused} onFocused={focus} className="player-timeline" role="slider" aria-label="Playback position" aria-valuemin={0} aria-valuemax={snapshot.duration} aria-valuenow={snapshot.position} aria-valuetext={`${mediaTime(snapshot.position)} of ${mediaTime(snapshot.duration)}`} aria-disabled={blocked} onClick={() => { reveal(); controller.toggle(); }}><span className="player-track"><span className="player-fill" style={{ width: `${percent}%` }} /><span className="player-knob" style={{ left: `${percent}%` }} /></span></FocusButton>
     </div>
+    {episodesOpen && <>
+      <div className="player-episode-scrim" onClick={() => { toggleEpisodes(); reveal(); }} />
+      <aside id="player-episode-panel" className="player-episode-panel" role="dialog" aria-modal="true" aria-labelledby="player-episode-title">
+        <header><div><h2 id="player-episode-title">Episodes</h2><p>{entry.parentPath.split('/').pop()} <span>&middot; {episodes.length} videos</span></p></div><FocusButton id="player-episodes-close" focused={focused} onFocused={focus} className="player-header-button" aria-label="Close episode list" onClick={() => { toggleEpisodes(); reveal(); }}><svg className="icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true"><path d="m12 12 24 24m0-24L12 36" /></svg></FocusButton></header>
+        <ol className="player-episode-list">{episodes.map((episode, index) => <li key={episode.id}><FocusButton id={`player-episode-${index}`} focused={focused} onFocused={focus} className={`player-episode${episode.id === entry.id ? ' is-playing' : ''}`} aria-current={episode.id === entry.id ? 'true' : undefined} aria-disabled={snapshot.busy} onClick={() => { if (!snapshot.busy) { reveal(); playEpisode(episode); } }}><span className="player-episode-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span><span className="player-episode-info"><span>{videoDisplayTitle(episode.name)}</span>{episode.id === entry.id && <small>Now playing</small>}</span></FocusButton></li>)}</ol>
+      </aside>
+    </>}
   </section>;
 });
